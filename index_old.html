@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Systems Canvas - Diagram Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="toolbar-section">
+                <button class="tool-btn active" data-tool="select" title="Select (V)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M3 3 L3 17 L8 12 L11 16 L13 15 L10 11 L16 10 Z" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="rectangle" title="Rectangle (R)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <rect x="3" y="5" width="14" height="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="circle" title="Circle (C)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="diamond" title="Diamond (D)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M10 3 L17 10 L10 17 L3 10 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="text" title="Text (T)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <text x="10" y="15" text-anchor="middle" fill="currentColor" font-size="16" font-weight="bold">T</text>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="connector" title="Connector (L)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M3 10 L17 10" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <path d="M14 7 L17 10 L14 13" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="miter"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="toolbar-section">
+                <button class="tool-btn" id="undo-btn" title="Undo (Ctrl+Z)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M8 5 L3 10 L8 15 M3 10 L17 10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" id="redo-btn" title="Redo (Ctrl+Y)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M12 5 L17 10 L12 15 M17 10 L3 10" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="toolbar-section">
+                <button class="tool-btn" id="delete-btn" title="Delete (Del)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M6 7 L6 16 L14 16 L14 7 M4 7 L16 7 M8 4 L12 4 M8 10 L8 13 M12 10 L12 13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" id="copy-btn" title="Copy (Ctrl+C)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <rect x="6" y="6" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <path d="M4 4 L4 14 L6 14 M14 4 L14 6" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="toolbar-section">
+                <button class="tool-btn" id="align-left" title="Align Left">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <line x1="4" y1="3" x2="4" y2="17" stroke="currentColor" stroke-width="2"/>
+                        <rect x="6" y="5" width="8" height="3" fill="currentColor"/>
+                        <rect x="6" y="12" width="6" height="3" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" id="align-center" title="Align Center">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <line x1="10" y1="3" x2="10" y2="17" stroke="currentColor" stroke-width="2"/>
+                        <rect x="6" y="5" width="8" height="3" fill="currentColor"/>
+                        <rect x="7" y="12" width="6" height="3" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" id="align-right" title="Align Right">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <line x1="16" y1="3" x2="16" y2="17" stroke="currentColor" stroke-width="2"/>
+                        <rect x="6" y="5" width="8" height="3" fill="currentColor"/>
+                        <rect x="8" y="12" width="6" height="3" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="toolbar-section">
+                <label>
+                    <input type="checkbox" id="grid-toggle" checked>
+                    <span>Grid</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="snap-toggle" checked>
+                    <span>Snap</span>
+                </label>
+            </div>
+
+            <div class="toolbar-section">
+                <button class="tool-btn" id="zoom-out" title="Zoom Out">-</button>
+                <span id="zoom-level">100%</span>
+                <button class="tool-btn" id="zoom-in" title="Zoom In">+</button>
+            </div>
+
+            <div class="toolbar-section">
+                <button class="action-btn" id="save-btn">Save</button>
+                <button class="action-btn" id="load-btn">Load</button>
+                <button class="action-btn" id="export-png-btn">Export PNG</button>
+                <button class="action-btn" id="export-pdf-btn">Export PDF</button>
+                <button class="action-btn" id="new-btn">New</button>
+            </div>
+        </div>
+
+        <!-- Main Canvas Area -->
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <!-- Properties Panel -->
+        <div class="properties-panel" id="properties-panel">
+            <h3>Properties</h3>
+            <div id="properties-content">
+                <p class="no-selection">No object selected</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input for loading -->
+    <input type="file" id="file-input" accept=".json" style="display: none;">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

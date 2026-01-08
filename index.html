@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Systems Canvas Pro - Advanced Diagram Tool</title>
+    <link rel="stylesheet" href="styles2.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Top Toolbar -->
+        <div class="toolbar">
+            <!-- Tools Section -->
+            <div class="toolbar-section">
+                <button class="tool-btn active" data-tool="select" title="Select (V)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M3 3 L3 17 L8 12 L11 16 L13 15 L10 11 L16 10 Z" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="rectangle" title="Rectangle (R)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <rect x="3" y="5" width="14" height="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="circle" title="Circle (C)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="diamond" title="Diamond (D)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M10 3 L17 10 L10 17 L3 10 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="hexagon" title="Hexagon (H)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M10 2 L17 6 L17 14 L10 18 L3 14 L3 6 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="cylinder" title="Cylinder">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <ellipse cx="10" cy="5" rx="6" ry="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <line x1="4" y1="5" x2="4" y2="15" stroke="currentColor" stroke-width="2"/>
+                        <line x1="16" y1="5" x2="16" y2="15" stroke="currentColor" stroke-width="2"/>
+                        <ellipse cx="10" cy="15" rx="6" ry="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="parallelogram" title="Parallelogram">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M5 5 L15 5 L13 15 L3 15 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="text" title="Text (T)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <text x="10" y="15" text-anchor="middle" fill="currentColor" font-size="16" font-weight="bold">T</text>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Connector Tools -->
+            <div class="toolbar-section">
+                <button class="tool-btn" data-tool="connector" title="Connector (L)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M3 10 L17 10 M14 7 L17 10 L14 13" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="polyline" title="Poly-line (P)">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M3 10 L8 5 L12 12 L17 8" stroke="currentColor" stroke-width="2" fill="none"/>
+                    </svg>
+                </button>
+                <select id="connector-style" title="Connector Style">
+                    <option value="straight">Straight</option>
+                    <option value="orthogonal">Orthogonal</option>
+                    <option value="bezier">Bezier</option>
+                </select>
+            </div>
+
+            <!-- Edit Actions -->
+            <div class="toolbar-section">
+                <button class="tool-btn" id="undo-btn" title="Undo (Ctrl+Z)">⟲</button>
+                <button class="tool-btn" id="redo-btn" title="Redo (Ctrl+Y)">⟳</button>
+                <button class="tool-btn" id="delete-btn" title="Delete (Del)">🗑</button>
+                <button class="tool-btn" id="copy-btn" title="Copy (Ctrl+C)">📋</button>
+                <button class="tool-btn" id="group-btn" title="Group (Ctrl+G)">⬚</button>
+                <button class="tool-btn" id="ungroup-btn" title="Ungroup (Ctrl+Shift+G)">⬚⬚</button>
+            </div>
+
+            <!-- Layers -->
+            <div class="toolbar-section">
+                <button class="tool-btn" id="bring-front-btn" title="Bring to Front">↑↑</button>
+                <button class="tool-btn" id="send-back-btn" title="Send to Back">↓↓</button>
+            </div>
+
+            <!-- Alignment -->
+            <div class="toolbar-section">
+                <button class="tool-btn" id="align-left" title="Align Left">⫷</button>
+                <button class="tool-btn" id="align-center" title="Align Center">⫿</button>
+                <button class="tool-btn" id="align-right" title="Align Right">⫸</button>
+            </div>
+
+            <!-- View Controls -->
+            <div class="toolbar-section">
+                <label>
+                    <input type="checkbox" id="grid-toggle" checked>
+                    <span>Grid</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="snap-toggle" checked>
+                    <span>Snap</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="shadow-toggle">
+                    <span>Shadows</span>
+                </label>
+            </div>
+
+            <div class="toolbar-section">
+                <button class="tool-btn" id="zoom-out">-</button>
+                <span id="zoom-level">100%</span>
+                <button class="tool-btn" id="zoom-in">+</button>
+            </div>
+
+            <!-- File Operations -->
+            <div class="toolbar-section">
+                <button class="action-btn" id="templates-btn">Templates</button>
+                <button class="action-btn" id="icons-btn">Icons</button>
+                <button class="action-btn" id="image-btn">Image</button>
+                <button class="action-btn" id="save-btn">Save</button>
+                <button class="action-btn" id="load-btn">Load</button>
+                <button class="action-btn" id="export-png-btn">PNG</button>
+                <button class="action-btn" id="export-pdf-btn">PDF</button>
+                <button class="action-btn" id="new-btn">New</button>
+            </div>
+        </div>
+
+        <!-- Main Canvas Area -->
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+
+            <!-- Floating Anchor Indicator -->
+            <div id="anchor-indicator" class="anchor-indicator" style="display: none;">
+                <div class="anchor-dot"></div>
+            </div>
+        </div>
+
+        <!-- Properties Panel -->
+        <div class="properties-panel" id="properties-panel">
+            <h3>Properties</h3>
+            <div id="properties-content">
+                <p class="no-selection">No object selected</p>
+            </div>
+        </div>
+
+        <!-- Templates Modal -->
+        <div id="templates-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Templates</h2>
+                <div id="templates-grid" class="templates-grid"></div>
+            </div>
+        </div>
+
+        <!-- Icons Modal -->
+        <div id="icons-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Icon Library</h2>
+                <div id="icons-grid" class="icons-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="file-input" accept=".json" style="display: none;">
+    <input type="file" id="image-input" accept="image/*" style="display: none;">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
