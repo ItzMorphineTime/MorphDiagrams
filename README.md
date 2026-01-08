@@ -1,7 +1,6 @@
 # Systems Canvas Pro - Feature-Complete Diagram Tool
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-blue?style=for-the-badge)](https://itzmorphinetime.github.io/MorphDiagrams/)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
-**Version 2.0** - Complete refactored implementation with all advanced features
 ---
 
 ## 🚀 Live Demo
