@@ -138,7 +138,9 @@ export class Templates {
         ceo.fill = '#8e44ad';
         objects.push(ceo);
 
-        const ceoText = new TextShape(300, 80, 'CEO');
+        const ceoText = new TextShape(250, 50, 'CEO');
+        ceoText.width = 100;
+        ceoText.height = 60;
         ceoText.fill = '#ffffff';
         objects.push(ceoText);
 
@@ -154,7 +156,9 @@ export class Templates {
             box.fill = '#3498db';
             objects.push(box);
 
-            const text = new TextShape(pos.x + 50, pos.y + 30, pos.title);
+            const text = new TextShape(pos.x, pos.y, pos.title);
+            text.width = 100;
+            text.height = 60;
             text.fill = '#ffffff';
             objects.push(text);
 

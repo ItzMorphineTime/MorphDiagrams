@@ -19,22 +19,33 @@ export class TextShape extends BaseShape {
         if (!this.visible) return;
 
         ctx.save();
+        this.applyRotation(ctx);
 
         ctx.fillStyle = this.fill;
         ctx.font = `${this.fontStyle} ${this.fontWeight} ${this.fontSize}px ${this.fontFamily}`;
         ctx.textAlign = this.textAlign;
         ctx.textBaseline = this.textBaseline;
 
-        const textX = this.textAlign === 'center' ? this.x + this.width / 2 :
-                     this.textAlign === 'right' ? this.x + this.width : this.x;
-        const textY = this.y + this.height / 2;
-
         // Apply shadow to text
         if (this.shadow) {
             this.applyShadow(ctx);
         }
 
-        ctx.fillText(this.text, textX, textY);
+        // Split text by newlines for multi-line support
+        const lines = this.text.split('\n');
+        const lineHeight = this.fontSize * 1.2;
+
+        // Calculate starting Y position to center all lines
+        const totalHeight = lines.length * lineHeight;
+        let startY = this.y + this.height / 2 - totalHeight / 2 + lineHeight / 2;
+
+        lines.forEach((line, index) => {
+            const textX = this.textAlign === 'center' ? this.x + this.width / 2 :
+                         this.textAlign === 'right' ? this.x + this.width : this.x;
+            const textY = startY + index * lineHeight;
+
+            ctx.fillText(line, textX, textY);
+        });
 
         this.clearShadow(ctx);
         ctx.restore();

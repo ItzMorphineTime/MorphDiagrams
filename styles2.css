@@ -266,6 +266,32 @@ body {
     flex: 1;
 }
 
+.button-group {
+    display: flex;
+    gap: 4px;
+}
+
+.button-group button {
+    flex: 1;
+    background: #3e3e3e;
+    border: 1px solid #4e4e4e;
+    color: #ffffff;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.button-group button:hover {
+    background: #4e4e4e;
+}
+
+.button-group button.active {
+    background: #0066cc;
+    border-color: #0066cc;
+}
+
 .no-selection {
     color: #888888;
     font-style: italic;

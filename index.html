@@ -57,6 +57,54 @@
                 </button>
             </div>
 
+            <!-- Systems Objects -->
+            <div class="toolbar-section">
+                <label style="font-size: 11px; color: #999; margin-right: 8px;">Systems:</label>
+                <button class="tool-btn" data-tool="server" title="Server">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <rect x="3" y="4" width="14" height="12" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <line x1="3" y1="8" x2="17" y2="8" stroke="currentColor" stroke-width="1"/>
+                        <line x1="3" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="1"/>
+                        <line x1="3" y1="14" x2="17" y2="14" stroke="currentColor" stroke-width="1"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="network_switch" title="Network Switch">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M10 2 L17 6 L17 14 L10 18 L3 14 L3 6 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="video_matrix" title="Video Matrix">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <ellipse cx="10" cy="5" rx="6" ry="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <line x1="4" y1="5" x2="4" y2="15" stroke="currentColor" stroke-width="2"/>
+                        <line x1="16" y1="5" x2="16" y2="15" stroke="currentColor" stroke-width="2"/>
+                        <ellipse cx="10" cy="15" rx="6" ry="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="led_processor" title="LED Processor">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <rect x="3" y="6" width="14" height="8" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="7" cy="10" r="1.5" fill="currentColor"/>
+                        <circle cx="10" cy="10" r="1.5" fill="currentColor"/>
+                        <circle cx="13" cy="10" r="1.5" fill="currentColor"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="sync_generator" title="Sync Generator">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <path d="M10 2 L17 6 L17 14 L10 18 L3 14 L3 6 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="10" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="1"/>
+                        <line x1="10" y1="10" x2="10" y2="8" stroke="currentColor" stroke-width="1"/>
+                        <line x1="10" y1="10" x2="11.5" y2="10" stroke="currentColor" stroke-width="1"/>
+                    </svg>
+                </button>
+                <button class="tool-btn" data-tool="connector_anchor" title="Connector Anchor">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <rect x="6" y="6" width="8" height="8" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="10" cy="10" r="2.5" fill="currentColor"/>
+                    </svg>
+                </button>
+            </div>
+
             <!-- Connector Tools -->
             <div class="toolbar-section">
                 <button class="tool-btn" data-tool="connector" title="Connector (L)">
@@ -131,6 +179,7 @@
                 <button class="action-btn" id="export-png-btn">PNG</button>
                 <button class="action-btn" id="export-pdf-btn">PDF</button>
                 <button class="action-btn" id="new-btn">New</button>
+                <button class="action-btn" id="settings-btn">⚙️ Settings</button>
             </div>
         </div>
 
@@ -167,6 +216,40 @@
                 <span class="close">&times;</span>
                 <h2>Icon Library</h2>
                 <div id="icons-grid" class="icons-grid"></div>
+            </div>
+        </div>
+
+        <!-- Connection Colors Settings Modal -->
+        <div id="settings-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Connection Type Colors</h2>
+                <div class="settings-content" style="justify-items: flex-end;">
+                    <div class="setting-group">
+                        <label>Video Connections</label>
+                        <input type="color" id="color-video" value="#FFD700">
+                        <span class="color-preview" id="preview-video"></span>
+                    </div>
+                    <div class="setting-group">
+                        <label>SDI Connections</label>
+                        <input type="color" id="color-sdi" value="#FF4500">
+                        <span class="color-preview" id="preview-sdi"></span>
+                    </div>
+                    <div class="setting-group">
+                        <label>Network Connections</label>
+                        <input type="color" id="color-network" value="#00CED1">
+                        <span class="color-preview" id="preview-network"></span>
+                    </div>
+                    <div class="setting-group">
+                        <label>USB Connections</label>
+                        <input type="color" id="color-usb" value="#9370DB">
+                        <span class="color-preview" id="preview-usb"></span>
+                    </div>
+                    <div class="setting-actions">
+                        <button id="reset-colors-btn" class="action-btn">Reset to Defaults</button>
+                        <button id="apply-colors-btn" class="action-btn">Apply</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

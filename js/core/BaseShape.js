@@ -43,18 +43,70 @@ export class BaseShape {
                y >= bounds.y && y <= bounds.y + bounds.height;
     }
 
+    // Rotate a point around the shape's center
+    rotatePoint(x, y) {
+        if (!this.rotation || this.rotation === 0) {
+            return { x, y };
+        }
+
+        const cx = this.x + this.width / 2;
+        const cy = this.y + this.height / 2;
+
+        // Translate point to origin
+        const tx = x - cx;
+        const ty = y - cy;
+
+        // Rotate
+        const cos = Math.cos(this.rotation);
+        const sin = Math.sin(this.rotation);
+        const rx = tx * cos - ty * sin;
+        const ry = tx * sin + ty * cos;
+
+        // Translate back
+        return {
+            x: rx + cx,
+            y: ry + cy
+        };
+    }
+
+    // Get rotated bounding box corners
+    getRotatedBounds() {
+        const corners = [
+            { x: this.x, y: this.y },
+            { x: this.x + this.width, y: this.y },
+            { x: this.x + this.width, y: this.y + this.height },
+            { x: this.x, y: this.y + this.height }
+        ];
+
+        if (this.rotation && this.rotation !== 0) {
+            return corners.map(corner => this.rotatePoint(corner.x, corner.y));
+        }
+
+        return corners;
+    }
+
     // Get anchor points for connections
     getAnchorPoints() {
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height / 2;
 
-        return {
+        const anchors = {
             top: { x: cx, y: this.y },
             right: { x: this.x + this.width, y: cy },
             bottom: { x: cx, y: this.y + this.height },
             left: { x: this.x, y: cy },
             center: { x: cx, y: cy }
         };
+
+        // Rotate anchor points if shape is rotated
+        if (this.rotation && this.rotation !== 0) {
+            Object.keys(anchors).forEach(key => {
+                const rotated = this.rotatePoint(anchors[key].x, anchors[key].y);
+                anchors[key] = rotated;
+            });
+        }
+
+        return anchors;
     }
 
     // Move shape by delta
@@ -70,6 +122,17 @@ export class BaseShape {
         if (!this.locked) {
             this.width = width;
             this.height = height;
+        }
+    }
+
+    // Apply rotation transform around center
+    applyRotation(ctx) {
+        if (this.rotation && this.rotation !== 0) {
+            const cx = this.x + this.width / 2;
+            const cy = this.y + this.height / 2;
+            ctx.translate(cx, cy);
+            ctx.rotate(this.rotation);
+            ctx.translate(-cx, -cy);
         }
     }
 

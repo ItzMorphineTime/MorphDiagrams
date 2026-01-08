@@ -11,6 +11,7 @@ export class Cylinder extends BaseShape {
         if (!this.visible) return;
 
         ctx.save();
+        this.applyRotation(ctx);
         this.applyShadow(ctx);
 
         ctx.fillStyle = this.fill;
@@ -26,16 +27,21 @@ export class Cylinder extends BaseShape {
 
         // Draw cylinder body
         ctx.beginPath();
+
+        // Start at top left
         ctx.moveTo(this.x, topY);
+
+        // Draw left side down
         ctx.lineTo(this.x, bottomY);
 
-        // Bottom half-ellipse
-        ctx.ellipse(cx, bottomY, rx, ry, 0, Math.PI, 0, false);
+        // Draw bottom arc (left to right)
+        ctx.arc(cx, bottomY, rx, Math.PI, 0, false);
 
+        // Draw right side up
         ctx.lineTo(this.x + this.width, topY);
 
-        // Top half-ellipse (back side, hidden)
-        ctx.ellipse(cx, topY, rx, ry, 0, 0, Math.PI, true);
+        // Draw top arc back (right to left, counterclockwise)
+        ctx.arc(cx, topY, rx, 0, Math.PI, true);
 
         ctx.closePath();
         ctx.fill();

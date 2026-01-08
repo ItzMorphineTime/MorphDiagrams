@@ -1,6 +1,6 @@
 // Base connector class
 export class Connector {
-    constructor(startObject, startAnchor, endObject, endAnchor) {
+    constructor(startObject, startAnchor, endObject, endAnchor, connectionType = null) {
         this.id = this.generateId();
         this.type = 'connector';
         this.startObject = startObject;
@@ -15,6 +15,9 @@ export class Connector {
         this.zIndex = -1; // Connectors below shapes by default
         this.visible = true;
         this.selected = false;
+
+        // Connection type for custom network objects (video, sdi, network, usb)
+        this.connectionType = connectionType;
 
         // For polyline connectors
         this.waypoints = [];
@@ -439,6 +442,7 @@ export class Connector {
             style: this.style,
             zIndex: this.zIndex,
             visible: this.visible,
+            connectionType: this.connectionType,
             waypoints: this.waypoints,
             controlPoint1: this.controlPoint1,
             controlPoint2: this.controlPoint2

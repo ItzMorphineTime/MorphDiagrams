@@ -48,6 +48,7 @@ export class Parallelogram extends BaseShape {
         if (!this.visible) return;
 
         ctx.save();
+        this.applyRotation(ctx);
         this.applyShadow(ctx);
 
         ctx.fillStyle = this.fill;

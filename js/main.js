@@ -10,9 +10,16 @@ import { Cylinder } from './shapes/Cylinder.js';
 import { Parallelogram } from './shapes/Parallelogram.js';
 import { TextShape } from './shapes/TextShape.js';
 import { ImageShape } from './shapes/ImageShape.js';
+import { Server } from './shapes/Server.js';
+import { NetworkSwitch } from './shapes/NetworkSwitch.js';
+import { VideoMatrix } from './shapes/VideoMatrix.js';
+import { LEDProcessor } from './shapes/LEDProcessor.js';
+import { SyncGenerator } from './shapes/SyncGenerator.js';
+import { ConnectorAnchor } from './shapes/ConnectorAnchor.js';
 import { ContextMenu } from './ui/ContextMenu.js';
 import { IconLibrary } from './utils/IconLibrary.js';
 import { Templates } from './utils/Templates.js';
+import { ConnectionTypes, ConnectionColors } from './config/ConnectionTypes.js';
 
 class CanvasApp {
     constructor() {
@@ -171,6 +178,9 @@ class CanvasApp {
         document.getElementById('icons-btn').addEventListener('click', () => this.showIcons());
         document.getElementById('image-btn').addEventListener('click', () => this.addImage());
 
+        // Settings
+        document.getElementById('settings-btn').addEventListener('click', () => this.showSettings());
+
         // File inputs
         document.getElementById('file-input').addEventListener('change', (e) => this.handleFileLoad(e));
         document.getElementById('image-input').addEventListener('change', (e) => this.handleImageLoad(e));
@@ -181,6 +191,10 @@ class CanvasApp {
                 e.target.closest('.modal').style.display = 'none';
             });
         });
+
+        // Settings modal buttons
+        document.getElementById('reset-colors-btn').addEventListener('click', () => this.resetColors());
+        document.getElementById('apply-colors-btn').addEventListener('click', () => this.applyColors());
     }
 
     setTool(tool) {
@@ -259,7 +273,7 @@ class CanvasApp {
                 this.isResizing = true;
                 this.resizeHandle = handle.handle;
                 this.dragStart = pos;
-                this.initialBounds = { ...handle.bounds };
+                this.initialBounds = { x: handle.obj.x, y: handle.obj.y, width: handle.obj.width, height: handle.obj.height };
             } else if (handle.type === 'rotate') {
                 this.isRotating = true;
                 this.rotateCenter = handle.center;
@@ -323,13 +337,22 @@ class CanvasApp {
         if (anchor) {
             this.connectorStart = anchor;
             this.isDrawing = true;
+            const connectionType = anchor.connectionType || null;
             this.tempObject = new Connector(
                 anchor.object,
                 anchor.side,
                 null,
-                null
+                null,
+                connectionType
             );
             this.tempObject.style = document.getElementById('connector-style').value || 'straight';
+
+            // Apply connection type color if available
+            if (connectionType && ConnectionColors[connectionType]) {
+                this.tempObject.stroke = ConnectionColors[connectionType];
+                this.tempObject.strokeWidth = 3; // Make typed connections thicker
+            }
+
             this.showAnchorIndicator(anchor);
         }
     }
@@ -342,13 +365,25 @@ class CanvasApp {
                 this.isDrawingPolyline = true;
                 this.connectorStart = anchor;
                 this.polylineWaypoints = [];
-                this.tempObject = new Connector(anchor.object, anchor.side, null, null);
+                const connectionType = anchor.connectionType || null;
+                this.tempObject = new Connector(anchor.object, anchor.side, null, null, connectionType);
                 this.tempObject.style = 'polyline';
+
+                // Apply connection type color if available
+                if (connectionType && ConnectionColors[connectionType]) {
+                    this.tempObject.stroke = ConnectionColors[connectionType];
+                    this.tempObject.strokeWidth = 3;
+                }
+
                 this.showAnchorIndicator(anchor);
             }
         } else {
             // Add waypoint or finish
-            const anchor = this.findNearestAnchor(pos.x, pos.y);
+            const requiredConnectionType = this.connectorStart.connectionType || null;
+            const requiredPortType = this.connectorStart.portType === 'output' ? 'input' :
+                                     this.connectorStart.portType === 'input' ? 'output' : null;
+
+            const anchor = this.findNearestAnchor(pos.x, pos.y, 15, requiredConnectionType, requiredPortType);
 
             if (anchor && anchor.object !== this.connectorStart.object) {
                 // Finish polyline
@@ -471,7 +506,11 @@ class CanvasApp {
         } else if (this.isDrawingPolyline) {
             // Update temp polyline endpoint
             if (this.tempObject) {
-                const anchor = this.findNearestAnchor(pos.x, pos.y);
+                const requiredConnectionType = this.connectorStart.connectionType || null;
+                const requiredPortType = this.connectorStart.portType === 'output' ? 'input' :
+                                         this.connectorStart.portType === 'input' ? 'output' : null;
+
+                const anchor = this.findNearestAnchor(pos.x, pos.y, 15, requiredConnectionType, requiredPortType);
                 if (anchor && anchor.object !== this.connectorStart.object) {
                     const anchorPos = anchor.object.getAnchorPoints()[anchor.side];
                     this.tempObject.endObject = anchor.object;
@@ -489,7 +528,12 @@ class CanvasApp {
     }
 
     updateTempConnector(pos) {
-        const anchor = this.findNearestAnchor(pos.x, pos.y);
+        // Get required connection type and port type from starting anchor
+        const requiredConnectionType = this.connectorStart.connectionType || null;
+        const requiredPortType = this.connectorStart.portType === 'output' ? 'input' :
+                                 this.connectorStart.portType === 'input' ? 'output' : null;
+
+        const anchor = this.findNearestAnchor(pos.x, pos.y, 15, requiredConnectionType, requiredPortType);
 
         if (anchor && anchor.object !== this.connectorStart.object) {
             const anchorPos = anchor.object.getAnchorPoints()[anchor.side];
@@ -531,6 +575,10 @@ class CanvasApp {
 
         if (this.isResizing || this.isRotating || this.isDraggingWaypoint || this.isDraggingControlPoint) {
             this.saveState();
+            // Update properties panel after resize/rotate is complete
+            if (this.isResizing || this.isRotating) {
+                this.updatePropertiesPanel();
+            }
         }
 
         this.isDrawing = false;
@@ -661,7 +709,7 @@ class CanvasApp {
         // Update rotation (convert to degrees)
         obj.rotation = this.initialRotation + (angle - startAngle);
 
-        this.updatePropertiesPanel();
+        // Don't update properties panel during drag - will update on mouse up
     }
 
     handleWaypointDrag(pos) {
@@ -858,6 +906,24 @@ class CanvasApp {
             case 'parallelogram':
                 shape = new Parallelogram(x, y, width, height);
                 break;
+            case 'server':
+                shape = new Server(x, y, width, height);
+                break;
+            case 'network_switch':
+                shape = new NetworkSwitch(x, y, width, height);
+                break;
+            case 'video_matrix':
+                shape = new VideoMatrix(x, y, width, height);
+                break;
+            case 'led_processor':
+                shape = new LEDProcessor(x, y, width, height);
+                break;
+            case 'sync_generator':
+                shape = new SyncGenerator(x, y, width, height);
+                break;
+            case 'connector_anchor':
+                shape = new ConnectorAnchor(x, y);
+                break;
             default:
                 shape = new Rectangle(x, y, width, height);
         }
@@ -867,12 +933,11 @@ class CanvasApp {
     }
 
     createTextShape(pos) {
-        const text = prompt('Enter text:', 'Text');
-        if (text) {
-            const textShape = new TextShape(pos.x, pos.y, text);
-            this.objects.push(textShape);
-            this.saveState();
-        }
+        const textShape = new TextShape(pos.x, pos.y, 'Text');
+        this.objects.push(textShape);
+        this.selectedObjects = [textShape];
+        this.updatePropertiesPanel();
+        this.saveState();
     }
 
     findObjectAtPoint(x, y) {
@@ -895,7 +960,7 @@ class CanvasApp {
         return null;
     }
 
-    findNearestAnchor(x, y, threshold = 15) {
+    findNearestAnchor(x, y, threshold = 15, requiredConnectionType = null, requiredPortType = null) {
         let nearest = null;
         let minDist = threshold;
 
@@ -905,10 +970,28 @@ class CanvasApp {
             const anchors = obj.getAnchorPoints();
             for (let [side, pos] of Object.entries(anchors)) {
                 if (side === 'center') continue; // Skip center anchor
+
+                // Check connection type compatibility if required
+                if (requiredConnectionType && pos.connectionType && pos.connectionType !== requiredConnectionType) {
+                    continue; // Skip incompatible connection types
+                }
+
+                // Check port type compatibility if required (output can only connect to input)
+                if (requiredPortType && pos.portType) {
+                    // If we're looking for a specific port type, only match that type
+                    if (pos.portType !== requiredPortType) continue;
+                }
+
                 const dist = Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2);
                 if (dist < minDist) {
                     minDist = dist;
-                    nearest = { object: obj, side, position: pos };
+                    nearest = {
+                        object: obj,
+                        side,
+                        position: pos,
+                        connectionType: pos.connectionType,
+                        portType: pos.portType
+                    };
                 }
             }
         }
@@ -1187,6 +1270,54 @@ class CanvasApp {
         document.getElementById('image-input').click();
     }
 
+    showSettings() {
+        const modal = document.getElementById('settings-modal');
+
+        // Set current colors
+        document.getElementById('color-video').value = ConnectionColors.video;
+        document.getElementById('color-sdi').value = ConnectionColors.sdi;
+        document.getElementById('color-network').value = ConnectionColors.network;
+        document.getElementById('color-usb').value = ConnectionColors.usb;
+
+        modal.style.display = 'block';
+    }
+
+    resetColors() {
+        // Reset to defaults
+        ConnectionColors.video = '#FFD700';
+        ConnectionColors.sdi = '#FF4500';
+        ConnectionColors.network = '#00CED1';
+        ConnectionColors.usb = '#9370DB';
+
+        // Update inputs
+        document.getElementById('color-video').value = ConnectionColors.video;
+        document.getElementById('color-sdi').value = ConnectionColors.sdi;
+        document.getElementById('color-network').value = ConnectionColors.network;
+        document.getElementById('color-usb').value = ConnectionColors.usb;
+
+        this.render();
+    }
+
+    applyColors() {
+        // Apply new colors
+        ConnectionColors.video = document.getElementById('color-video').value;
+        ConnectionColors.sdi = document.getElementById('color-sdi').value;
+        ConnectionColors.network = document.getElementById('color-network').value;
+        ConnectionColors.usb = document.getElementById('color-usb').value;
+
+        // Update all connectors with new colors
+        this.objects.forEach(obj => {
+            if (obj.type === 'connector' && obj.connectionType) {
+                obj.stroke = ConnectionColors[obj.connectionType];
+            }
+        });
+
+        // Close modal
+        document.getElementById('settings-modal').style.display = 'none';
+
+        this.render();
+    }
+
     handleImageLoad(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -1410,6 +1541,24 @@ class CanvasApp {
             case 'parallelogram':
                 obj = new Parallelogram(data.x, data.y, data.width, data.height);
                 break;
+            case 'server':
+                obj = new Server(data.x, data.y, data.width, data.height);
+                break;
+            case 'network_switch':
+                obj = new NetworkSwitch(data.x, data.y, data.width, data.height);
+                break;
+            case 'video_matrix':
+                obj = new VideoMatrix(data.x, data.y, data.width, data.height);
+                break;
+            case 'led_processor':
+                obj = new LEDProcessor(data.x, data.y, data.width, data.height);
+                break;
+            case 'sync_generator':
+                obj = new SyncGenerator(data.x, data.y, data.width, data.height);
+                break;
+            case 'connector_anchor':
+                obj = new ConnectorAnchor(data.x, data.y);
+                break;
             case 'text':
                 obj = new TextShape(data.x, data.y, data.text);
                 break;
@@ -1467,6 +1616,58 @@ class CanvasApp {
                         <input type="number" id="prop-height" value="${Math.round(obj.height)}">
                     </div>
                 </div>
+                <div class="property-group">
+                    <label>Rotation</label>
+                    <input type="range" id="prop-rotation" min="0" max="${Math.PI * 2}" step="0.01" value="${obj.rotation || 0}">
+                    <span>${Math.round((obj.rotation || 0) * 180 / Math.PI)}°</span>
+                </div>
+            `;
+        }
+
+        // Port configuration for custom network objects
+        if (obj.ports) {
+            html += '<div class="property-group"><label style="font-weight: bold; margin-top: 10px;">Port Configuration</label></div>';
+
+            for (let type in obj.ports) {
+                const config = obj.ports[type];
+                const typeName = type.charAt(0).toUpperCase() + type.slice(1);
+
+                if (config.input !== undefined) {
+                    html += `
+                        <div class="property-group">
+                            <label>${typeName} Inputs</label>
+                            <input type="number" id="prop-port-${type}-input" min="0" max="16" value="${config.input}">
+                        </div>
+                    `;
+                }
+
+                if (config.output !== undefined) {
+                    html += `
+                        <div class="property-group">
+                            <label>${typeName} Outputs</label>
+                            <input type="number" id="prop-port-${type}-output" min="0" max="16" value="${config.output}">
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // Connector Anchor configuration
+        if (obj.type === 'connector_anchor') {
+            html += `
+                <div class="property-group">
+                    <label>Connection Type</label>
+                    <select id="prop-connectiontype">
+                        <option value="video" ${obj.connectionType === 'video' ? 'selected' : ''}>Video</option>
+                        <option value="sdi" ${obj.connectionType === 'sdi' ? 'selected' : ''}>SDI</option>
+                        <option value="network" ${obj.connectionType === 'network' ? 'selected' : ''}>Network</option>
+                        <option value="usb" ${obj.connectionType === 'usb' ? 'selected' : ''}>USB</option>
+                    </select>
+                </div>
+                <div class="property-group">
+                    <label>Label</label>
+                    <input type="text" id="prop-label" value="${obj.label || ''}">
+                </div>
             `;
         }
 
@@ -1474,7 +1675,7 @@ class CanvasApp {
             html += `
                 <div class="property-group">
                     <label>Text</label>
-                    <textarea id="prop-text">${obj.text || ''}</textarea>
+                    <textarea id="prop-text" rows="4">${obj.text || ''}</textarea>
                 </div>
                 <div class="property-group">
                     <label>Font Size</label>
@@ -1488,6 +1689,14 @@ class CanvasApp {
                         <option value="Times New Roman" ${obj.fontFamily === 'Times New Roman' ? 'selected' : ''}>Times New Roman</option>
                         <option value="Courier New" ${obj.fontFamily === 'Courier New' ? 'selected' : ''}>Courier New</option>
                     </select>
+                </div>
+                <div class="property-group">
+                    <label>Text Align</label>
+                    <div class="button-group">
+                        <button id="prop-align-left" class="${obj.textAlign === 'left' ? 'active' : ''}" title="Align Left">◀</button>
+                        <button id="prop-align-center" class="${obj.textAlign === 'center' ? 'active' : ''}" title="Align Center">▊</button>
+                        <button id="prop-align-right" class="${obj.textAlign === 'right' ? 'active' : ''}" title="Align Right">▶</button>
+                    </div>
                 </div>
             `;
         }
@@ -1568,6 +1777,7 @@ class CanvasApp {
             'prop-y': (val) => { obj.y = parseFloat(val); },
             'prop-width': (val) => { obj.width = parseFloat(val); },
             'prop-height': (val) => { obj.height = parseFloat(val); },
+            'prop-rotation': (val) => { obj.rotation = parseFloat(val); },
             'prop-fill': (val) => { obj.fill = val; },
             'prop-stroke': (val) => { obj.stroke = val; },
             'prop-strokewidth': (val) => { obj.strokeWidth = parseFloat(val); },
@@ -1577,7 +1787,9 @@ class CanvasApp {
             'prop-style': (val) => { obj.style = val; },
             'prop-arrowstart': (val) => { obj.arrowStart = val; },
             'prop-arrowend': (val) => { obj.arrowEnd = val; },
-            'prop-shadow': (val) => { obj.shadow = val; }
+            'prop-shadow': (val) => { obj.shadow = val; },
+            'prop-connectiontype': (val) => { obj.connectionType = val; },
+            'prop-label': (val) => { obj.label = val; }
         };
 
         Object.keys(props).forEach(id => {
@@ -1591,10 +1803,66 @@ class CanvasApp {
 
                     if (id === 'prop-strokewidth') {
                         e.target.nextElementSibling.textContent = value + 'px';
+                    } else if (id === 'prop-rotation') {
+                        e.target.nextElementSibling.textContent = Math.round(value * 180 / Math.PI) + '°';
                     }
                 });
             }
         });
+
+        // Text alignment buttons
+        const alignLeft = document.getElementById('prop-align-left');
+        const alignCenter = document.getElementById('prop-align-center');
+        const alignRight = document.getElementById('prop-align-right');
+
+        if (alignLeft) {
+            alignLeft.addEventListener('click', () => {
+                obj.textAlign = 'left';
+                this.updatePropertiesPanel();
+                this.render();
+            });
+        }
+        if (alignCenter) {
+            alignCenter.addEventListener('click', () => {
+                obj.textAlign = 'center';
+                this.updatePropertiesPanel();
+                this.render();
+            });
+        }
+        if (alignRight) {
+            alignRight.addEventListener('click', () => {
+                obj.textAlign = 'right';
+                this.updatePropertiesPanel();
+                this.render();
+            });
+        }
+
+        // Port configuration listeners
+        if (obj.ports) {
+            for (let type in obj.ports) {
+                const config = obj.ports[type];
+
+                if (config.input !== undefined) {
+                    const inputEl = document.getElementById(`prop-port-${type}-input`);
+                    if (inputEl) {
+                        inputEl.addEventListener('input', (e) => {
+                            obj.ports[type].input = parseInt(e.target.value) || 0;
+                            this.render();
+                        });
+                    }
+                }
+
+                if (config.output !== undefined) {
+                    const outputEl = document.getElementById(`prop-port-${type}-output`);
+                    if (outputEl) {
+                        outputEl.addEventListener('input', (e) => {
+                            obj.ports[type].output = parseInt(e.target.value) || 0;
+                            this.render();
+                        });
+                    }
+                }
+            }
+        }
     }
 
     // Rendering
@@ -1722,23 +1990,38 @@ class CanvasApp {
     }
 
     drawSelection(obj) {
-        const bounds = obj.getBounds();
         this.ctx.strokeStyle = '#0066cc';
         this.ctx.lineWidth = 2 / this.zoom;
         this.ctx.setLineDash([5, 5]);
-        this.ctx.strokeRect(bounds.x - 2, bounds.y - 2, bounds.width + 4, bounds.height + 4);
+
+        // If object is rotated, draw rotated bounding box
+        if (obj.rotation && obj.rotation !== 0) {
+            const corners = obj.getRotatedBounds();
+            this.ctx.beginPath();
+            this.ctx.moveTo(corners[0].x, corners[0].y);
+            for (let i = 1; i < corners.length; i++) {
+                this.ctx.lineTo(corners[i].x, corners[i].y);
+            }
+            this.ctx.closePath();
+            this.ctx.stroke();
+        } else {
+            // Non-rotated, use simple rectangle
+            const bounds = obj.getBounds();
+            this.ctx.strokeRect(bounds.x - 2, bounds.y - 2, bounds.width + 4, bounds.height + 4);
+        }
+
         this.ctx.setLineDash([]);
 
         // Draw resize handles (only if single object selected)
         if (this.selectedObjects.length === 1 && !obj.locked) {
-            this.drawResizeHandles(bounds);
-            this.drawRotateHandle(bounds);
+            this.drawResizeHandles(obj);
+            this.drawRotateHandle(obj);
         }
     }
 
-    drawResizeHandles(bounds) {
+    drawResizeHandles(obj) {
         const handleSize = 8 / this.zoom;
-        const handles = this.getHandlePositions(bounds);
+        const handles = this.getHandlePositions(obj);
 
         this.ctx.fillStyle = '#ffffff';
         this.ctx.strokeStyle = '#0066cc';
@@ -1752,50 +2035,82 @@ class CanvasApp {
         });
     }
 
-    drawRotateHandle(bounds) {
+    drawRotateHandle(obj) {
         const handleSize = 8 / this.zoom;
         const rotateDistance = 30 / this.zoom;
 
-        // Position above the top center
-        const cx = bounds.x + bounds.width / 2;
-        const cy = bounds.y - rotateDistance;
+        // Get top center position
+        let cx = obj.x + obj.width / 2;
+        let topY = obj.y;
+
+        // Calculate rotate handle position (above top center)
+        let handleX = cx;
+        let handleY = topY - rotateDistance;
+
+        // Rotate the handle position if object is rotated
+        if (obj.rotation && obj.rotation !== 0) {
+            const rotatedHandle = obj.rotatePoint(handleX, handleY);
+            handleX = rotatedHandle.x;
+            handleY = rotatedHandle.y;
+
+            // Also rotate the connection point (top center)
+            const topCenter = obj.rotatePoint(cx, topY);
+            cx = topCenter.x;
+            topY = topCenter.y;
+        }
 
         // Draw line from top to rotate handle
         this.ctx.strokeStyle = '#0066cc';
         this.ctx.lineWidth = 2 / this.zoom;
         this.ctx.beginPath();
-        this.ctx.moveTo(cx, bounds.y);
-        this.ctx.lineTo(cx, cy);
+        this.ctx.moveTo(cx, topY);
+        this.ctx.lineTo(handleX, handleY);
         this.ctx.stroke();
 
         // Draw rotate handle as circle
         this.ctx.fillStyle = '#ffffff';
         this.ctx.strokeStyle = '#0066cc';
         this.ctx.beginPath();
-        this.ctx.arc(cx, cy, handleSize / 2, 0, Math.PI * 2);
+        this.ctx.arc(handleX, handleY, handleSize / 2, 0, Math.PI * 2);
         this.ctx.fill();
         this.ctx.stroke();
     }
 
-    getHandlePositions(bounds) {
-        return {
-            nw: { x: bounds.x, y: bounds.y },
-            n: { x: bounds.x + bounds.width / 2, y: bounds.y },
-            ne: { x: bounds.x + bounds.width, y: bounds.y },
-            e: { x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2 },
-            se: { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
-            s: { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height },
-            sw: { x: bounds.x, y: bounds.y + bounds.height },
-            w: { x: bounds.x, y: bounds.y + bounds.height / 2 }
+    getHandlePositions(obj) {
+        const positions = {
+            nw: { x: obj.x, y: obj.y },
+            n: { x: obj.x + obj.width / 2, y: obj.y },
+            ne: { x: obj.x + obj.width, y: obj.y },
+            e: { x: obj.x + obj.width, y: obj.y + obj.height / 2 },
+            se: { x: obj.x + obj.width, y: obj.y + obj.height },
+            s: { x: obj.x + obj.width / 2, y: obj.y + obj.height },
+            sw: { x: obj.x, y: obj.y + obj.height },
+            w: { x: obj.x, y: obj.y + obj.height / 2 }
         };
+
+        // Rotate handle positions if object is rotated
+        if (obj.rotation && obj.rotation !== 0) {
+            Object.keys(positions).forEach(key => {
+                positions[key] = obj.rotatePoint(positions[key].x, positions[key].y);
+            });
+        }
+
+        return positions;
     }
 
-    getRotateHandlePosition(bounds) {
+    getRotateHandlePosition(obj) {
         const rotateDistance = 30 / this.zoom;
-        return {
-            x: bounds.x + bounds.width / 2,
-            y: bounds.y - rotateDistance
+        let pos = {
+            x: obj.x + obj.width / 2,
+            y: obj.y - rotateDistance
         };
+
+        // Rotate handle position if object is rotated
+        if (obj.rotation && obj.rotation !== 0) {
+            pos = obj.rotatePoint(pos.x, pos.y);
+        }
+
+        return pos;
     }
 
     findHandleAtPoint(x, y) {
@@ -1804,27 +2119,26 @@ class CanvasApp {
         const obj = this.selectedObjects[0];
         if (obj.locked || obj.type === 'connector') return null;
 
-        const bounds = obj.getBounds();
         const handleSize = 8 / this.zoom;
         const threshold = handleSize;
 
         // Check rotate handle first
-        const rotatePos = this.getRotateHandlePosition(bounds);
+        const rotatePos = this.getRotateHandlePosition(obj);
         const distToRotate = Math.sqrt(
             Math.pow(x - rotatePos.x, 2) + Math.pow(y - rotatePos.y, 2)
         );
         if (distToRotate <= threshold) {
-            return { type: 'rotate', bounds, center: { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 } };
+            return { type: 'rotate', obj, center: { x: obj.x + obj.width / 2, y: obj.y + obj.height / 2 } };
         }
 
         // Check resize handles
-        const handles = this.getHandlePositions(bounds);
+        const handles = this.getHandlePositions(obj);
         for (let [name, pos] of Object.entries(handles)) {
             const dist = Math.sqrt(
                 Math.pow(x - pos.x, 2) + Math.pow(y - pos.y, 2)
             );
             if (dist <= threshold) {
-                return { type: 'resize', handle: name, bounds };
+                return { type: 'resize', handle: name, obj };
             }
         }
 
@@ -1893,14 +2207,20 @@ class CanvasApp {
     drawAnchors(obj) {
         const anchors = obj.getAnchorPoints();
 
-        ['top', 'right', 'bottom', 'left'].forEach(side => {
-            const pos = anchors[side];
-            if (pos) {
-                this.ctx.fillStyle = '#ffffff';
-                this.ctx.strokeStyle = '#0066cc';
+        // Draw all anchor points (including custom typed ports)
+        Object.keys(anchors).forEach(key => {
+            const pos = anchors[key];
+            if (pos && key !== 'center') {
+                // Use connection type color if available
+                const color = pos.connectionType && ConnectionColors[pos.connectionType]
+                    ? ConnectionColors[pos.connectionType]
+                    : '#0066cc';
+
+                this.ctx.fillStyle = color;
+                this.ctx.strokeStyle = '#ffffff';
                 this.ctx.lineWidth = 2 / this.zoom;
                 this.ctx.beginPath();
-                this.ctx.arc(pos.x, pos.y, 4 / this.zoom, 0, Math.PI * 2);
+                this.ctx.arc(pos.x, pos.y, 5 / this.zoom, 0, Math.PI * 2);
                 this.ctx.fill();
                 this.ctx.stroke();
             }
@@ -1912,13 +2232,21 @@ class CanvasApp {
             if (obj.type === 'connector' || !obj.getAnchorPoints) return;
 
             const anchors = obj.getAnchorPoints();
-            ['top', 'right', 'bottom', 'left'].forEach(side => {
-                const pos = anchors[side];
-                if (pos) {
-                    this.ctx.fillStyle = 'rgba(100, 200, 255, 0.5)';
+            Object.keys(anchors).forEach(key => {
+                const pos = anchors[key];
+                if (pos && key !== 'center') {
+                    // Use connection type color if available
+                    const color = pos.connectionType && ConnectionColors[pos.connectionType]
+                        ? ConnectionColors[pos.connectionType]
+                        : '#0066cc';
+
+                    this.ctx.fillStyle = color;
+                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    this.ctx.lineWidth = 1.5 / this.zoom;
                     this.ctx.beginPath();
-                    this.ctx.arc(pos.x, pos.y, 3 / this.zoom, 0, Math.PI * 2);
+                    this.ctx.arc(pos.x, pos.y, 4 / this.zoom, 0, Math.PI * 2);
                     this.ctx.fill();
+                    this.ctx.stroke();
                 }
             });
         });

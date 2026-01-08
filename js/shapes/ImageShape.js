@@ -26,6 +26,7 @@ export class ImageShape extends BaseShape {
         if (!this.visible || !this.loaded || !this.image) return;
 
         ctx.save();
+        this.applyRotation(ctx);
         this.applyShadow(ctx);
 
         ctx.globalAlpha = this.opacity;
