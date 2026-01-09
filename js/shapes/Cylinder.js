@@ -18,38 +18,32 @@ export class Cylinder extends BaseShape {
         ctx.strokeStyle = this.stroke;
         ctx.lineWidth = this.strokeWidth;
 
-        const rx = Math.abs(this.width) / 2;
-        const ry = Math.min(Math.abs(this.height) * 0.1, Math.abs(this.width) * 0.15);
+        // Normalize coordinates to handle all drag directions
+        const x = Math.min(this.x, this.x + this.width);
+        const y = Math.min(this.y, this.y + this.height);
+        const width = Math.abs(this.width);
+        const height = Math.abs(this.height);
 
-        const cx = this.x + this.width / 2;
-        const topY = this.y + ry;
-        const bottomY = this.y + this.height - ry;
+        // Draw capsule (rounded rectangle with semicircular ends)
+        const radius = Math.min(width, height) / 2;
 
-        // Draw cylinder body
         ctx.beginPath();
 
-        // Start at top left
-        ctx.moveTo(this.x, topY);
-
-        // Draw left side down
-        ctx.lineTo(this.x, bottomY);
-
-        // Draw bottom arc (left to right)
-        ctx.arc(cx, bottomY, rx, Math.PI, 0, false);
-
-        // Draw right side up
-        ctx.lineTo(this.x + this.width, topY);
-
-        // Draw top arc back (right to left, counterclockwise)
-        ctx.arc(cx, topY, rx, 0, Math.PI, true);
+        if (width > height) {
+            // Horizontal capsule
+            ctx.arc(x + radius, y + radius, radius, Math.PI / 2, Math.PI * 1.5);
+            ctx.lineTo(x + width - radius, y);
+            ctx.arc(x + width - radius, y + radius, radius, Math.PI * 1.5, Math.PI / 2);
+            ctx.lineTo(x + radius, y + height);
+        } else {
+            // Vertical capsule
+            ctx.arc(x + radius, y + radius, radius, Math.PI, 0);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.arc(x + radius, y + height - radius, radius, 0, Math.PI);
+            ctx.lineTo(x, y + radius);
+        }
 
         ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-        // Draw top ellipse (visible front)
-        ctx.beginPath();
-        ctx.ellipse(cx, topY, rx, ry, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 

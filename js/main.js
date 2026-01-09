@@ -19,7 +19,7 @@ import { ConnectorAnchor } from './shapes/ConnectorAnchor.js';
 import { ContextMenu } from './ui/ContextMenu.js';
 import { IconLibrary } from './utils/IconLibrary.js';
 import { Templates } from './utils/Templates.js';
-import { ConnectionTypes, ConnectionColors } from './config/ConnectionTypes.js';
+import { ConnectionTypes, ConnectionColors, ObjectColors } from './config/ConnectionTypes.js';
 
 class CanvasApp {
     constructor() {
@@ -71,6 +71,10 @@ class CanvasApp {
         this.zoom = 1;
         this.panX = 0;
         this.panY = 0;
+        this.isPanning = false;
+        this.panStartX = 0;
+        this.panStartY = 0;
+        this.spacePressed = false;
 
         // History
         this.history = [];
@@ -125,6 +129,8 @@ class CanvasApp {
 
         // Layer controls
         document.getElementById('bring-front-btn').addEventListener('click', () => this.bringToFront());
+        document.getElementById('bring-forward-btn').addEventListener('click', () => this.bringForward());
+        document.getElementById('send-backward-btn').addEventListener('click', () => this.sendBackward());
         document.getElementById('send-back-btn').addEventListener('click', () => this.sendToBack());
 
         // Alignment
@@ -225,6 +231,16 @@ class CanvasApp {
     }
 
     handleMouseDown(e) {
+        // Middle mouse button or Space+Left click for panning
+        if (e.button === 1 || (e.button === 0 && this.spacePressed)) {
+            e.preventDefault();
+            this.isPanning = true;
+            this.panStartX = e.clientX - this.panX;
+            this.panStartY = e.clientY - this.panY;
+            this.canvas.style.cursor = 'grabbing';
+            return;
+        }
+
         if (e.button !== 0) return; // Only left click
 
         const pos = this.getMousePos(e);
@@ -380,8 +396,11 @@ class CanvasApp {
         } else {
             // Add waypoint or finish
             const requiredConnectionType = this.connectorStart.connectionType || null;
-            const requiredPortType = this.connectorStart.portType === 'output' ? 'input' :
-                                     this.connectorStart.portType === 'input' ? 'output' : null;
+            // Network connections can connect to any port type (input-to-input, output-to-output, or mixed)
+            // Other connection types require opposite port types (output-to-input only)
+            const requiredPortType = requiredConnectionType === 'network' ? null :
+                                     (this.connectorStart.portType === 'output' ? 'input' :
+                                      this.connectorStart.portType === 'input' ? 'output' : null);
 
             const anchor = this.findNearestAnchor(pos.x, pos.y, 15, requiredConnectionType, requiredPortType);
 
@@ -412,6 +431,14 @@ class CanvasApp {
     }
 
     handleMouseMove(e) {
+        // Handle panning
+        if (this.isPanning) {
+            this.panX = e.clientX - this.panStartX;
+            this.panY = e.clientY - this.panStartY;
+            this.render();
+            return;
+        }
+
         const pos = this.getMousePos(e);
 
         // Update anchor indicator for connector tools
@@ -507,8 +534,11 @@ class CanvasApp {
             // Update temp polyline endpoint
             if (this.tempObject) {
                 const requiredConnectionType = this.connectorStart.connectionType || null;
-                const requiredPortType = this.connectorStart.portType === 'output' ? 'input' :
-                                         this.connectorStart.portType === 'input' ? 'output' : null;
+                // Network connections can connect to any port type (input-to-input, output-to-output, or mixed)
+                // Other connection types require opposite port types (output-to-input only)
+                const requiredPortType = requiredConnectionType === 'network' ? null :
+                                         (this.connectorStart.portType === 'output' ? 'input' :
+                                          this.connectorStart.portType === 'input' ? 'output' : null);
 
                 const anchor = this.findNearestAnchor(pos.x, pos.y, 15, requiredConnectionType, requiredPortType);
                 if (anchor && anchor.object !== this.connectorStart.object) {
@@ -530,8 +560,11 @@ class CanvasApp {
     updateTempConnector(pos) {
         // Get required connection type and port type from starting anchor
         const requiredConnectionType = this.connectorStart.connectionType || null;
-        const requiredPortType = this.connectorStart.portType === 'output' ? 'input' :
-                                 this.connectorStart.portType === 'input' ? 'output' : null;
+        // Network connections can connect to any port type (input-to-input, output-to-output, or mixed)
+        // Other connection types require opposite port types (output-to-input only)
+        const requiredPortType = requiredConnectionType === 'network' ? null :
+                                 (this.connectorStart.portType === 'output' ? 'input' :
+                                  this.connectorStart.portType === 'input' ? 'output' : null);
 
         const anchor = this.findNearestAnchor(pos.x, pos.y, 15, requiredConnectionType, requiredPortType);
 
@@ -549,6 +582,13 @@ class CanvasApp {
     }
 
     handleMouseUp(e) {
+        // End panning
+        if (this.isPanning) {
+            this.isPanning = false;
+            this.canvas.style.cursor = this.spacePressed ? 'grab' : 'default';
+            return;
+        }
+
         if (this.isDrawing && this.tempObject) {
             if (this.tempObject.type === 'connector') {
                 if (this.tempObject.endObject && this.tempObject.startObject !== this.tempObject.endObject) {
@@ -758,6 +798,8 @@ class CanvasApp {
             onDuplicate: () => this.duplicate(),
             onDelete: () => this.deleteSelected(),
             onBringToFront: () => this.bringToFront(),
+            onBringForward: () => this.bringForward(),
+            onSendBackward: () => this.sendBackward(),
             onSendToBack: () => this.sendToBack(),
             onToggleLock: (obj) => { obj.locked = !obj.locked; this.render(); },
             onSelectAll: () => this.selectAll(),
@@ -792,6 +834,50 @@ class CanvasApp {
 
     handleKeyDown(e) {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        // Space key for panning mode
+        if (e.key === ' ' && !this.spacePressed) {
+            e.preventDefault();
+            this.spacePressed = true;
+            if (!this.isPanning) {
+                this.canvas.style.cursor = 'grab';
+            }
+            return;
+        }
+
+        // Arrow keys for panning
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            e.preventDefault();
+            const panAmount = e.shiftKey ? 50 : 20;
+
+            switch (e.key) {
+                case 'ArrowUp':
+                    this.panY += panAmount;
+                    break;
+                case 'ArrowDown':
+                    this.panY -= panAmount;
+                    break;
+                case 'ArrowLeft':
+                    this.panX += panAmount;
+                    break;
+                case 'ArrowRight':
+                    this.panX -= panAmount;
+                    break;
+            }
+
+            this.render();
+            return;
+        }
+
+        // Home key to reset view
+        if (e.key === 'Home') {
+            e.preventDefault();
+            this.panX = 0;
+            this.panY = 0;
+            this.zoom = 1;
+            this.setZoom(1);
+            return;
+        }
 
         if (e.key === 'Escape') {
             if (this.isDrawingPolyline) {
@@ -845,12 +931,31 @@ class CanvasApp {
                     this.save();
                     break;
             }
+        } else if (e.shiftKey) {
+            switch (e.key) {
+                case ']':
+                    e.preventDefault();
+                    this.bringToFront();
+                    break;
+                case '[':
+                    e.preventDefault();
+                    this.sendToBack();
+                    break;
+            }
         } else {
             switch (e.key) {
                 case 'Delete':
                 case 'Backspace':
                     e.preventDefault();
                     this.deleteSelected();
+                    break;
+                case ']':
+                    e.preventDefault();
+                    this.bringForward();
+                    break;
+                case '[':
+                    e.preventDefault();
+                    this.sendBackward();
                     break;
                 case 'v':
                     this.setTool('select');
@@ -881,7 +986,13 @@ class CanvasApp {
     }
 
     handleKeyUp(e) {
-        // Reserved for future use
+        // Release space key
+        if (e.key === ' ') {
+            this.spacePressed = false;
+            if (!this.isPanning) {
+                this.canvas.style.cursor = 'default';
+            }
+        }
     }
 
     createShape(type, x, y, width, height) {
@@ -962,7 +1073,8 @@ class CanvasApp {
 
     findNearestAnchor(x, y, threshold = 15, requiredConnectionType = null, requiredPortType = null) {
         let nearest = null;
-        let minDist = threshold;
+        // Scale threshold based on zoom level for better precision
+        let minDist = this.snapToGrid ? threshold / this.zoom : threshold;
 
         for (let obj of this.objects) {
             if (obj.type === 'connector' || !obj.getAnchorPoints) continue;
@@ -972,12 +1084,14 @@ class CanvasApp {
                 if (side === 'center') continue; // Skip center anchor
 
                 // Check connection type compatibility if required
+                // Allow null connectionType (generic anchors) to connect to any type
                 if (requiredConnectionType && pos.connectionType && pos.connectionType !== requiredConnectionType) {
                     continue; // Skip incompatible connection types
                 }
 
                 // Check port type compatibility if required (output can only connect to input)
-                if (requiredPortType && pos.portType) {
+                // Allow null or 'both' portType (generic anchors) to connect to any port
+                if (requiredPortType && pos.portType && pos.portType !== 'both') {
                     // If we're looking for a specific port type, only match that type
                     if (pos.portType !== requiredPortType) continue;
                 }
@@ -1136,6 +1250,32 @@ class CanvasApp {
         this.render();
     }
 
+    bringForward() {
+        if (this.selectedObjects.length === 0) return;
+
+        this.selectedObjects.forEach(obj => {
+            if (obj.zIndex !== undefined) {
+                obj.zIndex = (obj.zIndex || 0) + 1;
+            }
+        });
+
+        this.saveState();
+        this.render();
+    }
+
+    sendBackward() {
+        if (this.selectedObjects.length === 0) return;
+
+        this.selectedObjects.forEach(obj => {
+            if (obj.zIndex !== undefined) {
+                obj.zIndex = (obj.zIndex || 0) - 1;
+            }
+        });
+
+        this.saveState();
+        this.render();
+    }
+
     align(direction) {
         if (this.selectedObjects.length < 2) return;
 
@@ -1273,42 +1413,89 @@ class CanvasApp {
     showSettings() {
         const modal = document.getElementById('settings-modal');
 
-        // Set current colors
+        // Set current connection colors
         document.getElementById('color-video').value = ConnectionColors.video;
         document.getElementById('color-sdi').value = ConnectionColors.sdi;
         document.getElementById('color-network').value = ConnectionColors.network;
         document.getElementById('color-usb').value = ConnectionColors.usb;
+
+        // Set current object colors
+        document.getElementById('color-server').value = ObjectColors.SERVER;
+        document.getElementById('color-network-switch').value = ObjectColors.NETWORK_SWITCH;
+        document.getElementById('color-video-matrix').value = ObjectColors.VIDEO_MATRIX;
+        document.getElementById('color-led-processor').value = ObjectColors.LED_PROCESSOR;
+        document.getElementById('color-sync-generator').value = ObjectColors.SYNC_GENERATOR;
 
         modal.style.display = 'block';
     }
 
     resetColors() {
-        // Reset to defaults
+        // Reset connection colors to defaults
         ConnectionColors.video = '#FFD700';
         ConnectionColors.sdi = '#FF4500';
         ConnectionColors.network = '#00CED1';
         ConnectionColors.usb = '#9370DB';
 
-        // Update inputs
+        // Reset object colors to defaults
+        ObjectColors.SERVER = '#2C3E50';
+        ObjectColors.NETWORK_SWITCH = '#27AE60';
+        ObjectColors.VIDEO_MATRIX = '#E74C3C';
+        ObjectColors.LED_PROCESSOR = '#F39C12';
+        ObjectColors.SYNC_GENERATOR = '#8E44AD';
+
+        // Update connection color inputs
         document.getElementById('color-video').value = ConnectionColors.video;
         document.getElementById('color-sdi').value = ConnectionColors.sdi;
         document.getElementById('color-network').value = ConnectionColors.network;
         document.getElementById('color-usb').value = ConnectionColors.usb;
 
+        // Update object color inputs
+        document.getElementById('color-server').value = ObjectColors.SERVER;
+        document.getElementById('color-network-switch').value = ObjectColors.NETWORK_SWITCH;
+        document.getElementById('color-video-matrix').value = ObjectColors.VIDEO_MATRIX;
+        document.getElementById('color-led-processor').value = ObjectColors.LED_PROCESSOR;
+        document.getElementById('color-sync-generator').value = ObjectColors.SYNC_GENERATOR;
+
+        // Update all objects with new colors
+        this.objects.forEach(obj => {
+            if (obj.type === 'server') obj.fill = ObjectColors.SERVER;
+            else if (obj.type === 'network_switch') obj.fill = ObjectColors.NETWORK_SWITCH;
+            else if (obj.type === 'video_matrix') obj.fill = ObjectColors.VIDEO_MATRIX;
+            else if (obj.type === 'led_processor') obj.fill = ObjectColors.LED_PROCESSOR;
+            else if (obj.type === 'sync_generator') obj.fill = ObjectColors.SYNC_GENERATOR;
+        });
+
         this.render();
     }
 
     applyColors() {
-        // Apply new colors
+        // Apply new connection colors
         ConnectionColors.video = document.getElementById('color-video').value;
         ConnectionColors.sdi = document.getElementById('color-sdi').value;
         ConnectionColors.network = document.getElementById('color-network').value;
         ConnectionColors.usb = document.getElementById('color-usb').value;
 
-        // Update all connectors with new colors
+        // Apply new object colors
+        ObjectColors.SERVER = document.getElementById('color-server').value;
+        ObjectColors.NETWORK_SWITCH = document.getElementById('color-network-switch').value;
+        ObjectColors.VIDEO_MATRIX = document.getElementById('color-video-matrix').value;
+        ObjectColors.LED_PROCESSOR = document.getElementById('color-led-processor').value;
+        ObjectColors.SYNC_GENERATOR = document.getElementById('color-sync-generator').value;
+
+        // Update all objects with new colors
         this.objects.forEach(obj => {
             if (obj.type === 'connector' && obj.connectionType) {
                 obj.stroke = ConnectionColors[obj.connectionType];
+            } else if (obj.type === 'server') {
+                obj.fill = ObjectColors.SERVER;
+            } else if (obj.type === 'network_switch') {
+                obj.fill = ObjectColors.NETWORK_SWITCH;
+            } else if (obj.type === 'video_matrix') {
+                obj.fill = ObjectColors.VIDEO_MATRIX;
+            } else if (obj.type === 'led_processor') {
+                obj.fill = ObjectColors.LED_PROCESSOR;
+            } else if (obj.type === 'sync_generator') {
+                obj.fill = ObjectColors.SYNC_GENERATOR;
             }
         });
 
@@ -1576,17 +1763,40 @@ class CanvasApp {
     // Properties Panel
     updatePropertiesPanel() {
         const panel = document.getElementById('properties-content');
+        const header = document.getElementById('properties-header');
 
         if (this.selectedObjects.length === 0) {
+            header.textContent = 'Properties';
             panel.innerHTML = '<p class="no-selection">No object selected</p>';
             return;
         }
 
         if (this.selectedObjects.length === 1) {
             const obj = this.selectedObjects[0];
+            // Format object type for display
+            const typeMap = {
+                'rectangle': 'Rectangle',
+                'circle': 'Circle',
+                'diamond': 'Diamond',
+                'hexagon': 'Hexagon',
+                'cylinder': 'Cylinder',
+                'parallelogram': 'Parallelogram',
+                'text': 'Text',
+                'connector': 'Connector',
+                'server': 'Server',
+                'network_switch': 'Network Switch',
+                'video_matrix': 'Video Matrix',
+                'led_processor': 'LED Processor',
+                'sync_generator': 'Sync Generator',
+                'connector_anchor': 'Connector Anchor',
+                'image': 'Image'
+            };
+            const typeName = typeMap[obj.type] || obj.type;
+            header.textContent = `Properties (${typeName})`;
             panel.innerHTML = this.getPropertiesHTML(obj);
             this.attachPropertyListeners(obj);
         } else {
+            header.textContent = 'Properties';
             panel.innerHTML = `<p class="no-selection">${this.selectedObjects.length} objects selected</p>`;
         }
     }
@@ -1606,67 +1816,85 @@ class CanvasApp {
                         <input type="number" id="prop-y" value="${Math.round(obj.y)}">
                     </div>
                 </div>
-                <div class="property-row">
-                    <div class="property-group">
-                        <label>Width</label>
-                        <input type="number" id="prop-width" value="${Math.round(obj.width)}">
-                    </div>
-                    <div class="property-group">
-                        <label>Height</label>
-                        <input type="number" id="prop-height" value="${Math.round(obj.height)}">
-                    </div>
-                </div>
-                <div class="property-group">
-                    <label>Rotation</label>
-                    <input type="range" id="prop-rotation" min="0" max="${Math.PI * 2}" step="0.01" value="${obj.rotation || 0}">
-                    <span>${Math.round((obj.rotation || 0) * 180 / Math.PI)}°</span>
-                </div>
             `;
+
+            // Don't show width/height for connector_anchor (it's fixed size)
+            if (obj.type !== 'connector_anchor') {
+                html += `
+                    <div class="property-row">
+                        <div class="property-group">
+                            <label>Width</label>
+                            <input type="number" id="prop-width" value="${Math.round(obj.width)}">
+                        </div>
+                        <div class="property-group">
+                            <label>Height</label>
+                            <input type="number" id="prop-height" value="${Math.round(obj.height)}">
+                        </div>
+                    </div>
+                    <div class="property-group">
+                        <label>Rotation</label>
+                        <input type="range" id="prop-rotation" min="0" max="${Math.PI * 2}" step="0.01" value="${obj.rotation || 0}">
+                        <span>${Math.round((obj.rotation || 0) * 180 / Math.PI)}°</span>
+                    </div>
+                `;
+            }
         }
 
         // Port configuration for custom network objects
         if (obj.ports) {
-            html += '<div class="property-group"><label style="font-weight: bold; margin-top: 10px;">Port Configuration</label></div>';
+            html += `
+                <div class="property-group">
+                    <label style="font-weight: bold; margin-top: 10px;">Port Configuration</label>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid #ddd;">
+                            <th style="text-align: left; padding: 5px; font-size: 12px;">Type</th>
+                            <th style="text-align: center; padding: 5px; font-size: 12px;">Inputs</th>
+                            <th style="text-align: center; padding: 5px; font-size: 12px;">Outputs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
 
             for (let type in obj.ports) {
                 const config = obj.ports[type];
                 const typeName = type.charAt(0).toUpperCase() + type.slice(1);
 
-                if (config.input !== undefined) {
-                    html += `
-                        <div class="property-group">
-                            <label>${typeName} Inputs</label>
-                            <input type="number" id="prop-port-${type}-input" min="0" max="16" value="${config.input}">
-                        </div>
-                    `;
-                }
-
-                if (config.output !== undefined) {
-                    html += `
-                        <div class="property-group">
-                            <label>${typeName} Outputs</label>
-                            <input type="number" id="prop-port-${type}-output" min="0" max="16" value="${config.output}">
-                        </div>
-                    `;
-                }
+                html += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 5px; font-size: 12px;">${typeName}</td>
+                        <td style="padding: 5px; text-align: center;">
+                            ${config.input !== undefined
+                                ? `<input type="number" id="prop-port-${type}-input" min="0" max="16" value="${config.input}" style="width: 50px; text-align: center;">`
+                                : '-'
+                            }
+                        </td>
+                        <td style="padding: 5px; text-align: center;">
+                            ${config.output !== undefined
+                                ? `<input type="number" id="prop-port-${type}-output" min="0" max="16" value="${config.output}" style="width: 50px; text-align: center;">`
+                                : '-'
+                            }
+                        </td>
+                    </tr>
+                `;
             }
+
+            html += `
+                    </tbody>
+                </table>
+            `;
         }
 
-        // Connector Anchor configuration
+        // Connector Anchor configuration (generic anchor - no connection type)
         if (obj.type === 'connector_anchor') {
             html += `
                 <div class="property-group">
-                    <label>Connection Type</label>
-                    <select id="prop-connectiontype">
-                        <option value="video" ${obj.connectionType === 'video' ? 'selected' : ''}>Video</option>
-                        <option value="sdi" ${obj.connectionType === 'sdi' ? 'selected' : ''}>SDI</option>
-                        <option value="network" ${obj.connectionType === 'network' ? 'selected' : ''}>Network</option>
-                        <option value="usb" ${obj.connectionType === 'usb' ? 'selected' : ''}>USB</option>
-                    </select>
-                </div>
-                <div class="property-group">
                     <label>Label</label>
                     <input type="text" id="prop-label" value="${obj.label || ''}">
+                </div>
+                <div class="property-group">
+                    <p style="font-size: 12px; color: #666; margin: 5px 0;">Generic connection point - accepts all connection types</p>
                 </div>
             `;
         }
@@ -1734,12 +1962,20 @@ class CanvasApp {
         if (obj.type === 'connector') {
             html += `
                 <div class="property-group">
-                    <label>Style</label>
+                    <label>Path Style</label>
                     <select id="prop-style">
                         <option value="straight" ${obj.style === 'straight' ? 'selected' : ''}>Straight</option>
                         <option value="orthogonal" ${obj.style === 'orthogonal' ? 'selected' : ''}>Orthogonal</option>
                         <option value="bezier" ${obj.style === 'bezier' ? 'selected' : ''}>Bezier</option>
                         <option value="polyline" ${obj.style === 'polyline' ? 'selected' : ''}>Polyline</option>
+                    </select>
+                </div>
+                <div class="property-group">
+                    <label>Line Style</label>
+                    <select id="prop-linestyle">
+                        <option value="solid" ${obj.lineStyle === 'solid' ? 'selected' : ''}>Solid</option>
+                        <option value="dashed" ${obj.lineStyle === 'dashed' ? 'selected' : ''}>Dashed</option>
+                        <option value="dotted" ${obj.lineStyle === 'dotted' ? 'selected' : ''}>Dotted</option>
                     </select>
                 </div>
                 <div class="property-group">
@@ -1785,6 +2021,7 @@ class CanvasApp {
             'prop-fontsize': (val) => { obj.fontSize = parseFloat(val); },
             'prop-fontfamily': (val) => { obj.fontFamily = val; },
             'prop-style': (val) => { obj.style = val; },
+            'prop-linestyle': (val) => { obj.lineStyle = val; },
             'prop-arrowstart': (val) => { obj.arrowStart = val; },
             'prop-arrowend': (val) => { obj.arrowEnd = val; },
             'prop-shadow': (val) => { obj.shadow = val; },
@@ -1923,6 +2160,31 @@ class CanvasApp {
             this.drawAllAnchors();
         }
 
+        // Always draw anchor points on custom system objects (those with ports)
+        const systemObjectTypes = ['server', 'network_switch', 'video_matrix', 'led_processor', 'sync_generator', 'connector_anchor'];
+        this.objects.forEach(obj => {
+            if (systemObjectTypes.includes(obj.type) && obj.getAnchorPoints && !this.selectedObjects.includes(obj)) {
+                const anchors = obj.getAnchorPoints();
+                Object.keys(anchors).forEach(key => {
+                    const pos = anchors[key];
+                    if (pos && key !== 'center') {
+                        // Use connection type color if available
+                        const color = pos.connectionType && ConnectionColors[pos.connectionType]
+                            ? ConnectionColors[pos.connectionType]
+                            : '#0066cc';
+
+                        this.ctx.fillStyle = color;
+                        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                        this.ctx.lineWidth = 1.5 / this.zoom;
+                        this.ctx.beginPath();
+                        this.ctx.arc(pos.x, pos.y, 4 / this.zoom, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        this.ctx.stroke();
+                    }
+                });
+            }
+        });
+
         this.ctx.restore();
     }
 
@@ -2012,8 +2274,8 @@ class CanvasApp {
 
         this.ctx.setLineDash([]);
 
-        // Draw resize handles (only if single object selected)
-        if (this.selectedObjects.length === 1 && !obj.locked) {
+        // Draw resize handles (only if single object selected and resizable)
+        if (this.selectedObjects.length === 1 && !obj.locked && obj.resizable !== false) {
             this.drawResizeHandles(obj);
             this.drawRotateHandle(obj);
         }
@@ -2117,7 +2379,7 @@ class CanvasApp {
         if (this.selectedObjects.length !== 1) return null;
 
         const obj = this.selectedObjects[0];
-        if (obj.locked || obj.type === 'connector') return null;
+        if (obj.locked || obj.type === 'connector' || obj.resizable === false) return null;
 
         const handleSize = 8 / this.zoom;
         const threshold = handleSize;

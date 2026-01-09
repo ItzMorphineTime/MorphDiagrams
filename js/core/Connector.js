@@ -12,6 +12,7 @@ export class Connector {
         this.arrowStart = false;
         this.arrowEnd = true;
         this.style = 'straight'; // straight, orthogonal, bezier, polyline
+        this.lineStyle = 'solid'; // solid, dashed, dotted
         this.zIndex = -1; // Connectors below shapes by default
         this.visible = true;
         this.selected = false;
@@ -189,6 +190,18 @@ export class Connector {
         ctx.lineWidth = this.selected ? this.strokeWidth + 1 : this.strokeWidth;
         ctx.fillStyle = this.stroke;
 
+        // Apply line style (solid, dashed, dotted)
+        switch (this.lineStyle) {
+            case 'dashed':
+                ctx.setLineDash([10, 5]);
+                break;
+            case 'dotted':
+                ctx.setLineDash([2, 4]);
+                break;
+            default:
+                ctx.setLineDash([]);
+        }
+
         // Draw based on style
         switch (this.style) {
             case 'polyline':
@@ -363,8 +376,8 @@ export class Connector {
         const start = this.getStartPoint();
         const cp1 = this.controlPoint1 || this.getDefaultControlPoint1();
 
-        // Tangent at t=0 is the direction from start to first control point
-        return Math.atan2(cp1.y - start.y, cp1.x - start.x);
+        // Tangent at t=0 is the direction from first control point to start (reversed for arrow pointing back)
+        return Math.atan2(start.y - cp1.y, start.x - cp1.x);
     }
 
     getBezierTangentAtEnd() {
@@ -440,6 +453,7 @@ export class Connector {
             arrowStart: this.arrowStart,
             arrowEnd: this.arrowEnd,
             style: this.style,
+            lineStyle: this.lineStyle,
             zIndex: this.zIndex,
             visible: this.visible,
             connectionType: this.connectionType,

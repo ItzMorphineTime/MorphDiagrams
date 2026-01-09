@@ -3,14 +3,15 @@ import { ConnectionTypes, ConnectionColors } from '../config/ConnectionTypes.js'
 
 export class ConnectorAnchor extends BaseShape {
     constructor(x, y) {
-        super(x, y, 12, 12); // Small square
+        super(x, y, 16, 16); // Small circle
         this.type = 'connector_anchor';
         this.fill = '#ffffff';
         this.stroke = '#2c3e50';
         this.strokeWidth = 2;
+        this.resizable = false; // Make it non-resizable
 
         // Anchor properties
-        this.connectionType = ConnectionTypes.NETWORK; // Default to network
+        this.connectionType = null; // Generic anchor - no specific connection type
         this.portType = 'both'; // Can act as both input and output
         this.label = 'Anchor';
     }
@@ -31,7 +32,7 @@ export class ConnectorAnchor extends BaseShape {
         if (this.rotation && this.rotation !== 0) {
             const rotated = this.rotatePoint(anchor.x, anchor.y);
             return {
-                center: {
+                anchor_point: {
                     x: rotated.x,
                     y: rotated.y,
                     connectionType: this.connectionType,
@@ -40,7 +41,7 @@ export class ConnectorAnchor extends BaseShape {
             };
         }
 
-        return { center: anchor };
+        return { anchor_point: anchor };
     }
 
     draw(ctx) {
@@ -52,20 +53,21 @@ export class ConnectorAnchor extends BaseShape {
 
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height / 2;
-        const size = this.width / 2;
+        const radius = this.width / 2;
 
-        // Draw outer square
+        // Draw outer circle (white with dark stroke)
         ctx.fillStyle = this.fill;
         ctx.strokeStyle = this.stroke;
         ctx.lineWidth = this.strokeWidth;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-        ctx.strokeRect(this.x, this.y, this.width, this.height);
-
-        // Draw inner colored circle
-        const color = ConnectionColors[this.connectionType] || '#0066cc';
-        ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(cx, cy, size * 0.6, 0, Math.PI * 2);
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw inner circle (smaller, darker)
+        ctx.fillStyle = this.stroke;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius * 0.4, 0, Math.PI * 2);
         ctx.fill();
 
         this.clearShadow(ctx);

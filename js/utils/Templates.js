@@ -2,6 +2,11 @@ import { Rectangle } from '../shapes/Rectangle.js';
 import { TextShape } from '../shapes/TextShape.js';
 import { Connector } from '../core/Connector.js';
 import { IconLibrary } from './IconLibrary.js';
+import { Server } from '../shapes/Server.js';
+import { VideoMatrix } from '../shapes/VideoMatrix.js';
+import { SyncGenerator } from '../shapes/SyncGenerator.js';
+import { LEDProcessor } from '../shapes/LEDProcessor.js';
+import { NetworkSwitch } from '../shapes/NetworkSwitch.js';
 
 export class Templates {
     static createBasicFlowchart() {
@@ -169,12 +174,119 @@ export class Templates {
         return { name: 'Organization Chart', objects };
     }
 
+    static createSystemDiagram() {
+        const objects = [];
+
+        // Create Sync Generator with ports: SDI[2,4] - Left, top
+        const syncGen = new SyncGenerator(230, 50, 100, 100);
+        syncGen.ports = {
+            sdi: { input: 2, output: 4 }
+        };
+        objects.push(syncGen);
+
+        // Create Network Switch with ports: Network[6,6] - Left, bottom
+        const networkSwitch = new NetworkSwitch(230, 350, 100, 100);
+        networkSwitch.ports = {
+            network: { input: 6, output: 6 }
+        };
+        objects.push(networkSwitch);
+
+        // Create Server with ports: Video[0,4], SDI[1,0], Network[2,0], USB[4,0] - Center left
+        const server = new Server(500, 200, 120, 180);
+        server.ports = {
+            video: { input: 0, output: 4 },
+            sdi: { input: 1, output: 0 },
+            network: { input: 2, output: 0 },
+            usb: { input: 4, output: 0 }
+        };
+        objects.push(server);
+
+        // Create Video Matrix with ports: Video[4,4], SDI[1,4] - Center right
+        const videoMatrix = new VideoMatrix(950, 200, 120, 180);
+        videoMatrix.ports = {
+            video: { input: 4, output: 4 },
+            sdi: { input: 1, output: 4 }
+        };
+        objects.push(videoMatrix);
+
+        // Create LED Processor with ports: Video[4,1], SDI[1,0] - Far right
+        const ledProcessor = new LEDProcessor(1250, 50, 120, 100);
+        ledProcessor.ports = {
+            video: { input: 4, output: 1 },
+            sdi: { input: 1, output: 0 }
+        };
+        objects.push(ledProcessor);
+
+        // Import ConnectionColors
+        const ConnectionColors = {
+            video: '#FFD700',
+            sdi: '#FF4500',
+            network: '#00CED1',
+            usb: '#9370DB'
+        };
+
+        // Connect Sync Generator SDI outputs to Server, Video Matrix, and LED Processor SDI inputs
+        // Sync Gen output 0 -> Server SDI input 0
+        const conn1 = new Connector(syncGen, 'sdi_output_0', server, 'sdi_input_0', 'sdi');
+        conn1.style = 'orthogonal';
+        conn1.stroke = ConnectionColors.sdi;
+        objects.push(conn1);
+
+        // Sync Gen output 1 -> Video Matrix SDI input 0
+        const conn2 = new Connector(syncGen, 'sdi_output_1', videoMatrix, 'sdi_input_0', 'sdi');
+        conn2.style = 'orthogonal';
+        conn2.stroke = ConnectionColors.sdi;
+        objects.push(conn2);
+
+        // Sync Gen output 2 -> LED Processor SDI input 0
+        const conn3 = new Connector(syncGen, 'sdi_output_2', ledProcessor, 'sdi_input_0', 'sdi');
+        conn3.style = 'orthogonal';
+        conn3.stroke = ConnectionColors.sdi;
+        objects.push(conn3);
+
+        // Connect Server Video outputs to Video Matrix Video inputs
+        // Server video output 0 -> Video Matrix video input 0
+        const conn4 = new Connector(server, 'video_output_0', videoMatrix, 'video_input_0', 'video');
+        conn4.style = 'orthogonal';
+        conn4.stroke = ConnectionColors.video;
+        objects.push(conn4);
+
+        // Server video output 1 -> Video Matrix video input 1
+        const conn5 = new Connector(server, 'video_output_1', videoMatrix, 'video_input_1', 'video');
+        conn5.style = 'orthogonal';
+        conn5.stroke = ConnectionColors.video;
+        objects.push(conn5);
+
+        // Connect Video Matrix Video outputs to LED Processor Video inputs
+        // Video Matrix video output 0 -> LED Processor video input 0
+        const conn6 = new Connector(videoMatrix, 'video_output_0', ledProcessor, 'video_input_0', 'video');
+        conn6.style = 'orthogonal';
+        conn6.stroke = ConnectionColors.video;
+        objects.push(conn6);
+
+        // Video Matrix video output 1 -> LED Processor video input 1
+        const conn7 = new Connector(videoMatrix, 'video_output_1', ledProcessor, 'video_input_1', 'video');
+        conn7.style = 'orthogonal';
+        conn7.stroke = ConnectionColors.video;
+        objects.push(conn7);
+
+        // Connect Network Switch output to Server Network input
+        // Network Switch output 0 -> Server network input 0
+        const conn8 = new Connector(networkSwitch, 'network_output_0', server, 'network_input_0', 'network');
+        conn8.style = 'orthogonal';
+        conn8.stroke = ConnectionColors.network;
+        objects.push(conn8);
+
+        return { name: 'System Diagram', objects };
+    }
+
     static getAllTemplates() {
         return [
             { id: 'flowchart', name: 'Basic Flowchart', create: this.createBasicFlowchart },
             { id: 'three-tier', name: '3-Tier Architecture', create: this.createThreeTierArchitecture },
             { id: 'network', name: 'Network Diagram', create: this.createNetworkDiagram },
-            { id: 'org-chart', name: 'Organization Chart', create: this.createOrgChart }
+            { id: 'org-chart', name: 'Organization Chart', create: this.createOrgChart },
+            { id: 'system-diagram', name: 'System Diagram', create: this.createSystemDiagram }
         ];
     }
 }

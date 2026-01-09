@@ -7,9 +7,9 @@ export class SyncGenerator extends BaseShape {
         this.type = 'sync_generator';
         this.fill = ObjectColors.SYNC_GENERATOR;
 
-        // Port configuration - only SDI outputs
+        // Port configuration - SDI inputs and outputs
         this.ports = {
-            sdi: { output: 6 }
+            sdi: { input: 2, output: 4 }
         };
     }
 
@@ -34,29 +34,42 @@ export class SyncGenerator extends BaseShape {
     // Get anchor points based on port configuration
     getAnchorPoints() {
         const anchors = {};
-        const sdiOutputs = this.ports.sdi.output;
+        const sdiInputs = this.ports.sdi.input || 0;
+        const sdiOutputs = this.ports.sdi.output || 0;
 
-        // Distribute SDI outputs around the hexagon
         const points = this.getPoints();
 
-        // Use all 6 edges for outputs
-        const edges = [];
-        for (let i = 0; i < 6; i++) {
-            edges.push({
-                start: points[i],
-                end: points[(i + 1) % 6]
-            });
+        // Hexagon has 6 points starting from top, going clockwise
+        // Points: [0=top, 1=top-right, 2=bottom-right, 3=bottom, 4=bottom-left, 5=top-left]
+        // Left edge: from point 5 to point 4 (for inputs)
+        // Right edge: from point 1 to point 2 (for outputs)
+        const leftEdge = { start: points[5], end: points[4] };
+        const rightEdge = { start: points[1], end: points[2] };
+
+        // Add SDI inputs on the left edge
+        for (let i = 0; i < sdiInputs; i++) {
+            const t = (i + 1) / (sdiInputs + 1);
+            const x = leftEdge.start.x + (leftEdge.end.x - leftEdge.start.x) * t;
+            const y = leftEdge.start.y + (leftEdge.end.y - leftEdge.start.y) * t;
+
+            const key = `sdi_input_${i}`;
+            const anchor = { x, y, connectionType: 'sdi', portType: 'input' };
+
+            // Rotate if shape is rotated
+            if (this.rotation && this.rotation !== 0) {
+                const rotated = this.rotatePoint(anchor.x, anchor.y);
+                anchor.x = rotated.x;
+                anchor.y = rotated.y;
+            }
+
+            anchors[key] = anchor;
         }
 
-        // Distribute ports evenly across all edges
+        // Add SDI outputs on the right edge
         for (let i = 0; i < sdiOutputs; i++) {
-            const t = i / sdiOutputs; // 0 to 1
-            const edgeIndex = Math.floor(t * 6);
-            const edgeT = (t * 6) % 1;
-
-            const edge = edges[edgeIndex];
-            const x = edge.start.x + (edge.end.x - edge.start.x) * edgeT;
-            const y = edge.start.y + (edge.end.y - edge.start.y) * edgeT;
+            const t = (i + 1) / (sdiOutputs + 1);
+            const x = rightEdge.start.x + (rightEdge.end.x - rightEdge.start.x) * t;
+            const y = rightEdge.start.y + (rightEdge.end.y - rightEdge.start.y) * t;
 
             const key = `sdi_output_${i}`;
             const anchor = { x, y, connectionType: 'sdi', portType: 'output' };

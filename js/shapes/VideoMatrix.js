@@ -85,34 +85,39 @@ export class VideoMatrix extends BaseShape {
         ctx.strokeStyle = this.stroke;
         ctx.lineWidth = this.strokeWidth;
 
-        const rx = Math.abs(this.width) / 2;
-        const ry = Math.min(Math.abs(this.height) * 0.1, Math.abs(this.width) * 0.15);
+        // Normalize coordinates to handle all drag directions
+        const x = Math.min(this.x, this.x + this.width);
+        const y = Math.min(this.y, this.y + this.height);
+        const width = Math.abs(this.width);
+        const height = Math.abs(this.height);
 
-        const cx = this.x + this.width / 2;
-        const topY = this.y + ry;
-        const bottomY = this.y + this.height - ry;
-
-        // Draw cylinder body
+        // Draw rectangle
         ctx.beginPath();
-        ctx.moveTo(this.x, topY);
-        ctx.lineTo(this.x, bottomY);
-
-        // Bottom half-ellipse (front side, visible)
-        ctx.ellipse(cx, bottomY, rx, ry, 0, 0, Math.PI, false);
-
-        ctx.lineTo(this.x + this.width, topY);
-
-        // Top half-ellipse (back side, hidden)
-        ctx.ellipse(cx, topY, rx, ry, 0, 0, Math.PI, true);
-
-        ctx.closePath();
+        ctx.rect(x, y, width, height);
         ctx.fill();
         ctx.stroke();
 
-        // Draw top ellipse (visible front)
+        // Draw 'M' shape in the center
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        const mWidth = Math.min(width, height) * 0.4;
+        const mHeight = Math.min(width, height) * 0.4;
+
+        ctx.strokeStyle = this.stroke;
+        ctx.lineWidth = Math.max(2, this.strokeWidth);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
         ctx.beginPath();
-        ctx.ellipse(cx, topY, rx, ry, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Left vertical line
+        ctx.moveTo(centerX - mWidth / 2, centerY + mHeight / 2);
+        ctx.lineTo(centerX - mWidth / 2, centerY - mHeight / 2);
+        // Down to center
+        ctx.lineTo(centerX, centerY);
+        // Up to top right
+        ctx.lineTo(centerX + mWidth / 2, centerY - mHeight / 2);
+        // Down to bottom right
+        ctx.lineTo(centerX + mWidth / 2, centerY + mHeight / 2);
         ctx.stroke();
 
         this.clearShadow(ctx);

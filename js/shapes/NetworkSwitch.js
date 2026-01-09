@@ -9,7 +9,7 @@ export class NetworkSwitch extends BaseShape {
 
         // Port configuration
         this.ports = {
-            network: { input: 8 }
+            network: { input: 6, output: 6 }
         };
     }
 
@@ -34,30 +34,45 @@ export class NetworkSwitch extends BaseShape {
     // Get anchor points based on port configuration
     getAnchorPoints() {
         const anchors = {};
-        const networkInputs = this.ports.network.input;
+        const networkInputs = this.ports.network.input || 0;
+        const networkOutputs = this.ports.network.output || 0;
 
-        // Distribute network inputs around the bottom half of hexagon
         const points = this.getPoints();
 
-        // Use bottom 3 edges for ports (indices 2, 3, 4)
-        const bottomEdges = [
-            { start: points[2], end: points[3] },
-            { start: points[3], end: points[4] },
-            { start: points[4], end: points[5] }
-        ];
+        // Hexagon has 6 points starting from top, going clockwise
+        // Points: [0=top, 1=top-right, 2=bottom-right, 3=bottom, 4=bottom-left, 5=top-left]
+        // Left edge: from point 5 to point 4 (for inputs)
+        // Right edge: from point 1 to point 2 (for outputs)
+        const leftEdge = { start: points[5], end: points[4] };
+        const rightEdge = { start: points[1], end: points[2] };
 
-        // Distribute ports evenly across bottom edges
+        // Add network inputs on the left edge
         for (let i = 0; i < networkInputs; i++) {
-            const t = i / (networkInputs - 1 || 1); // 0 to 1
-            const edgeIndex = Math.floor(t * 2.99); // 0, 1, or 2
-            const edgeT = (t * 3) % 1;
-
-            const edge = bottomEdges[edgeIndex];
-            const x = edge.start.x + (edge.end.x - edge.start.x) * edgeT;
-            const y = edge.start.y + (edge.end.y - edge.start.y) * edgeT;
+            const t = (i + 1) / (networkInputs + 1);
+            const x = leftEdge.start.x + (leftEdge.end.x - leftEdge.start.x) * t;
+            const y = leftEdge.start.y + (leftEdge.end.y - leftEdge.start.y) * t;
 
             const key = `network_input_${i}`;
             const anchor = { x, y, connectionType: 'network', portType: 'input' };
+
+            // Rotate if shape is rotated
+            if (this.rotation && this.rotation !== 0) {
+                const rotated = this.rotatePoint(anchor.x, anchor.y);
+                anchor.x = rotated.x;
+                anchor.y = rotated.y;
+            }
+
+            anchors[key] = anchor;
+        }
+
+        // Add network outputs on the right edge
+        for (let i = 0; i < networkOutputs; i++) {
+            const t = (i + 1) / (networkOutputs + 1);
+            const x = rightEdge.start.x + (rightEdge.end.x - rightEdge.start.x) * t;
+            const y = rightEdge.start.y + (rightEdge.end.y - rightEdge.start.y) * t;
+
+            const key = `network_output_${i}`;
+            const anchor = { x, y, connectionType: 'network', portType: 'output' };
 
             // Rotate if shape is rotated
             if (this.rotation && this.rotation !== 0) {
@@ -92,6 +107,27 @@ export class NetworkSwitch extends BaseShape {
         }
         ctx.closePath();
         ctx.fill();
+        ctx.stroke();
+
+        // Draw 'N' shape in the center
+        const centerX = this.x + this.width / 2;
+        const centerY = this.y + this.height / 2;
+        const nWidth = Math.min(this.width, this.height) * 0.3;
+        const nHeight = Math.min(this.width, this.height) * 0.35;
+
+        ctx.strokeStyle = this.stroke;
+        ctx.lineWidth = Math.max(2, this.strokeWidth);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        ctx.beginPath();
+        // Left vertical line (bottom to top)
+        ctx.moveTo(centerX - nWidth / 2, centerY + nHeight / 2);
+        ctx.lineTo(centerX - nWidth / 2, centerY - nHeight / 2);
+        // Diagonal to bottom right
+        ctx.lineTo(centerX + nWidth / 2, centerY + nHeight / 2);
+        // Up to top right
+        ctx.lineTo(centerX + nWidth / 2, centerY - nHeight / 2);
         ctx.stroke();
 
         this.clearShadow(ctx);

@@ -110,11 +110,25 @@ export class ContextMenu {
             if (object.type !== 'connector') {
                 items.push({
                     label: 'Bring to Front',
+                    shortcut: 'Shift+]',
                     action: options.onBringToFront
                 });
 
                 items.push({
+                    label: 'Bring Forward',
+                    shortcut: ']',
+                    action: options.onBringForward
+                });
+
+                items.push({
+                    label: 'Send Backward',
+                    shortcut: '[',
+                    action: options.onSendBackward
+                });
+
+                items.push({
                     label: 'Send to Back',
+                    shortcut: 'Shift+[',
                     action: options.onSendToBack
                 });
 

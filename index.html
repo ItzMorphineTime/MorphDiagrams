@@ -55,6 +55,12 @@
                         <text x="10" y="15" text-anchor="middle" fill="currentColor" font-size="16" font-weight="bold">T</text>
                     </svg>
                 </button>
+                <button class="tool-btn" data-tool="connector_anchor" title="Connector Anchor">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="10" cy="10" r="2.5" fill="currentColor"/>
+                    </svg>
+                </button>
             </div>
 
             <!-- Systems Objects -->
@@ -97,12 +103,6 @@
                         <line x1="10" y1="10" x2="11.5" y2="10" stroke="currentColor" stroke-width="1"/>
                     </svg>
                 </button>
-                <button class="tool-btn" data-tool="connector_anchor" title="Connector Anchor">
-                    <svg width="20" height="20" viewBox="0 0 20 20">
-                        <rect x="6" y="6" width="8" height="8" fill="none" stroke="currentColor" stroke-width="2"/>
-                        <circle cx="10" cy="10" r="2.5" fill="currentColor"/>
-                    </svg>
-                </button>
             </div>
 
             <!-- Connector Tools -->
@@ -136,8 +136,10 @@
 
             <!-- Layers -->
             <div class="toolbar-section">
-                <button class="tool-btn" id="bring-front-btn" title="Bring to Front">↑↑</button>
-                <button class="tool-btn" id="send-back-btn" title="Send to Back">↓↓</button>
+                <button class="tool-btn" id="bring-front-btn" title="Bring to Front (Shift+])">↑↑</button>
+                <button class="tool-btn" id="bring-forward-btn" title="Bring Forward (])">↑</button>
+                <button class="tool-btn" id="send-backward-btn" title="Send Backward ([)">↓</button>
+                <button class="tool-btn" id="send-back-btn" title="Send to Back (Shift+[)">↓↓</button>
             </div>
 
             <!-- Alignment -->
@@ -195,7 +197,7 @@
 
         <!-- Properties Panel -->
         <div class="properties-panel" id="properties-panel">
-            <h3>Properties</h3>
+            <h3 id="properties-header">Properties</h3>
             <div id="properties-content">
                 <p class="no-selection">No object selected</p>
             </div>
@@ -219,12 +221,13 @@
             </div>
         </div>
 
-        <!-- Connection Colors Settings Modal -->
+        <!-- Settings Modal -->
         <div id="settings-modal" class="modal" style="display: none;">
             <div class="modal-content">
                 <span class="close">&times;</span>
-                <h2>Connection Type Colors</h2>
+                <h2>Settings</h2>
                 <div class="settings-content" style="justify-items: flex-end;">
+                    <h3 style="margin-top: 0;">Connection Type Colors</h3>
                     <div class="setting-group">
                         <label>Video Connections</label>
                         <input type="color" id="color-video" value="#FFD700">
@@ -245,6 +248,34 @@
                         <input type="color" id="color-usb" value="#9370DB">
                         <span class="color-preview" id="preview-usb"></span>
                     </div>
+
+                    <h3 style="margin-top: 20px;">System Object Colors</h3>
+                    <div class="setting-group">
+                        <label>Server</label>
+                        <input type="color" id="color-server" value="#2C3E50">
+                        <span class="color-preview" id="preview-server"></span>
+                    </div>
+                    <div class="setting-group">
+                        <label>Network Switch</label>
+                        <input type="color" id="color-network-switch" value="#27AE60">
+                        <span class="color-preview" id="preview-network-switch"></span>
+                    </div>
+                    <div class="setting-group">
+                        <label>Video Matrix</label>
+                        <input type="color" id="color-video-matrix" value="#E74C3C">
+                        <span class="color-preview" id="preview-video-matrix"></span>
+                    </div>
+                    <div class="setting-group">
+                        <label>LED Processor</label>
+                        <input type="color" id="color-led-processor" value="#F39C12">
+                        <span class="color-preview" id="preview-led-processor"></span>
+                    </div>
+                    <div class="setting-group">
+                        <label>Sync Generator</label>
+                        <input type="color" id="color-sync-generator" value="#8E44AD">
+                        <span class="color-preview" id="preview-sync-generator"></span>
+                    </div>
+
                     <div class="setting-actions">
                         <button id="reset-colors-btn" class="action-btn">Reset to Defaults</button>
                         <button id="apply-colors-btn" class="action-btn">Apply</button>
