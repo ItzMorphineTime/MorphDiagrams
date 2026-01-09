@@ -1,21 +1,38 @@
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
+/**
+ * VideoMatrix shape representing a video routing matrix.
+ * Supports video and SDI connections with configurable input/output ports.
+ * Renders as a rectangle with an 'M' letter drawn in the center.
+ * @class VideoMatrix
+ * @extends BaseShape
+ */
 export class VideoMatrix extends BaseShape {
+    /**
+     * Creates a new VideoMatrix instance.
+     * @param {number} x - X-coordinate of top-left corner
+     * @param {number} y - Y-coordinate of top-left corner
+     * @param {number} width - Width in pixels
+     * @param {number} height - Height in pixels
+     */
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.type = 'video_matrix';
         this.fill = ObjectColors.VIDEO_MATRIX;
         this.topHeight = Math.min(height * 0.15, 20);
 
-        // Port configuration
+        /** @type {Object<string, {input: number, output: number}>} Port configuration */
         this.ports = {
             video: { input: 4, output: 4 },
             sdi: { input: 2, output: 2 }
         };
     }
 
-    // Get anchor points based on port configuration
+    /**
+     * Gets anchor points for connections based on port configuration.
+     * @returns {Object<string, {x: number, y: number, connectionType: string, portType: string}>}
+     */
     getAnchorPoints() {
         const anchors = {};
         const leftPorts = [];

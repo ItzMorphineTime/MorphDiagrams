@@ -1,19 +1,36 @@
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
+/**
+ * NetworkSwitch shape representing a network switching device.
+ * Supports bidirectional network connections.
+ * Renders as a hexagon with an 'N' letter drawn in the center.
+ * @class NetworkSwitch
+ * @extends BaseShape
+ */
 export class NetworkSwitch extends BaseShape {
+    /**
+     * Creates a new NetworkSwitch instance.
+     * @param {number} x - X-coordinate of top-left corner
+     * @param {number} y - Y-coordinate of top-left corner
+     * @param {number} width - Width in pixels
+     * @param {number} height - Height in pixels
+     */
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.type = 'network_switch';
         this.fill = ObjectColors.NETWORK_SWITCH;
 
-        // Port configuration
+        /** @type {Object<string, {input: number, output: number}>} Port configuration */
         this.ports = {
             network: { input: 6, output: 6 }
         };
     }
 
-    // Get hexagon points
+    /**
+     * Calculates the hexagon vertex points based on position and size.
+     * @returns {Array<{x: number, y: number}>} Array of 6 hexagon vertices
+     */
     getPoints() {
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height / 2;

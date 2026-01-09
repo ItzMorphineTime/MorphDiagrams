@@ -1,50 +1,95 @@
-// Base connector class
+/**
+ * Connector class for drawing lines between shapes on the canvas.
+ * Supports multiple connection styles (straight, orthogonal, bezier, polyline),
+ * line styles (solid, dashed, dotted), and connection types for typed network diagrams.
+ * @class Connector
+ */
 export class Connector {
+    /**
+     * Creates a new Connector instance.
+     * @param {Object} startObject - The shape object where the connector starts
+     * @param {string} startAnchor - The anchor point key on the start object
+     * @param {Object} endObject - The shape object where the connector ends
+     * @param {string} endAnchor - The anchor point key on the end object
+     * @param {string|null} connectionType - Type of connection (video, sdi, network, usb) or null for generic
+     */
     constructor(startObject, startAnchor, endObject, endAnchor, connectionType = null) {
+        /** @type {string} Unique identifier for the connector */
         this.id = this.generateId();
+        /** @type {string} Type identifier */
         this.type = 'connector';
+        /** @type {Object} Shape object where the connector starts */
         this.startObject = startObject;
+        /** @type {string} Anchor point key on the start object */
         this.startAnchor = startAnchor || 'center';
+        /** @type {Object} Shape object where the connector ends */
         this.endObject = endObject;
+        /** @type {string} Anchor point key on the end object */
         this.endAnchor = endAnchor || 'center';
+        /** @type {string} Stroke color in hex format */
         this.stroke = '#2c3e50';
+        /** @type {number} Width of the line in pixels */
         this.strokeWidth = 2;
+        /** @type {boolean} Whether to draw arrow at start point */
         this.arrowStart = false;
+        /** @type {boolean} Whether to draw arrow at end point */
         this.arrowEnd = true;
-        this.style = 'straight'; // straight, orthogonal, bezier, polyline
-        this.lineStyle = 'solid'; // solid, dashed, dotted
-        this.zIndex = -1; // Connectors below shapes by default
+        /** @type {string} Connection style: 'straight', 'orthogonal', 'bezier', or 'polyline' */
+        this.style = 'straight';
+        /** @type {string} Line dash style: 'solid', 'dashed', or 'dotted' */
+        this.lineStyle = 'solid';
+        /** @type {number} Z-index for rendering order (connectors default to -1, below shapes) */
+        this.zIndex = -1;
+        /** @type {boolean} Whether the connector is visible */
         this.visible = true;
+        /** @type {boolean} Whether the connector is currently selected */
         this.selected = false;
-
-        // Connection type for custom network objects (video, sdi, network, usb)
+        /** @type {string|null} Connection type for network objects (video, sdi, network, usb) */
         this.connectionType = connectionType;
-
-        // For polyline connectors
+        /** @type {Array<{x: number, y: number}>} Intermediate points for polyline connectors */
         this.waypoints = [];
-
-        // For bezier connectors
+        /** @type {{x: number, y: number}|null} First control point for bezier connectors */
         this.controlPoint1 = null;
+        /** @type {{x: number, y: number}|null} Second control point for bezier connectors */
         this.controlPoint2 = null;
     }
 
+    /**
+     * Generates a unique identifier for the connector.
+     * @returns {string} Unique ID combining timestamp and random string
+     */
     generateId() {
         return 'conn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
+    /**
+     * Gets the starting point of the connector from the start object's anchor points.
+     * @returns {{x: number, y: number}|null} Start point coordinates or null if no start object
+     */
     getStartPoint() {
         if (!this.startObject) return null;
         const anchors = this.startObject.getAnchorPoints();
         return anchors[this.startAnchor] || anchors.center;
     }
 
+    /**
+     * Gets the ending point of the connector from the end object's anchor points.
+     * @returns {{x: number, y: number}|null} End point coordinates or null if no end object
+     */
     getEndPoint() {
         if (!this.endObject) return null;
         const anchors = this.endObject.getAnchorPoints();
         return anchors[this.endAnchor] || anchors.center;
     }
 
-    // Check if point is near the connector line
+    /**
+     * Checks if a point is near the connector line for hit detection.
+     * Delegates to specific methods based on connector style.
+     * @param {number} x - X-coordinate of the point to test
+     * @param {number} y - Y-coordinate of the point to test
+     * @param {number} [threshold=5] - Maximum distance in pixels to consider "near"
+     * @returns {boolean} True if point is within threshold distance of the connector
+     */
     containsPoint(x, y, threshold = 5) {
         const start = this.getStartPoint();
         const end = this.getEndPoint();
@@ -62,6 +107,15 @@ export class Connector {
         }
     }
 
+    /**
+     * Checks if a point is near a straight line segment using perpendicular distance.
+     * @param {{x: number, y: number}} p1 - First endpoint of the line
+     * @param {{x: number, y: number}} p2 - Second endpoint of the line
+     * @param {number} x - X-coordinate of the point to test
+     * @param {number} y - Y-coordinate of the point to test
+     * @param {number} threshold - Maximum distance to consider "near"
+     * @returns {boolean} True if point is within threshold distance of the line segment
+     */
     isNearLine(p1, p2, x, y, threshold) {
         const dx = p2.x - p1.x;
         const dy = p2.y - p1.y;
@@ -77,6 +131,13 @@ export class Connector {
         return distance <= threshold;
     }
 
+    /**
+     * Checks if a point is near a polyline connector by testing each segment.
+     * @param {number} x - X-coordinate of the point to test
+     * @param {number} y - Y-coordinate of the point to test
+     * @param {number} threshold - Maximum distance to consider "near"
+     * @returns {boolean} True if point is near any segment of the polyline
+     */
     isNearPolyline(x, y, threshold) {
         const start = this.getStartPoint();
         const end = this.getEndPoint();
@@ -92,6 +153,14 @@ export class Connector {
         return false;
     }
 
+    /**
+     * Checks if a point is near an orthogonal (right-angled) connector.
+     * Orthogonal connectors use 3 segments forming right angles.
+     * @param {number} x - X-coordinate of the point to test
+     * @param {number} y - Y-coordinate of the point to test
+     * @param {number} threshold - Maximum distance to consider "near"
+     * @returns {boolean} True if point is near the orthogonal path
+     */
     isNearOrthogonal(x, y, threshold) {
         const start = this.getStartPoint();
         const end = this.getEndPoint();
@@ -115,6 +184,13 @@ export class Connector {
         return false;
     }
 
+    /**
+     * Checks if a point is near a bezier curve connector by sampling points along the curve.
+     * @param {number} x - X-coordinate of the point to test
+     * @param {number} y - Y-coordinate of the point to test
+     * @param {number} threshold - Maximum distance to consider "near"
+     * @returns {boolean} True if point is near the bezier curve
+     */
     isNearBezier(x, y, threshold) {
         const start = this.getStartPoint();
         const end = this.getEndPoint();
@@ -134,6 +210,11 @@ export class Connector {
         return false;
     }
 
+    /**
+     * Calculates a point on the bezier curve at parameter t using cubic bezier formula.
+     * @param {number} t - Parameter value between 0 and 1 (0=start, 1=end)
+     * @returns {{x: number, y: number}} Point coordinates on the bezier curve
+     */
     getBezierPoint(t) {
         const start = this.getStartPoint();
         const end = this.getEndPoint();
@@ -153,6 +234,11 @@ export class Connector {
         };
     }
 
+    /**
+     * Gets the default position for the first bezier control point.
+     * Positioned at 25% along the line with slight curve offset.
+     * @returns {{x: number, y: number}} Default first control point coordinates
+     */
     getDefaultControlPoint1() {
         const start = this.getStartPoint();
         const end = this.getEndPoint();
@@ -165,6 +251,11 @@ export class Connector {
         };
     }
 
+    /**
+     * Gets the default position for the second bezier control point.
+     * Positioned at 75% along the line with slight curve offset.
+     * @returns {{x: number, y: number}} Default second control point coordinates
+     */
     getDefaultControlPoint2() {
         const start = this.getStartPoint();
         const end = this.getEndPoint();
@@ -177,6 +268,12 @@ export class Connector {
         };
     }
 
+    /**
+     * Draws the connector on the canvas.
+     * Applies appropriate styling, draws the connection line based on style,
+     * and draws arrows and control points as needed.
+     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+     */
     draw(ctx) {
         if (!this.visible) return;
 
@@ -440,6 +537,11 @@ export class Connector {
         ctx.stroke();
     }
 
+    /**
+     * Serializes the connector to a JSON-compatible object for saving.
+     * Stores object IDs instead of object references for proper serialization.
+     * @returns {Object} JSON representation of the connector with all properties
+     */
     toJSON() {
         return {
             id: this.id,

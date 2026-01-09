@@ -1,6 +1,11 @@
-# Systems Canvas Pro - Feature-Complete Diagram Tool
+# Morph Diagrams - Professional Diagramming Tool
+
+**Version 2.0** - Feature-complete system diagramming tool with intelligent connectors and extensive editing capabilities
+
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-blue?style=for-the-badge)](https://itzmorphinetime.github.io/MorphDiagrams/)
-![License](https://img.shields.io/badge/license-Apache%202.0-green)
+![License](https://img.shields.io/badge/license-Apache%202.0-green?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-2.0-orange?style=for-the-badge)
+
 ---
 
 ## 🚀 Live Demo
@@ -11,383 +16,626 @@ No installation required. Works in any modern browser.
 
 ---
 
-## 🚀 Quick Start
-
-1. Open `index.html` in a modern web browser
-2. Start drawing shapes and connections
-3. Use keyboard shortcuts for faster workflow
-4. Save your work to JSON format
-
 ## ✨ Features
 
-### 🎨 Shape Tools
-- **Rectangle** (R) - Basic rectangle with optional rounded corners
-- **Circle** (C) - Circle/ellipse shapes
-- **Diamond** (D) - Diamond/rhombus for decisions
-- **Hexagon** (H) - Six-sided polygon
-- **Cylinder** - 3D-style cylinder for databases/servers
-- **Parallelogram** - Skewed rectangle
+### 🎨 Drawing Tools
+
+#### Basic Shapes
+- **Rectangle** (R) - Rectangular shapes with optional rounded corners
+- **Circle** (C) - Circles and ellipses
+- **Diamond** (D) - Diamond shapes for decision nodes
+- **Hexagon** (H) - Six-sided polygons
+- **Parallelogram** - Skewed rectangles for processes
+- **Cylinder** - Capsule/pill shapes for databases
 - **Text** (T) - Text labels with customizable fonts
-- **Image** - Import images from your computer
+- **Image** - Insert images from your computer
 
-### 🔗 Advanced Connectors
-- **Straight Lines** - Simple direct connections
+#### System Objects (NEW!)
+- **Server** - Network server with multiple port types
+  - Video, SDI, Network, USB ports
+  - Configurable input/output ports
+  - Visual rack server design
+- **Video Matrix** - Video routing matrix with 'M' indicator
+  - Video and SDI connections
+  - Multiple input/output ports
+- **LED Processor** - LED wall processor with capsule design
+  - Video and SDI inputs
+  - Multiple output ports
+- **Network Switch** - Network device with hexagon shape
+  - Bidirectional network ports
+  - 'N' shape indicator
+- **Sync Generator** - Timing signal generator
+  - SDI distribution
+  - Hexagonal design
+- **Connector Anchor** - Universal connection point
+  - Accepts any connection type
+  - Acts as waypoint or junction
+
+### 🔗 Smart Connector System
+
+#### Connection Styles
+- **Straight** - Direct line connections
 - **Orthogonal** - Right-angle routing
-- **Bezier Curves** - Smooth curved connections
-- **Polyline** (P) - Custom path with waypoints
+- **Bezier** - Smooth curved paths with control points
+- **Polyline** - Multi-segment custom paths
 
-**Connector Features:**
-- ✅ Selectable connectors (click on lines!)
-- ✅ Snap to any shape on canvas
-- ✅ Visible anchor points when drawing
+#### Line Styles
+- **Solid** - Standard continuous lines
+- **Dashed** - Dashed line patterns
+- **Dotted** - Dotted line patterns
+
+#### Typed Connections (NEW!)
+- **Video** - Gold (#FFD700) connections
+- **SDI** - Orange Red (#FF4500) connections
+- **Network** - Dark Turquoise (#00CED1) connections
+- **USB** - Medium Purple (#9370DB) connections
+- **Generic** - Default for standard shapes
+
+#### Advanced Features
+- ✅ Zoom-scaled precision snapping
+- ✅ Port type validation (input/output)
+- ✅ Connection type matching
+- ✅ Persistent connections (stay attached when moving)
+- ✅ Editable waypoints and control points
 - ✅ Configurable arrows (start/end/both)
-- ✅ Multiple routing styles
-- ✅ Waypoint editing for polylines
-- ✅ Control point editing for bezier curves
+- ✅ Visual anchor point feedback
 
-### 🎯 Selection & Editing
-- **Select Tool** (V) - Click to select, drag to move
-- **Multi-Select** - Shift+Click to select multiple
-- **Selection Box** - Click and drag to select area
-- **Properties Panel** - Live editing of all properties
-- **Copy/Paste** (Ctrl+C/V) - Duplicate objects
-- **Duplicate** (Ctrl+D) - Quick duplicate
-- **Undo/Redo** (Ctrl+Z/Y) - Full history
+### 🎯 Selection & Manipulation
 
-### 📦 Grouping
-- **Group** (Ctrl+G) - Group objects together
-- **Ungroup** (Ctrl+Shift+G) - Separate grouped objects
-- Move groups as single unit
-- Lock/unlock groups
+#### Selection Modes
+- **Single Select** - Click to select objects
+- **Multi-Select** - Shift+Click to add/remove
+- **Selection Box** - Drag to select area
+- **Select All** (Ctrl+A) - Select everything
+
+#### Object Operations
+- **Move** - Drag to reposition
+- **Resize** - Drag handles to scale
+- **Rotate** - Drag rotation handle
+- **Duplicate** (Ctrl+D) - Quick copy
+- **Copy/Paste** (Ctrl+C/V) - Clipboard operations
+- **Delete** (Del/Backspace) - Remove objects
+
+#### Transform Tools
+- **Grouping** (Ctrl+G) - Group objects together
+- **Ungroup** (Ctrl+Shift+G) - Break apart groups
+- **Lock/Unlock** - Prevent accidental edits
+- **Show/Hide** - Toggle visibility
+- **Z-Index** - Layer ordering control
 
 ### 📐 Layout & Alignment
-- **Align Left/Center/Right** - Align multiple objects
-- **Bring to Front** - Move objects to top layer
-- **Send to Back** - Move objects to bottom layer
-- **Z-Index Control** - Full layer management
-- **Grid & Snap** - Precise alignment
 
-### 🎨 Visual Effects
-- **Shadow Effects** - Drop shadows with customization
-- **Color Customization** - Fill and stroke colors
-- **Stroke Width** - Adjustable line thickness
-- **Corner Radius** - Rounded rectangle corners
+- **Align Left/Center/Right** - Horizontal alignment
+- **Align Top/Middle/Bottom** - Vertical alignment
+- **Distribute Horizontally** - Even spacing
+- **Distribute Vertically** - Even spacing
+- **Grid Display** - Toggle visual grid (20px spacing)
+- **Snap to Grid** - Automatic alignment
+- **Smart Guides** - Alignment helpers
+
+### 🎨 Visual Properties
+
+Edit live in the Properties Panel:
+- **Position** (X, Y coordinates)
+- **Dimensions** (Width, Height)
+- **Fill Color** (with color picker)
+- **Stroke Color** (with color picker)
+- **Stroke Width** (1-10px)
+- **Rotation** (degrees)
+- **Corner Radius** (rounded corners)
+- **Shadow Effects** (optional)
+- **Z-Index** (layer order)
 
 ### 📚 Templates
-Pre-made diagram templates:
-- Basic Flowchart
-- 3-Tier Architecture
-- Network Diagram
-- Organization Chart
 
-### 🎭 Icon Library
-Pre-made icons for common elements:
-- Server
-- Database
-- User
-- Cloud
-- Network
-- Process
-- Decision
+Pre-configured diagrams:
+- **Basic Flowchart** - Start, process, decision, end nodes
+- **Organizational Chart** - Hierarchical structure
+- **Network Diagram** - Server and switch topology
+- **System Diagram** (NEW!) - Complete system with typed connections
+  - Server, Video Matrix, LED Processor
+  - Sync Generator, Network Switch
+  - 8 pre-connected signal paths
 
 ### 💾 File Operations
-- **Save** (Ctrl+S) - Save to JSON
-- **Load** - Load from JSON
-- **Export PNG** - High-quality image export
-- **Export PDF** - Professional PDF export
+
+- **Save** (Ctrl+S) - Export to JSON
+- **Load** - Import from JSON
+- **Export PNG** - High-quality raster image
+- **Export PDF** - Vector format for printing
 - **New** - Start fresh diagram
+- **Auto-Save** - Periodic state preservation
 
 ### 🖱️ Context Menu
-Right-click on objects for quick actions:
-- Copy, Cut, Paste
-- Duplicate
-- Delete
+
+Right-click for quick actions:
+- Copy, Cut, Paste, Duplicate
+- Delete, Lock/Unlock
 - Bring to Front / Send to Back
-- Lock / Unlock
 - Change connector style
 - Toggle arrows
+- Group/Ungroup
+
+### 🔍 View Controls
+
+#### Zoom
+- **Zoom In/Out** (+/- buttons or Ctrl+Plus/Minus)
+- **Mouse Wheel** - Zoom to cursor position
+- **Zoom Range** - 10% to 300%
+- **Zoom Display** - Current percentage in toolbar
+
+#### Pan
+- **Space+Drag** - Pan the canvas
+- **Middle Mouse** - Pan gesture
+- **Infinite Canvas** - Unlimited workspace
+
+---
 
 ## ⌨️ Keyboard Shortcuts
 
 ### Tools
-- `V` - Select tool
-- `R` - Rectangle
-- `C` - Circle
-- `D` - Diamond
-- `H` - Hexagon
-- `T` - Text
-- `L` - Connector
-- `P` - Polyline
+| Key | Tool |
+|-----|------|
+| `V` | Select tool |
+| `R` | Rectangle |
+| `C` | Circle |
+| `D` | Diamond |
+| `H` | Hexagon |
+| `T` | Text |
+| `L` | Connector/Line |
 
 ### Actions
-- `Ctrl+Z` - Undo
-- `Ctrl+Y` - Redo
-- `Ctrl+C` - Copy
-- `Ctrl+V` - Paste
-- `Ctrl+X` - Cut
-- `Ctrl+D` - Duplicate
-- `Ctrl+A` - Select All
-- `Ctrl+G` - Group
-- `Ctrl+Shift+G` - Ungroup
-- `Ctrl+S` - Save
-- `Delete` / `Backspace` - Delete selected
-- `Escape` - Cancel current operation
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` | Redo |
+| `Ctrl+C` | Copy |
+| `Ctrl+V` | Paste |
+| `Ctrl+X` | Cut |
+| `Ctrl+D` | Duplicate |
+| `Ctrl+A` | Select All |
+| `Ctrl+S` | Save |
+| `Ctrl+O` | Open |
+| `Delete` / `Backspace` | Delete |
+| `Escape` | Cancel/Deselect |
+
+### Grouping
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+G` | Group |
+| `Ctrl+Shift+G` | Ungroup |
 
 ### View
-- `+` / `-` - Zoom in/out
-- Mouse wheel - Zoom
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Plus` | Zoom In |
+| `Ctrl+Minus` | Zoom Out |
+| `Ctrl+0` | Reset Zoom |
+| `Space+Drag` | Pan Canvas |
+| `Mouse Wheel` | Zoom |
+
+---
 
 ## 🎓 How to Use
 
-### Creating Shapes
-1. Click a shape tool in the toolbar
-2. Click and drag on the canvas
-3. Release to create the shape
-4. Edit properties in the right panel
+### Creating Basic Shapes
 
-### Creating Connections
-1. Click the Connector or Polyline tool
-2. Click on an anchor point (blue dots) on a shape
-3. Drag to another shape's anchor point
+1. **Select a shape tool** from the toolbar
+2. **Click and drag** on the canvas
+3. **Release** to create the shape
+4. **Edit properties** in the right panel
+
+### Creating System Objects
+
+1. **Click a system object button** (Server, Video Matrix, etc.)
+2. **Click on canvas** to place at default size
+3. **Configure ports** in Properties Panel
+4. **Connect using typed ports** (automatic color coding)
+
+### Drawing Connections
+
+#### Simple Connection
+1. Select **Connector tool** (L)
+2. Click on **anchor point** (small dot on shape edge)
+3. Drag to **another anchor point**
 4. Release to create connection
 
-**For Polyline:**
-- Click to add waypoints
-- Click on anchor point to finish
-- Press `Escape` to cancel
+#### Polyline with Waypoints
+1. Select Connector tool
+2. Click starting anchor
+3. **Click intermediate points** to add waypoints
+4. **Double-click** end anchor to finish
+
+#### Bezier Curves
+1. Create any connector
+2. Change style to **Bezier** in Properties Panel
+3. **Drag orange control points** to adjust curve
+
+#### Typed Connections (System Objects)
+1. Use Connector tool with system objects
+2. Connectors **automatically match port types**
+3. **Colors auto-assign** based on type
+4. Use **Connector Anchors** for universal junctions
 
 ### Editing Objects
-1. Select the object with the Select tool
-2. Use the Properties Panel to modify:
-   - Position and size
+
+1. **Select** with Select tool (V)
+2. **Modify in Properties Panel:**
+   - Position and dimensions
    - Colors and styling
    - Text content
    - Connector properties
-3. Changes apply in real-time
+   - Port configurations
+3. Changes apply **in real-time**
 
 ### Using Templates
-1. Click "Templates" button
-2. Choose a template
-3. Template is inserted on canvas
-4. Customize as needed
 
-### Using Icons
-1. Click "Icons" button
-2. Choose an icon
-3. Icon is inserted on canvas
-4. Resize and customize
+1. Click **Templates** button in toolbar
+2. Choose from:
+   - Basic Flowchart
+   - Organizational Chart
+   - Network Diagram
+   - System Diagram (with typed connections)
+3. Template loads on canvas
+4. **Customize** colors, labels, and connections
 
-### Importing Images
-1. Click "Image" button
-2. Select image file
-3. Image is placed on canvas
-4. Resize and position
+### Grouping Objects
+
+1. **Select multiple objects** (Shift+Click or drag box)
+2. Press **Ctrl+G** or use context menu
+3. Grouped objects **move together**
+4. Press **Ctrl+Shift+G** to ungroup
+
+### Saving Your Work
+
+1. Click **Save** or press **Ctrl+S**
+2. JSON file downloads automatically
+3. Filename includes **timestamp**
+4. File preserves **all properties** and zoom/pan
+
+### Loading Diagrams
+
+1. Click **Load** or press **Ctrl+O**
+2. Select saved JSON file
+3. Diagram loads with **all objects intact**
+4. **View settings restored** (zoom, pan)
+
+### Exporting
+
+#### PNG Export
+- High-quality raster image
+- White background
+- Perfect for presentations
+
+#### PDF Export
+- Vector format
+- Scalable without quality loss
+- Professional documentation ready
+
+---
 
 ## 🏗️ Architecture
 
-### Modular Design
-The application uses ES6 modules for clean separation:
+### Code Structure
 
 ```
-js/
-├── main.js              - Main application controller
-├── core/
-│   ├── BaseShape.js     - Base class for shapes
-│   ├── Connector.js     - Advanced connector system
-│   └── Group.js         - Grouping functionality
-├── shapes/
-│   ├── Rectangle.js
-│   ├── Circle.js
-│   ├── Diamond.js
-│   ├── Hexagon.js
-│   ├── Cylinder.js
-│   ├── Parallelogram.js
-│   ├── TextShape.js
-│   └── ImageShape.js
-├── utils/
-│   ├── IconLibrary.js   - Pre-made icons
-│   └── Templates.js     - Diagram templates
-└── ui/
-    └── ContextMenu.js   - Right-click menu
+MorphDiagrams/
+├── js/
+│   ├── main.js                    # Main application controller
+│   ├── core/
+│   │   ├── BaseShape.js          # Base class for all shapes
+│   │   ├── Connector.js          # Smart connector system
+│   │   └── Group.js              # Object grouping
+│   ├── shapes/
+│   │   ├── Rectangle.js          # Basic shapes
+│   │   ├── Circle.js
+│   │   ├── Diamond.js
+│   │   ├── Hexagon.js
+│   │   ├── Cylinder.js
+│   │   ├── Parallelogram.js
+│   │   ├── TextShape.js
+│   │   ├── ImageShape.js
+│   │   ├── Server.js             # System objects
+│   │   ├── VideoMatrix.js
+│   │   ├── LEDProcessor.js
+│   │   ├── NetworkSwitch.js
+│   │   ├── SyncGenerator.js
+│   │   └── ConnectorAnchor.js
+│   ├── config/
+│   │   └── ConnectionTypes.js    # Connection type definitions
+│   ├── utils/
+│   │   ├── Templates.js          # Diagram templates
+│   │   └── IconLibrary.js        # Icon management
+│   └── ui/
+│       └── ContextMenu.js        # Right-click menu
+├── css/
+│   └── style.css                 # Application styles
+└── index.html                    # Main HTML file
 ```
+
+### Key Technologies
+
+- **HTML5 Canvas API** - High-performance rendering
+- **ES6+ JavaScript** - Modern, modular code
+- **JSDoc** - Comprehensive documentation
+- **jsPDF** - PDF export functionality
+- **No frameworks** - Pure vanilla JavaScript
+
+### Connection System
+
+#### Port Configuration
+```javascript
+ports: {
+    video: { input: 2, output: 2 },
+    sdi: { input: 1, output: 1 },
+    network: { input: 2, output: 0 },
+    usb: { input: 4, output: 0 }
+}
+```
+
+#### Anchor Points
+Each port creates anchors with:
+- `x, y` - Position coordinates
+- `connectionType` - video, sdi, network, usb, or null
+- `portType` - input, output, or both
+
+#### Connection Rules
+- **Input ports** connect to **output ports**
+- **Types must match** (unless null/universal)
+- **Connector Anchors** accept any type
+
+---
+
+## 🔧 Customization
 
 ### Adding Custom Shapes
 
 ```javascript
 import { BaseShape } from './core/BaseShape.js';
 
-class MyCustomShape extends BaseShape {
+class CustomShape extends BaseShape {
     constructor(x, y, width, height) {
         super(x, y, width, height);
-        this.type = 'mycustom';
+        this.type = 'custom';
     }
 
     draw(ctx) {
-        // Your drawing code
         ctx.fillStyle = this.fill;
-        // ...
-    }
-
-    containsPoint(x, y) {
-        // Hit detection logic
-        return /* true if point is inside */;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
     }
 }
 ```
 
-### Adding Custom Icons
+### Creating Templates
 
 ```javascript
-// In IconLibrary.js
-static createMyIcon(x, y) {
-    const shapes = [];
-
-    // Create shapes
-    const rect = new Rectangle(x, y, 100, 100);
-    rect.fill = '#color';
-    shapes.push(rect);
-
-    return shapes;
-}
-```
-
-## 🔧 Customization
-
-### Changing Colors
-Edit the CSS variables in `styles2.css`:
-```css
-:root {
-    --primary-color: #0066cc;
-    --background-color: #1e1e1e;
-    --panel-color: #2d2d2d;
-}
-```
-
-### Adjusting Grid Size
-In `js/main.js`:
-```javascript
-this.gridSize = 20; // Change to your preferred size
-```
-
-### Adding More Templates
-In `js/utils/Templates.js`:
-```javascript
-static createMyTemplate() {
+static createCustomTemplate() {
     const objects = [];
-    // Add your shapes and connectors
-    return { name: 'My Template', objects };
+
+    // Add your shapes
+    const rect = new Rectangle(100, 100, 200, 150);
+    rect.fill = '#3498db';
+    objects.push(rect);
+
+    // Add connectors
+    const conn = new Connector(rect, 'right', otherShape, 'left');
+    objects.push(conn);
+
+    return { name: 'Custom Template', objects };
 }
 ```
 
-## 🐛 Troubleshooting
+### Programmatic Access
 
-### Shapes not appearing?
-- Check browser console for errors
-- Ensure all JS files loaded correctly
-- Try hard refresh (Ctrl+Shift+R)
+```javascript
+// Access app instance
+window.app
 
-### Connectors not snapping?
-- Ensure snap is enabled in toolbar
-- Get close to anchor points
-- Look for blue dots indicating anchors
+// Get all objects
+window.app.objects
 
-### Performance issues?
-- Reduce number of objects
-- Disable shadows if not needed
-- Lower zoom level
-- Clear browser cache
+// Add object
+const rect = new Rectangle(100, 100, 200, 150);
+window.app.objects.push(rect);
+window.app.render();
 
-### Images not loading?
-- Check file format (PNG, JPG, GIF supported)
-- Ensure file size is reasonable
-- Check browser console for errors
+// Set zoom
+window.app.zoom = 1.5;
+window.app.render();
+```
 
-## 🌟 Advanced Features
-
-### Smart Routing
-Orthogonal connectors attempt to route around objects.
-
-### Z-Index Management
-Objects are rendered in layer order. Use Bring to Front / Send to Back to control layering.
-
-### History Management
-Up to 50 undo/redo states are preserved.
-
-### Serialization
-All objects serialize to JSON with proper reference handling for connectors.
-
-## 📱 Browser Support
-
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-
-Requires ES6 module support.
-
-## 🔒 Privacy
-
-All data stays local in your browser. No server communication except for loading external libraries (jsPDF).
+---
 
 ## 📄 File Format
 
 Diagrams save as JSON:
+
 ```json
 {
-    "version": "2.0",
-    "objects": [ /* shapes and connectors */ ],
-    "groups": [ /* group definitions */ ],
-    "metadata": {
-        "created": "2025-01-08T...",
-        "zoom": 1.0
-    }
+    "version": "1.0",
+    "zoom": 1.0,
+    "panX": 0,
+    "panY": 0,
+    "objects": [
+        {
+            "id": "shape_123",
+            "type": "server",
+            "x": 100,
+            "y": 100,
+            "ports": {
+                "video": { "input": 2, "output": 2 }
+            },
+            "fill": "#2C3E50"
+        },
+        {
+            "id": "conn_456",
+            "type": "connector",
+            "startObject": "shape_123",
+            "startAnchor": "video_output_0",
+            "endObject": "shape_789",
+            "endAnchor": "video_input_0",
+            "connectionType": "video",
+            "style": "orthogonal",
+            "lineStyle": "solid"
+        }
+    ]
 }
 ```
 
-## 🤝 Contributing
+---
 
-To extend the application:
-1. Add new shape classes in `js/shapes/`
-2. Add new tools in `js/main.js`
-3. Add new icons in `js/utils/IconLibrary.js`
-4. Add new templates in `js/utils/Templates.js`
+## 🐛 Troubleshooting
 
-## 🙏 Credits
+### Shapes Not Appearing?
+- Check browser console for errors
+- Ensure all JS files loaded correctly
+- Try hard refresh (Ctrl+Shift+R)
+- Clear browser cache
 
-Built with:
-- HTML5 Canvas API
-- Vanilla JavaScript (ES6+)
-- jsPDF for PDF export
+### Connectors Not Snapping?
+- Enable snap in toolbar
+- Get close to anchor points
+- Look for blue dots indicating anchors
+- Try higher zoom level for precision
+
+### Performance Issues?
+- Reduce number of objects
+- Disable shadows
+- Lower zoom level
+- Use orthogonal instead of bezier
+- Clear browser cache
+
+### Export Not Working?
+- Check browser console
+- Ensure jsPDF library loaded
+- Try different export format
+- Check file permissions
+
+---
+
+## 📱 Browser Support
+
+| Browser | Minimum Version |
+|---------|----------------|
+| Chrome  | 90+ |
+| Firefox | 88+ |
+| Safari  | 14+ |
+| Edge    | 90+ |
+
+**Requirements:**
+- HTML5 Canvas support
+- ES6 JavaScript support
+- FileReader API
+
+---
+
+## 🎯 Performance Tips
+
+### Optimization Features
+- Efficient rendering loop
+- Object culling for off-screen items
+- Zoom-scaled hit detection
+- Lazy property updates
+- Minimal DOM manipulation
+
+### Best Practices
+- Use orthogonal connectors for large diagrams
+- Limit shadow effects
+- Group related objects
+- Export at appropriate zoom levels
+- Close unused browser tabs
+
+---
+
+## 🔒 Privacy
+
+✅ **100% Local** - All data stays in your browser
+✅ **No Tracking** - Zero analytics or telemetry
+✅ **No Server** - No data sent to servers
+✅ **Secure** - Your diagrams remain private
+
+Only external resource: jsPDF library for PDF export
+
+---
 
 ## 🆚 Version History
 
 ### Version 2.0 (Current)
-- Complete refactored architecture
-- All requested features implemented
-- Modular codebase
-- Enhanced UI/UX
+- ✨ Added system object shapes
+- 🔗 Implemented typed connection system
+- 🎯 Added Connector Anchor for universal connections
+- 📏 Improved anchor snapping with zoom scaling
+- 🎨 Added line style options (solid, dashed, dotted)
+- 📝 Comprehensive JSDoc documentation
+- 🎨 Updated object colors
+- 🔧 Enhanced port configuration
 
 ### Version 1.0
-- Original monolithic implementation
-- Basic features
-
-## 📞 Support
-
-For issues or questions:
-- Check troubleshooting section
-- Check browser console for errors
-
-## 🎯 What's Next?
-
-Potential future enhancements:
-- Mobile/touch support
-- Collaborative real-time editing
-- More shape types
-- Advanced auto-layout algorithms
-- Shape library import/export
-- SVG export
-- Animation support
+- 🎨 Basic shapes and connectors
+- 📐 Alignment tools
+- 💾 Save/Load functionality
+- 📤 PNG/PDF export
 
 ---
 
-**Enjoy creating amazing diagrams with Systems Canvas Pro!** 🎨✨
+## 🤝 Contributing
+
+Want to extend Morph Diagrams?
+
+1. **Add shapes** - Create new classes in `js/shapes/`
+2. **Add tools** - Extend functionality in `js/main.js`
+3. **Add templates** - Create templates in `js/utils/Templates.js`
+4. **Add icons** - Build icon factories in `js/utils/IconLibrary.js`
+
+All contributions welcome!
+
+---
+
+## 🙏 Credits
+
+**Built With:**
+- HTML5 Canvas API
+- Vanilla JavaScript (ES6+)
+- jsPDF library for PDF export
+- No external frameworks
+
+**Special Thanks:**
+- Canvas API community
+- Open source contributors
+- Early testers and users
+
+---
+
+## 💡 What's Next?
+
+### Planned Features
+- 📱 Mobile/touch support
+- 🤝 Collaborative real-time editing
+- 🎨 More shape types
+- 🤖 Auto-layout algorithms
+- 📚 Shape library import/export
+- 📊 SVG export
+- 🎬 Animation support
+- 🌐 Cloud sync (optional)
+
+---
+
+## 📞 Support
+
+**Need Help?**
+- 📖 Check the troubleshooting section above
+- 💻 Review browser console for errors
+- 🐛 Report issues on GitHub
+- 💬 Ask questions in discussions
+
+---
+
+<div align="center">
+
+**Enjoy creating amazing diagrams with Morph Diagrams!** 🎨✨
+
+[Live Demo](https://itzmorphinetime.github.io/MorphDiagrams/) • [GitHub](https://github.com/itzmorphinetime/MorphDiagrams)
+
+Made with ❤️ using vanilla JavaScript
+
+</div>

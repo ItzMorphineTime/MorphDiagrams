@@ -1,20 +1,37 @@
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
+/**
+ * LEDProcessor shape representing an LED video processing device.
+ * Handles video and SDI inputs for LED wall output.
+ * Renders as a capsule (rounded rectangle) shape.
+ * @class LEDProcessor
+ * @extends BaseShape
+ */
 export class LEDProcessor extends BaseShape {
+    /**
+     * Creates a new LEDProcessor instance.
+     * @param {number} x - X-coordinate of top-left corner
+     * @param {number} y - Y-coordinate of top-left corner
+     * @param {number} width - Width in pixels
+     * @param {number} height - Height in pixels
+     */
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.type = 'led_processor';
         this.fill = ObjectColors.LED_PROCESSOR;
 
-        // Port configuration
+        /** @type {Object<string, {input: number, output: number}>} Port configuration */
         this.ports = {
             video: { input: 2, output: 4 },
             sdi: { input: 1, output: 0 }
         };
     }
 
-    // Get anchor points based on port configuration
+    /**
+     * Gets anchor points for connections based on port configuration.
+     * @returns {Object<string, {x: number, y: number, connectionType: string, portType: string}>}
+     */
     getAnchorPoints() {
         const anchors = {};
         const leftPorts = [];

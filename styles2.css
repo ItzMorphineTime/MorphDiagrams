@@ -580,9 +580,6 @@ body {
 }
 
 @media (max-width: 768px) {
-    .toolbar-section {
-        /* padding: 0 4px; */
-    }
 
     .properties-panel {
         position: relative;

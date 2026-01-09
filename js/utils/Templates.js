@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Pre-configured diagram templates for quick start.
+ * Provides factory methods for creating common diagram layouts including
+ * flowcharts, org charts, network diagrams, and system diagrams.
+ */
+
 import { Rectangle } from '../shapes/Rectangle.js';
 import { TextShape } from '../shapes/TextShape.js';
 import { Connector } from '../core/Connector.js';
@@ -8,7 +14,17 @@ import { SyncGenerator } from '../shapes/SyncGenerator.js';
 import { LEDProcessor } from '../shapes/LEDProcessor.js';
 import { NetworkSwitch } from '../shapes/NetworkSwitch.js';
 
+/**
+ * Provides static methods for creating pre-configured diagram templates.
+ * Each template returns an object with a name and an array of shape/connector objects.
+ * @class Templates
+ */
 export class Templates {
+    /**
+     * Creates a basic flowchart template with start, process, decision, and end nodes.
+     * @static
+     * @returns {{name: string, objects: Array}} Template with flowchart shapes and connectors
+     */
     static createBasicFlowchart() {
         const objects = [];
 

@@ -1,19 +1,36 @@
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
+/**
+ * SyncGenerator shape representing a video sync generation device.
+ * Provides SDI timing signals to other devices in the system.
+ * Renders as a hexagon shape.
+ * @class SyncGenerator
+ * @extends BaseShape
+ */
 export class SyncGenerator extends BaseShape {
+    /**
+     * Creates a new SyncGenerator instance.
+     * @param {number} x - X-coordinate of top-left corner
+     * @param {number} y - Y-coordinate of top-left corner
+     * @param {number} width - Width in pixels
+     * @param {number} height - Height in pixels
+     */
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.type = 'sync_generator';
         this.fill = ObjectColors.SYNC_GENERATOR;
 
-        // Port configuration - SDI inputs and outputs
+        /** @type {Object<string, {input: number, output: number}>} Port configuration - SDI only */
         this.ports = {
             sdi: { input: 2, output: 4 }
         };
     }
 
-    // Get hexagon points
+    /**
+     * Calculates the hexagon vertex points based on position and size.
+     * @returns {Array<{x: number, y: number}>} Array of 6 hexagon vertices
+     */
     getPoints() {
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height / 2;

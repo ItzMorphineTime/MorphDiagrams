@@ -1,13 +1,33 @@
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
+/**
+ * Server shape representing a network server with multiple port types.
+ * Supports video, SDI, network, and USB connections.
+ * Renders as a rectangle with horizontal rack lines.
+ * @class Server
+ * @extends BaseShape
+ */
 export class Server extends BaseShape {
+    /**
+     * Creates a new Server instance.
+     * @param {number} x - X-coordinate of top-left corner
+     * @param {number} y - Y-coordinate of top-left corner
+     * @param {number} width - Width in pixels
+     * @param {number} height - Height in pixels
+     */
     constructor(x, y, width, height) {
         super(x, y, width, height);
+        /** @type {string} Shape type identifier */
         this.type = 'server';
+        /** @type {string} Fill color from ObjectColors config */
         this.fill = ObjectColors.SERVER;
 
-        // Port configuration: { type, count, side }
+        /**
+         * Port configuration defining input/output ports for each connection type.
+         * Inputs appear on left side, outputs on right side.
+         * @type {Object<string, {input: number, output: number}>}
+         */
         this.ports = {
             video: { input: 2, output: 2 },
             sdi: { input: 1, output: 1 },
@@ -16,7 +36,12 @@ export class Server extends BaseShape {
         };
     }
 
-    // Get anchor points based on port configuration
+    /**
+     * Gets anchor points for connections based on port configuration.
+     * Distributes input ports evenly along left edge, output ports along right edge.
+     * Each anchor includes connectionType and portType for connection validation.
+     * @returns {Object<string, {x: number, y: number, connectionType: string, portType: string}>}
+     */
     getAnchorPoints() {
         const anchors = {};
         const leftPorts = [];
@@ -75,6 +100,10 @@ export class Server extends BaseShape {
         return anchors;
     }
 
+    /**
+     * Draws the server shape as a rectangle with horizontal rack lines.
+     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+     */
     draw(ctx) {
         if (!this.visible) return;
 
@@ -107,6 +136,10 @@ export class Server extends BaseShape {
         ctx.restore();
     }
 
+    /**
+     * Serializes the server to JSON, including port configuration.
+     * @returns {Object} JSON representation with ports
+     */
     toJSON() {
         return {
             ...super.toJSON(),

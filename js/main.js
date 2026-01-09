@@ -1,4 +1,8 @@
-// Main Application Controller
+/**
+ * @fileoverview Main application controller for the SystemsCanvas diagramming tool.
+ * Manages the canvas, user interactions, object manipulation, and rendering.
+ */
+
 import { BaseShape } from './core/BaseShape.js';
 import { Connector } from './core/Connector.js';
 import { Group } from './core/Group.js';
@@ -21,70 +25,111 @@ import { IconLibrary } from './utils/IconLibrary.js';
 import { Templates } from './utils/Templates.js';
 import { ConnectionTypes, ConnectionColors, ObjectColors } from './config/ConnectionTypes.js';
 
+/**
+ * Main application class that manages the canvas-based diagramming tool.
+ * Handles user input, object creation/manipulation, rendering, and state management.
+ * Supports shapes, connectors, groups, templates, zoom/pan, undo/redo, and more.
+ * @class CanvasApp
+ */
 class CanvasApp {
+    /**
+     * Initializes the canvas application with default state and event listeners.
+     * Sets up the canvas, initializes all state properties, and begins rendering.
+     */
     constructor() {
-        // Canvas setup
+        /** @type {HTMLCanvasElement} Main canvas element */
         this.canvas = document.getElementById('canvas');
+        /** @type {CanvasRenderingContext2D} Canvas 2D rendering context */
         this.ctx = this.canvas.getContext('2d');
 
-        // State
+        /** @type {Array} All objects on the canvas (shapes and connectors) */
         this.objects = [];
+        /** @type {Array} Currently selected objects */
         this.selectedObjects = [];
+        /** @type {string} Current tool mode (select, rectangle, circle, connector, etc.) */
         this.currentTool = 'select';
+        /** @type {Array} Copied objects for paste operations */
         this.clipboard = [];
+        /** @type {number} Next available group ID */
         this.nextGroupId = 1;
 
-        // Drawing state
+        /** @type {boolean} Whether currently drawing a shape */
         this.isDrawing = false;
+        /** @type {boolean} Whether currently dragging objects */
         this.isDragging = false;
+        /** @type {{x: number, y: number}|null} Starting position of drag */
         this.dragStart = null;
+        /** @type {Object|null} Temporary object being created */
         this.tempObject = null;
 
-        // Handle state
+        /** @type {boolean} Whether currently resizing */
         this.isResizing = false;
+        /** @type {boolean} Whether currently rotating */
         this.isRotating = false;
-        this.resizeHandle = null; // 'nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'
+        /** @type {string|null} Active resize handle (nw, n, ne, e, se, s, sw, w) */
+        this.resizeHandle = null;
+        /** @type {{x: number, y: number}|null} Center point for rotation */
         this.rotateCenter = null;
+        /** @type {Object|null} Initial bounds before transformation */
         this.initialBounds = null;
+        /** @type {number} Initial rotation angle */
         this.initialRotation = 0;
 
-        // Waypoint and control point dragging
+        /** @type {boolean} Whether dragging a polyline waypoint */
         this.isDraggingWaypoint = false;
+        /** @type {boolean} Whether dragging a bezier control point */
         this.isDraggingControlPoint = false;
+        /** @type {Connector|null} Connector being edited for waypoint */
         this.waypointConnector = null;
+        /** @type {number} Index of waypoint being dragged */
         this.waypointIndex = -1;
+        /** @type {Connector|null} Connector being edited for control point */
         this.controlPointConnector = null;
-        this.controlPointType = null; // 'cp1' or 'cp2'
+        /** @type {string|null} Control point type being dragged (cp1 or cp2) */
+        this.controlPointType = null;
 
-        // Connector state
+        /** @type {Object|null} Starting object/anchor for connector being drawn */
         this.connectorStart = null;
+        /** @type {boolean} Whether currently drawing a polyline connector */
         this.isDrawingPolyline = false;
+        /** @type {Array<{x: number, y: number}>} Waypoints for polyline being drawn */
         this.polylineWaypoints = [];
 
-        // Grid and snap
+        /** @type {number} Grid size in pixels */
         this.gridSize = 20;
+        /** @type {boolean} Whether to show grid */
         this.showGrid = true;
+        /** @type {boolean} Whether to snap objects to grid */
         this.snapToGrid = true;
+        /** @type {boolean} Whether to render shadows */
         this.showShadows = false;
 
-        // Zoom and pan
+        /** @type {number} Current zoom level (1.0 = 100%) */
         this.zoom = 1;
+        /** @type {number} Pan offset in x direction */
         this.panX = 0;
+        /** @type {number} Pan offset in y direction */
         this.panY = 0;
+        /** @type {boolean} Whether currently panning */
         this.isPanning = false;
+        /** @type {number} Pan gesture start x coordinate */
         this.panStartX = 0;
+        /** @type {number} Pan gesture start y coordinate */
         this.panStartY = 0;
+        /** @type {boolean} Whether space key is pressed (for pan mode) */
         this.spacePressed = false;
 
-        // History
+        /** @type {Array} Undo/redo history stack */
         this.history = [];
+        /** @type {number} Current position in history stack */
         this.historyIndex = -1;
+        /** @type {number} Maximum history entries */
         this.maxHistory = 50;
 
-        // UI
+        /** @type {ContextMenu} Context menu handler */
         this.contextMenu = new ContextMenu(this.canvas);
 
-        // Initialize
+        // Initialize application
         this.resizeCanvas();
         this.setupEventListeners();
         this.render();
