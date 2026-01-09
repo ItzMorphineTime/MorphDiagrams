@@ -34,8 +34,8 @@ body {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 0 8px;
-    border-right: 1px solid #3e3e3e;
+    /* padding: 0 8px;
+    border-right: 1px solid #3e3e3e; */
 }
 
 .toolbar-section:last-child {
@@ -581,7 +581,7 @@ body {
 
 @media (max-width: 768px) {
     .toolbar-section {
-        padding: 0 4px;
+        /* padding: 0 4px; */
     }
 
     .properties-panel {
