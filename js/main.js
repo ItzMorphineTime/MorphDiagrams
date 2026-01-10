@@ -1,4 +1,12 @@
 /**
+ * @module main
+ * @description @fileoverview Main application controller for the SystemsCanvas diagramming tool.
+ *
+ * @example
+ * // Entry module: `main`
+ */
+
+/**
  * @fileoverview Main application controller for the SystemsCanvas diagramming tool.
  * Manages the canvas, user interactions, object manipulation, and rendering.
  */

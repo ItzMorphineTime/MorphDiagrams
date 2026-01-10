@@ -1,3 +1,14 @@
+/**
+ * @module shapes/Server
+ * @description Diagram shape implementation for `Server`.
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ *
+ * @example
+ * import { Server } from './shapes/Server.js';
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 

@@ -1,4 +1,15 @@
 /**
+ * @module core/Connector
+ * @description Connector class for drawing lines between shapes on the canvas.
+ *
+ * @see module:core/BaseShape
+ * @see module:shapes/ConnectorAnchor
+ *
+ * @example
+ * import { Connector } from './core/Connector.js';
+ */
+
+/**
  * Connector class for drawing lines between shapes on the canvas.
  * Supports multiple connection styles (straight, orthogonal, bezier, polyline),
  * line styles (solid, dashed, dotted), and connection types for typed network diagrams.
@@ -345,6 +356,12 @@ export class Connector {
         ctx.restore();
     }
 
+    /**
+     * Performs `drawStraight`.
+     * @param {number} ctx ctx value.
+     * @param {*} start start value.
+     * @param {*} end end value.
+     */
     drawStraight(ctx, start, end) {
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
@@ -352,6 +369,12 @@ export class Connector {
         ctx.stroke();
     }
 
+    /**
+     * Performs `drawPolyline`.
+     * @param {number} ctx ctx value.
+     * @param {*} start start value.
+     * @param {*} end end value.
+     */
     drawPolyline(ctx, start, end) {
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
@@ -364,6 +387,12 @@ export class Connector {
         ctx.stroke();
     }
 
+    /**
+     * Performs `drawOrthogonal`.
+     * @param {number} ctx ctx value.
+     * @param {*} start start value.
+     * @param {*} end end value.
+     */
     drawOrthogonal(ctx, start, end) {
         const midX = (start.x + end.x) / 2;
         const midY = (start.y + end.y) / 2;
@@ -383,6 +412,12 @@ export class Connector {
         ctx.stroke();
     }
 
+    /**
+     * Performs `drawBezier`.
+     * @param {number} ctx ctx value.
+     * @param {*} start start value.
+     * @param {*} end end value.
+     */
     drawBezier(ctx, start, end) {
         const cp1 = this.controlPoint1 || this.getDefaultControlPoint1();
         const cp2 = this.controlPoint2 || this.getDefaultControlPoint2();
@@ -393,6 +428,10 @@ export class Connector {
         ctx.stroke();
     }
 
+    /**
+     * Returns the `ArrowStartPoint` value.
+     * @returns {*} Result value.
+     */
     getArrowStartPoint() {
         if (this.style === 'polyline' && this.waypoints.length > 0) {
             return this.waypoints[0];
@@ -402,6 +441,10 @@ export class Connector {
         return this.getEndPoint();
     }
 
+    /**
+     * Returns the `ArrowEndPoint` value.
+     * @returns {*} Result value.
+     */
     getArrowEndPoint() {
         if (this.style === 'polyline' && this.waypoints.length > 0) {
             return this.waypoints[this.waypoints.length - 1];
@@ -411,6 +454,10 @@ export class Connector {
         return this.getStartPoint();
     }
 
+    /**
+     * Returns the `OrthogonalStartArrowPoint` value.
+     * @returns {*} Result value.
+     */
     getOrthogonalStartArrowPoint() {
         const start = this.getStartPoint();
         const end = this.getEndPoint();
@@ -425,6 +472,10 @@ export class Connector {
         }
     }
 
+    /**
+     * Returns the `OrthogonalEndArrowPoint` value.
+     * @returns {*} Result value.
+     */
     getOrthogonalEndArrowPoint() {
         const start = this.getStartPoint();
         const end = this.getEndPoint();
@@ -439,11 +490,24 @@ export class Connector {
         }
     }
 
+    /**
+     * Performs `drawArrow`.
+     * @param {number} ctx ctx value.
+     * @param {*} from from value.
+     * @param {*} to to value.
+     * @param {*} atStart atStart value.
+     */
     drawArrow(ctx, from, to, atStart) {
         const angle = Math.atan2(to.y - from.y, to.x - from.x);
         this.drawArrowWithAngle(ctx, to, angle);
     }
 
+    /**
+     * Performs `drawArrowWithAngle`.
+     * @param {number} ctx ctx value.
+     * @param {*} point point value.
+     * @param {number} angle angle value.
+     */
     drawArrowWithAngle(ctx, point, angle) {
         // Scale arrow size with stroke width
         const scale = Math.max(1, this.strokeWidth / 2);
@@ -469,6 +533,10 @@ export class Connector {
         ctx.restore();
     }
 
+    /**
+     * Returns the `BezierTangentAtStart` value.
+     * @returns {*} Result value.
+     */
     getBezierTangentAtStart() {
         const start = this.getStartPoint();
         const cp1 = this.controlPoint1 || this.getDefaultControlPoint1();
@@ -477,6 +545,10 @@ export class Connector {
         return Math.atan2(start.y - cp1.y, start.x - cp1.x);
     }
 
+    /**
+     * Returns the `BezierTangentAtEnd` value.
+     * @returns {*} Result value.
+     */
     getBezierTangentAtEnd() {
         const end = this.getEndPoint();
         const cp2 = this.controlPoint2 || this.getDefaultControlPoint2();
@@ -485,6 +557,10 @@ export class Connector {
         return Math.atan2(end.y - cp2.y, end.x - cp2.x);
     }
 
+    /**
+     * Performs `drawWaypoints`.
+     * @param {number} ctx ctx value.
+     */
     drawWaypoints(ctx) {
         ctx.fillStyle = '#0066cc';
         ctx.strokeStyle = '#ffffff';
@@ -498,6 +574,10 @@ export class Connector {
         }
     }
 
+    /**
+     * Performs `drawControlPoints`.
+     * @param {number} ctx ctx value.
+     */
     drawControlPoints(ctx) {
         const cp1 = this.controlPoint1 || this.getDefaultControlPoint1();
         const cp2 = this.controlPoint2 || this.getDefaultControlPoint2();

@@ -1,5 +1,27 @@
+/**
+ * @module core/Group
+ * @description Core diagram module for `Group`.
+ *
+ * @see module:core/BaseShape
+ *
+ * @example
+ * import { Group } from './core/Group.js';
+ */
+
 // Group class for managing multiple shapes together
+/**
+ * `Group` core module for MorphDiagrams.
+ *
+ * @class Group
+ *
+ * @example
+ * const instance = new Group(10);
+ */
 export class Group {
+    /**
+     * Creates a new `Group` instance.
+     * @param {*} shapes shapes value.
+     */
     constructor(shapes = []) {
         this.id = this.generateId();
         this.type = 'group';
@@ -7,20 +29,35 @@ export class Group {
         this.locked = false;
     }
 
+    /**
+     * Performs `generateId`.
+     */
     generateId() {
         return 'group_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
 
+    /**
+     * Performs `addShape`.
+     * @param {Event} shape shape value.
+     */
     addShape(shape) {
         if (!this.shapes.includes(shape)) {
             this.shapes.push(shape);
         }
     }
 
+    /**
+     * Performs `removeShape`.
+     * @param {Event} shape shape value.
+     */
     removeShape(shape) {
         this.shapes = this.shapes.filter(s => s !== shape);
     }
 
+    /**
+     * Returns the object's bounding box in canvas coordinates.
+     * @returns {*} Result value.
+     */
     getBounds() {
         if (this.shapes.length === 0) return null;
 
@@ -43,6 +80,11 @@ export class Group {
         };
     }
 
+    /**
+     * Performs `move`.
+     * @param {number} dx dx value.
+     * @param {number} dy dy value.
+     */
     move(dx, dy) {
         if (!this.locked) {
             for (const shape of this.shapes) {
@@ -51,6 +93,12 @@ export class Group {
         }
     }
 
+    /**
+     * Checks whether a point lies within the object's bounds.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     * @returns {*} Result value.
+     */
     containsPoint(x, y) {
         for (const shape of this.shapes) {
             if (shape.containsPoint(x, y)) {
@@ -60,6 +108,10 @@ export class Group {
         return false;
     }
 
+    /**
+     * Draws the object using the provided canvas context.
+     * @param {number} ctx ctx value.
+     */
     draw(ctx) {
         for (const shape of this.shapes) {
             shape.draw(ctx);
@@ -80,6 +132,10 @@ export class Group {
         }
     }
 
+    /**
+     * Serializes the object to a JSON-compatible structure.
+     * @returns {*} Result value.
+     */
     toJSON() {
         return {
             id: this.id,

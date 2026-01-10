@@ -1,4 +1,15 @@
 /**
+ * @module core/BaseShape
+ * @description Base class for all drawable shapes in the canvas.
+ *
+ * @see module:core/Connector
+ * @see module:core/Group
+ *
+ * @example
+ * import { BaseShape } from './core/BaseShape.js';
+ */
+
+/**
  * Base class for all drawable shapes in the canvas.
  * Provides common properties and methods for shape management, rendering, and interaction.
  * All specific shape classes (Rectangle, Server, NetworkSwitch, etc.) extend this base class.

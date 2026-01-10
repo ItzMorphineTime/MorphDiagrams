@@ -1,3 +1,14 @@
+/**
+ * @module shapes/SyncGenerator
+ * @description Diagram shape implementation for `SyncGenerator`.
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ *
+ * @example
+ * import { SyncGenerator } from './shapes/SyncGenerator.js';
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
@@ -49,6 +60,10 @@ export class SyncGenerator extends BaseShape {
     }
 
     // Get anchor points based on port configuration
+    /**
+     * Returns the `AnchorPoints` value.
+     * @returns {*} Result value.
+     */
     getAnchorPoints() {
         const anchors = {};
         const sdiInputs = this.ports.sdi.input || 0;
@@ -104,6 +119,10 @@ export class SyncGenerator extends BaseShape {
         return anchors;
     }
 
+    /**
+     * Draws the object using the provided canvas context.
+     * @param {number} ctx ctx value.
+     */
     draw(ctx) {
         if (!this.visible) return;
 
@@ -149,6 +168,10 @@ export class SyncGenerator extends BaseShape {
         ctx.restore();
     }
 
+    /**
+     * Serializes the object to a JSON-compatible structure.
+     * @returns {*} Result value.
+     */
     toJSON() {
         return {
             ...super.toJSON(),

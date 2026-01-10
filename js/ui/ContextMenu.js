@@ -1,4 +1,18 @@
+/**
+ * @module ui/ContextMenu
+ * @description UI module for `ContextMenu`.
+ *
+ * @see module:main
+ *
+ * @example
+ * import { ContextMenu } from './ui/ContextMenu.js';
+ */
+
 export class ContextMenu {
+    /**
+     * Creates a new `ContextMenu` instance.
+     * @param {HTMLCanvasElement} canvas canvas value.
+     */
     constructor(canvas) {
         this.canvas = canvas;
         this.menu = null;
@@ -9,6 +23,9 @@ export class ContextMenu {
         this.setupEventListeners();
     }
 
+    /**
+     * Performs `createMenu`.
+     */
     createMenu() {
         this.menu = document.createElement('div');
         this.menu.className = 'context-menu';
@@ -16,6 +33,9 @@ export class ContextMenu {
         document.body.appendChild(this.menu);
     }
 
+    /**
+     * Sets the `upEventListeners` value.
+     */
     setupEventListeners() {
         document.addEventListener('click', (e) => {
             if (!this.menu.contains(e.target)) {
@@ -30,6 +50,13 @@ export class ContextMenu {
         });
     }
 
+    /**
+     * Performs `show`.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     * @param {*} object object value.
+     * @param {Object} options options value.
+     */
     show(x, y, object, options = {}) {
         this.targetObject = object;
         this.menu.innerHTML = '';
@@ -82,6 +109,12 @@ export class ContextMenu {
         this.visible = true;
     }
 
+    /**
+     * Returns the `MenuItems` value.
+     * @param {*} object object value.
+     * @param {Object} options options value.
+     * @returns {*} Result value.
+     */
     getMenuItems(object, options) {
         const items = [];
 
@@ -198,6 +231,9 @@ export class ContextMenu {
         return items;
     }
 
+    /**
+     * Performs `hide`.
+     */
     hide() {
         if (this.visible) {
             this.menu.style.display = 'none';
@@ -206,6 +242,9 @@ export class ContextMenu {
         }
     }
 
+    /**
+     * Performs `destroy`.
+     */
     destroy() {
         if (this.menu && this.menu.parentNode) {
             this.menu.parentNode.removeChild(this.menu);

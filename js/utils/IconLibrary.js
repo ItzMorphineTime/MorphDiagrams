@@ -1,9 +1,32 @@
+/**
+ * @module utils/IconLibrary
+ * @description Utilities for `IconLibrary`.
+ *
+ * @see module:main
+ *
+ * @example
+ * import { IconLibrary } from './utils/IconLibrary.js';
+ */
+
 import { Rectangle } from '../shapes/Rectangle.js';
 import { Circle } from '../shapes/Circle.js';
 import { Cylinder } from '../shapes/Cylinder.js';
 import { TextShape } from '../shapes/TextShape.js';
+/**
+ * Utility class `IconLibrary`.
+ *
+ * @class IconLibrary
+ *
+ * @example
+ * const instance = new IconLibrary();
+ */
 
 export class IconLibrary {
+    /**
+     * Performs `createServerIcon`.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     */
     static createServerIcon(x, y) {
         const group = [];
 
@@ -24,6 +47,11 @@ export class IconLibrary {
         return group;
     }
 
+    /**
+     * Performs `createDatabaseIcon`.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     */
     static createDatabaseIcon(x, y) {
         const group = [];
 
@@ -45,6 +73,11 @@ export class IconLibrary {
         return group;
     }
 
+    /**
+     * Performs `createUserIcon`.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     */
     static createUserIcon(x, y) {
         const group = [];
 
@@ -63,6 +96,11 @@ export class IconLibrary {
         return group;
     }
 
+    /**
+     * Performs `createCloudIcon`.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     */
     static createCloudIcon(x, y) {
         const group = [];
 
@@ -84,6 +122,11 @@ export class IconLibrary {
         return group;
     }
 
+    /**
+     * Performs `createNetworkIcon`.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     */
     static createNetworkIcon(x, y) {
         const group = [];
 
@@ -106,6 +149,11 @@ export class IconLibrary {
         return group;
     }
 
+    /**
+     * Performs `createProcessIcon`.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     */
     static createProcessIcon(x, y) {
         const rect = new Rectangle(x, y, 100, 60);
         rect.fill = '#16a085';
@@ -122,6 +170,11 @@ export class IconLibrary {
         return [rect, label];
     }
 
+    /**
+     * Performs `createDecisionIcon`.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     */
     static createDecisionIcon(x, y) {
         // Note: Diamond needs to be imported dynamically or at module level
         const diamond = new Rectangle(x, y, 100, 80);
@@ -138,6 +191,10 @@ export class IconLibrary {
         return [diamond, label];
     }
 
+    /**
+     * Returns the `AllIcons` value.
+     * @returns {*} Result value.
+     */
     static getAllIcons() {
         return {
             'server': { name: 'Server', create: this.createServerIcon },

@@ -1,3 +1,14 @@
+/**
+ * @module shapes/VideoMatrix
+ * @description Diagram shape implementation for `VideoMatrix`.
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ *
+ * @example
+ * import { VideoMatrix } from './shapes/VideoMatrix.js';
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
@@ -91,6 +102,10 @@ export class VideoMatrix extends BaseShape {
         return anchors;
     }
 
+    /**
+     * Draws the object using the provided canvas context.
+     * @param {number} ctx ctx value.
+     */
     draw(ctx) {
         if (!this.visible) return;
 
@@ -141,6 +156,10 @@ export class VideoMatrix extends BaseShape {
         ctx.restore();
     }
 
+    /**
+     * Serializes the object to a JSON-compatible structure.
+     * @returns {*} Result value.
+     */
     toJSON() {
         return {
             ...super.toJSON(),

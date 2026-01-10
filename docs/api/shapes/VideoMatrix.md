@@ -2,31 +2,46 @@
 
 _Source: `js/shapes/VideoMatrix.js`_
 
-<a name="VideoMatrix"></a>
+<a name="module_shapes/VideoMatrix"></a>
 
-## VideoMatrix ⇐ <code>BaseShape</code>
-**Kind**: global class  
-**Extends**: <code>BaseShape</code>  
+## shapes/VideoMatrix
+Diagram shape implementation for `VideoMatrix`.
 
-* [VideoMatrix](#VideoMatrix) ⇐ <code>BaseShape</code>
-    * [new VideoMatrix()](#new_VideoMatrix_new)
-    * [.VideoMatrix](#VideoMatrix+VideoMatrix)
-        * [new exports.VideoMatrix(x, y, width, height)](#new_VideoMatrix+VideoMatrix_new)
-    * [.ports](#VideoMatrix+ports) : <code>Object.&lt;string, {input: number, output: number}&gt;</code>
-    * [.getAnchorPoints()](#VideoMatrix+getAnchorPoints) ⇒ <code>Object.&lt;string, {x: number, y: number, connectionType: string, portType: string}&gt;</code>
+**See**
 
-<a name="new_VideoMatrix_new"></a>
+- module:core/BaseShape
+- module:core/Connector
 
-### new VideoMatrix()
-VideoMatrix shape representing a video routing matrix.
-Supports video and SDI connections with configurable input/output ports.
-Renders as a rectangle with an 'M' letter drawn in the center.
+**Example**  
+```js
+import { VideoMatrix } from './shapes/VideoMatrix.js';
+```
 
-<a name="VideoMatrix+VideoMatrix"></a>
+* [shapes/VideoMatrix](#module_shapes/VideoMatrix)
+    * _static_
+        * [.VideoMatrix](#module_shapes/VideoMatrix.VideoMatrix)
+            * [new exports.VideoMatrix(x, y, width, height)](#new_module_shapes/VideoMatrix.VideoMatrix_new)
+            * [.ports](#module_shapes/VideoMatrix.VideoMatrix+ports) : <code>Object.&lt;string, {input: number, output: number}&gt;</code>
+            * [.getAnchorPoints()](#module_shapes/VideoMatrix.VideoMatrix+getAnchorPoints) ⇒ <code>Object.&lt;string, {x: number, y: number, connectionType: string, portType: string}&gt;</code>
+            * [.draw(ctx)](#module_shapes/VideoMatrix.VideoMatrix+draw)
+            * [.toJSON()](#module_shapes/VideoMatrix.VideoMatrix+toJSON) ⇒ <code>\*</code>
+    * _inner_
+        * [~VideoMatrix](#module_shapes/VideoMatrix..VideoMatrix) ⇐ <code>BaseShape</code>
+            * [new VideoMatrix()](#new_module_shapes/VideoMatrix..VideoMatrix_new)
 
-### videoMatrix.VideoMatrix
-**Kind**: instance class of [<code>VideoMatrix</code>](#VideoMatrix)  
-<a name="new_VideoMatrix+VideoMatrix_new"></a>
+<a name="module_shapes/VideoMatrix.VideoMatrix"></a>
+
+### shapes/VideoMatrix.VideoMatrix
+**Kind**: static class of [<code>shapes/VideoMatrix</code>](#module_shapes/VideoMatrix)  
+
+* [.VideoMatrix](#module_shapes/VideoMatrix.VideoMatrix)
+    * [new exports.VideoMatrix(x, y, width, height)](#new_module_shapes/VideoMatrix.VideoMatrix_new)
+    * [.ports](#module_shapes/VideoMatrix.VideoMatrix+ports) : <code>Object.&lt;string, {input: number, output: number}&gt;</code>
+    * [.getAnchorPoints()](#module_shapes/VideoMatrix.VideoMatrix+getAnchorPoints) ⇒ <code>Object.&lt;string, {x: number, y: number, connectionType: string, portType: string}&gt;</code>
+    * [.draw(ctx)](#module_shapes/VideoMatrix.VideoMatrix+draw)
+    * [.toJSON()](#module_shapes/VideoMatrix.VideoMatrix+toJSON) ⇒ <code>\*</code>
+
+<a name="new_module_shapes/VideoMatrix.VideoMatrix_new"></a>
 
 #### new exports.VideoMatrix(x, y, width, height)
 Creates a new VideoMatrix instance.
@@ -39,16 +54,46 @@ Creates a new VideoMatrix instance.
 | width | <code>number</code> | Width in pixels |
 | height | <code>number</code> | Height in pixels |
 
-<a name="VideoMatrix+ports"></a>
+<a name="module_shapes/VideoMatrix.VideoMatrix+ports"></a>
 
-### videoMatrix.ports : <code>Object.&lt;string, {input: number, output: number}&gt;</code>
+#### videoMatrix.ports : <code>Object.&lt;string, {input: number, output: number}&gt;</code>
 Port configuration
 
-**Kind**: instance property of [<code>VideoMatrix</code>](#VideoMatrix)  
-<a name="VideoMatrix+getAnchorPoints"></a>
+**Kind**: instance property of [<code>VideoMatrix</code>](#module_shapes/VideoMatrix.VideoMatrix)  
+<a name="module_shapes/VideoMatrix.VideoMatrix+getAnchorPoints"></a>
 
-### videoMatrix.getAnchorPoints() ⇒ <code>Object.&lt;string, {x: number, y: number, connectionType: string, portType: string}&gt;</code>
+#### videoMatrix.getAnchorPoints() ⇒ <code>Object.&lt;string, {x: number, y: number, connectionType: string, portType: string}&gt;</code>
 Gets anchor points for connections based on port configuration.
 
-**Kind**: instance method of [<code>VideoMatrix</code>](#VideoMatrix)  
+**Kind**: instance method of [<code>VideoMatrix</code>](#module_shapes/VideoMatrix.VideoMatrix)  
+<a name="module_shapes/VideoMatrix.VideoMatrix+draw"></a>
+
+#### videoMatrix.draw(ctx)
+Draws the object using the provided canvas context.
+
+**Kind**: instance method of [<code>VideoMatrix</code>](#module_shapes/VideoMatrix.VideoMatrix)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| ctx | <code>number</code> | ctx value. |
+
+<a name="module_shapes/VideoMatrix.VideoMatrix+toJSON"></a>
+
+#### videoMatrix.toJSON() ⇒ <code>\*</code>
+Serializes the object to a JSON-compatible structure.
+
+**Kind**: instance method of [<code>VideoMatrix</code>](#module_shapes/VideoMatrix.VideoMatrix)  
+**Returns**: <code>\*</code> - Result value.  
+<a name="module_shapes/VideoMatrix..VideoMatrix"></a>
+
+### shapes/VideoMatrix~VideoMatrix ⇐ <code>BaseShape</code>
+**Kind**: inner class of [<code>shapes/VideoMatrix</code>](#module_shapes/VideoMatrix)  
+**Extends**: <code>BaseShape</code>  
+<a name="new_module_shapes/VideoMatrix..VideoMatrix_new"></a>
+
+#### new VideoMatrix()
+VideoMatrix shape representing a video routing matrix.
+Supports video and SDI connections with configurable input/output ports.
+Renders as a rectangle with an 'M' letter drawn in the center.
+
 

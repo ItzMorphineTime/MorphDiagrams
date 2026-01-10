@@ -1,11 +1,44 @@
+/**
+ * @module shapes/Diamond
+ * @description Diagram shape implementation for `Diamond`.
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ *
+ * @example
+ * import { Diamond } from './shapes/Diamond.js';
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
+/**
+ * `Diamond` shape for MorphDiagrams.
+ *
+ * @class Diamond
+ * @extends BaseShape
+ *
+ * @example
+ * const instance = new Diamond(10, 20, 30, 40);
+ */
 
 export class Diamond extends BaseShape {
+    /**
+     * Creates a new `Diamond` instance.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     * @param {number} width Width in pixels.
+     * @param {number} height Height in pixels.
+     */
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.type = 'diamond';
     }
 
+    /**
+     * Checks whether a point lies within the object's bounds.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     * @returns {*} Result value.
+     */
     containsPoint(x, y) {
         const cx = this.x + this.width / 2;
         const cy = this.y + this.height / 2;
@@ -17,6 +50,10 @@ export class Diamond extends BaseShape {
         return dx + dy <= 1;
     }
 
+    /**
+     * Draws the object using the provided canvas context.
+     * @param {number} ctx ctx value.
+     */
     draw(ctx) {
         if (!this.visible) return;
 

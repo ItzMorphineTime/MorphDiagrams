@@ -1,6 +1,32 @@
+/**
+ * @module shapes/TextShape
+ * @description Diagram shape implementation for `TextShape`.
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ *
+ * @example
+ * import { TextShape } from './shapes/TextShape.js';
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
+/**
+ * `TextShape` shape for MorphDiagrams.
+ *
+ * @class TextShape
+ * @extends BaseShape
+ *
+ * @example
+ * const instance = new TextShape(10, 20, 'example');
+ */
 
 export class TextShape extends BaseShape {
+    /**
+     * Creates a new `TextShape` instance.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     * @param {string} text Display text.
+     */
     constructor(x, y, text = 'Text') {
         super(x, y, 100, 30);
         this.type = 'text';
@@ -15,6 +41,10 @@ export class TextShape extends BaseShape {
         this.stroke = 'transparent';
     }
 
+    /**
+     * Draws the object using the provided canvas context.
+     * @param {number} ctx ctx value.
+     */
     draw(ctx) {
         if (!this.visible) return;
 
@@ -51,6 +81,10 @@ export class TextShape extends BaseShape {
         ctx.restore();
     }
 
+    /**
+     * Serializes the object to a JSON-compatible structure.
+     * @returns {*} Result value.
+     */
     toJSON() {
         return {
             ...super.toJSON(),

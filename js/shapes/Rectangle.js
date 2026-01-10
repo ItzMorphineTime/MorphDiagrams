@@ -1,12 +1,43 @@
+/**
+ * @module shapes/Rectangle
+ * @description Diagram shape implementation for `Rectangle`.
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ *
+ * @example
+ * import { Rectangle } from './shapes/Rectangle.js';
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
+/**
+ * `Rectangle` shape for MorphDiagrams.
+ *
+ * @class Rectangle
+ * @extends BaseShape
+ *
+ * @example
+ * const instance = new Rectangle(10, 20, 30, 40);
+ */
 
 export class Rectangle extends BaseShape {
+    /**
+     * Creates a new `Rectangle` instance.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     * @param {number} width Width in pixels.
+     * @param {number} height Height in pixels.
+     */
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.type = 'rectangle';
         this.cornerRadius = 0;
     }
 
+    /**
+     * Draws the object using the provided canvas context.
+     * @param {number} ctx ctx value.
+     */
     draw(ctx) {
         if (!this.visible) return;
 
@@ -29,6 +60,10 @@ export class Rectangle extends BaseShape {
         ctx.restore();
     }
 
+    /**
+     * Performs `drawRoundedRect`.
+     * @param {number} ctx ctx value.
+     */
     drawRoundedRect(ctx) {
         const r = Math.min(this.cornerRadius, this.width / 2, this.height / 2);
 
@@ -47,6 +82,10 @@ export class Rectangle extends BaseShape {
         ctx.stroke();
     }
 
+    /**
+     * Serializes the object to a JSON-compatible structure.
+     * @returns {*} Result value.
+     */
     toJSON() {
         return {
             ...super.toJSON(),

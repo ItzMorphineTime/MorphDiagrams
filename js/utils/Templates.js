@@ -1,4 +1,14 @@
 /**
+ * @module utils/Templates
+ * @description @fileoverview Pre-configured diagram templates for quick start.
+ *
+ * @see module:main
+ *
+ * @example
+ * import { Templates } from './utils/Templates.js';
+ */
+
+/**
  * @fileoverview Pre-configured diagram templates for quick start.
  * Provides factory methods for creating common diagram layouts including
  * flowcharts, org charts, network diagrams, and system diagrams.
@@ -84,6 +94,9 @@ export class Templates {
         return { name: 'Basic Flowchart', objects };
     }
 
+    /**
+     * Performs `createThreeTierArchitecture`.
+     */
     static createThreeTierArchitecture() {
         const objects = [];
 
@@ -133,6 +146,9 @@ export class Templates {
         return { name: '3-Tier Architecture', objects };
     }
 
+    /**
+     * Performs `createNetworkDiagram`.
+     */
     static createNetworkDiagram() {
         const objects = [];
 
@@ -151,6 +167,9 @@ export class Templates {
         return { name: 'Network Diagram', objects };
     }
 
+    /**
+     * Performs `createOrgChart`.
+     */
     static createOrgChart() {
         const objects = [];
 
@@ -190,6 +209,9 @@ export class Templates {
         return { name: 'Organization Chart', objects };
     }
 
+    /**
+     * Performs `createSystemDiagram`.
+     */
     static createSystemDiagram() {
         const objects = [];
 
@@ -296,6 +318,10 @@ export class Templates {
         return { name: 'System Diagram', objects };
     }
 
+    /**
+     * Returns the `AllTemplates` value.
+     * @returns {*} Result value.
+     */
     static getAllTemplates() {
         return [
             { id: 'flowchart', name: 'Basic Flowchart', create: this.createBasicFlowchart },

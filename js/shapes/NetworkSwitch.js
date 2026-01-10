@@ -1,3 +1,14 @@
+/**
+ * @module shapes/NetworkSwitch
+ * @description Diagram shape implementation for `NetworkSwitch`.
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ *
+ * @example
+ * import { NetworkSwitch } from './shapes/NetworkSwitch.js';
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
@@ -49,6 +60,10 @@ export class NetworkSwitch extends BaseShape {
     }
 
     // Get anchor points based on port configuration
+    /**
+     * Returns the `AnchorPoints` value.
+     * @returns {*} Result value.
+     */
     getAnchorPoints() {
         const anchors = {};
         const networkInputs = this.ports.network.input || 0;
@@ -104,6 +119,10 @@ export class NetworkSwitch extends BaseShape {
         return anchors;
     }
 
+    /**
+     * Draws the object using the provided canvas context.
+     * @param {number} ctx ctx value.
+     */
     draw(ctx) {
         if (!this.visible) return;
 
@@ -151,6 +170,10 @@ export class NetworkSwitch extends BaseShape {
         ctx.restore();
     }
 
+    /**
+     * Serializes the object to a JSON-compatible structure.
+     * @returns {*} Result value.
+     */
     toJSON() {
         return {
             ...super.toJSON(),

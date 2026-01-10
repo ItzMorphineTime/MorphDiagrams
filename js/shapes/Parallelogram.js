@@ -1,12 +1,43 @@
+/**
+ * @module shapes/Parallelogram
+ * @description Diagram shape implementation for `Parallelogram`.
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ *
+ * @example
+ * import { Parallelogram } from './shapes/Parallelogram.js';
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
+/**
+ * `Parallelogram` shape for MorphDiagrams.
+ *
+ * @class Parallelogram
+ * @extends BaseShape
+ *
+ * @example
+ * const instance = new Parallelogram(10, 20, 30, 40);
+ */
 
 export class Parallelogram extends BaseShape {
+    /**
+     * Creates a new `Parallelogram` instance.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     * @param {number} width Width in pixels.
+     * @param {number} height Height in pixels.
+     */
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.type = 'parallelogram';
         this.skew = 0.2; // Skew factor (0-1)
     }
 
+    /**
+     * Returns the `Points` value.
+     * @returns {*} Result value.
+     */
     getPoints() {
         const skewOffset = Math.abs(this.width) * this.skew;
         const w = this.width;
@@ -44,6 +75,10 @@ export class Parallelogram extends BaseShape {
         }
     }
 
+    /**
+     * Draws the object using the provided canvas context.
+     * @param {number} ctx ctx value.
+     */
     draw(ctx) {
         if (!this.visible) return;
 
@@ -70,6 +105,10 @@ export class Parallelogram extends BaseShape {
         ctx.restore();
     }
 
+    /**
+     * Serializes the object to a JSON-compatible structure.
+     * @returns {*} Result value.
+     */
     toJSON() {
         return {
             ...super.toJSON(),

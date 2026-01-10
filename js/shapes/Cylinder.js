@@ -1,12 +1,43 @@
+/**
+ * @module shapes/Cylinder
+ * @description Diagram shape implementation for `Cylinder`.
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ *
+ * @example
+ * import { Cylinder } from './shapes/Cylinder.js';
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
+/**
+ * `Cylinder` shape for MorphDiagrams.
+ *
+ * @class Cylinder
+ * @extends BaseShape
+ *
+ * @example
+ * const instance = new Cylinder(10, 20, 30, 40);
+ */
 
 export class Cylinder extends BaseShape {
+    /**
+     * Creates a new `Cylinder` instance.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     * @param {number} width Width in pixels.
+     * @param {number} height Height in pixels.
+     */
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.type = 'cylinder';
         this.topHeight = Math.min(height * 0.15, 20); // Ellipse height at top
     }
 
+    /**
+     * Draws the object using the provided canvas context.
+     * @param {number} ctx ctx value.
+     */
     draw(ctx) {
         if (!this.visible) return;
 
@@ -51,6 +82,10 @@ export class Cylinder extends BaseShape {
         ctx.restore();
     }
 
+    /**
+     * Serializes the object to a JSON-compatible structure.
+     * @returns {*} Result value.
+     */
     toJSON() {
         return {
             ...super.toJSON(),

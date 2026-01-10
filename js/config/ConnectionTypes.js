@@ -1,4 +1,14 @@
 /**
+ * @module config/ConnectionTypes
+ * @description @fileoverview Configuration constants for connection types, colors, and port types.
+ *
+ * @see module:main
+ *
+ * @example
+ * import { ConnectionTypes } from './config/ConnectionTypes.js';
+ */
+
+/**
  * @fileoverview Configuration constants for connection types, colors, and port types.
  * Defines the available connection types (video, SDI, network, USB) and their associated colors,
  * as well as default colors for system objects and port direction types.

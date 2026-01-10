@@ -1,3 +1,14 @@
+/**
+ * @module shapes/LEDProcessor
+ * @description Diagram shape implementation for `LEDProcessor`.
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ *
+ * @example
+ * import { LEDProcessor } from './shapes/LEDProcessor.js';
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
@@ -90,6 +101,10 @@ export class LEDProcessor extends BaseShape {
         return anchors;
     }
 
+    /**
+     * Draws the object using the provided canvas context.
+     * @param {number} ctx ctx value.
+     */
     draw(ctx) {
         if (!this.visible) return;
 
@@ -122,6 +137,10 @@ export class LEDProcessor extends BaseShape {
         ctx.restore();
     }
 
+    /**
+     * Serializes the object to a JSON-compatible structure.
+     * @returns {*} Result value.
+     */
     toJSON() {
         return {
             ...super.toJSON(),

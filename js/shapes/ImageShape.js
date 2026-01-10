@@ -1,6 +1,34 @@
+/**
+ * @module shapes/ImageShape
+ * @description Diagram shape implementation for `ImageShape`.
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ *
+ * @example
+ * import { ImageShape } from './shapes/ImageShape.js';
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
+/**
+ * `ImageShape` shape for MorphDiagrams.
+ *
+ * @class ImageShape
+ * @extends BaseShape
+ *
+ * @example
+ * const instance = new ImageShape(10, 20, 30, 40, 50);
+ */
 
 export class ImageShape extends BaseShape {
+    /**
+     * Creates a new `ImageShape` instance.
+     * @param {number} x X position in canvas coordinates.
+     * @param {number} y Y position in canvas coordinates.
+     * @param {number} width Width in pixels.
+     * @param {number} height Height in pixels.
+     * @param {*} imageData imageData value.
+     */
     constructor(x, y, width, height, imageData) {
         super(x, y, width, height);
         this.type = 'image';
@@ -14,6 +42,10 @@ export class ImageShape extends BaseShape {
         }
     }
 
+    /**
+     * Performs `loadImage`.
+     * @param {*} imageData imageData value.
+     */
     loadImage(imageData) {
         this.image = new Image();
         this.image.onload = () => {
@@ -22,6 +54,10 @@ export class ImageShape extends BaseShape {
         this.image.src = imageData;
     }
 
+    /**
+     * Draws the object using the provided canvas context.
+     * @param {number} ctx ctx value.
+     */
     draw(ctx) {
         if (!this.visible || !this.loaded || !this.image) return;
 
@@ -46,6 +82,10 @@ export class ImageShape extends BaseShape {
         ctx.restore();
     }
 
+    /**
+     * Serializes the object to a JSON-compatible structure.
+     * @returns {*} Result value.
+     */
     toJSON() {
         return {
             ...super.toJSON(),

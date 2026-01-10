@@ -1,3 +1,14 @@
+/**
+ * @module shapes/ConnectorAnchor
+ * @description Diagram shape implementation for `ConnectorAnchor`.
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ *
+ * @example
+ * import { ConnectorAnchor } from './shapes/ConnectorAnchor.js';
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ConnectionColors } from '../config/ConnectionTypes.js';
 

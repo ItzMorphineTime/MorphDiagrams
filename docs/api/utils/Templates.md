@@ -2,26 +2,29 @@
 
 _Source: `js/utils/Templates.js`_
 
-<a name="Templates"></a>
+<a name="module_utils/Templates"></a>
 
-## Templates
-**Kind**: global class  
+## utils/Templates
+@fileoverview Pre-configured diagram templates for quick start.
 
-* [Templates](#Templates)
-    * [new Templates()](#new_Templates_new)
-    * [.createBasicFlowchart()](#Templates.createBasicFlowchart) ⇒ <code>Object</code>
+**See**: module:main  
+**Example**  
+```js
+import { Templates } from './utils/Templates.js';
+```
 
-<a name="new_Templates_new"></a>
+* [utils/Templates](#module_utils/Templates)
+    * [~Templates](#module_utils/Templates..Templates)
+        * [new Templates()](#new_module_utils/Templates..Templates_new)
 
-### new Templates()
+<a name="module_utils/Templates..Templates"></a>
+
+### utils/Templates~Templates
+**Kind**: inner class of [<code>utils/Templates</code>](#module_utils/Templates)  
+<a name="new_module_utils/Templates..Templates_new"></a>
+
+#### new Templates()
 Provides static methods for creating pre-configured diagram templates.
 Each template returns an object with a name and an array of shape/connector objects.
 
-<a name="Templates.createBasicFlowchart"></a>
-
-### Templates.createBasicFlowchart() ⇒ <code>Object</code>
-Creates a basic flowchart template with start, process, decision, and end nodes.
-
-**Kind**: static method of [<code>Templates</code>](#Templates)  
-**Returns**: <code>Object</code> - Template with flowchart shapes and connectors  
 
