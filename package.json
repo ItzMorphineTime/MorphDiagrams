@@ -3,6 +3,6 @@
     "jsdoc-to-markdown": "^9.1.3"
   },
   "scripts": {
-    "docs:api": "jsdoc2md --files js/**/*.js > docs/api.md"
+    "docs:api": "node scripts/build-api-docs.mjs"
   }
 }
