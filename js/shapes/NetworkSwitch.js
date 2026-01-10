@@ -1,11 +1,29 @@
+/**
+ * @module shapes/NetworkSwitch
+ * @description NetworkSwitch shape representing a network switching device. Supports bidirectional network connections.
+ *
+ * @remarks
+ * - Renders as a hexagon with an 'N' letter drawn in the center.
+ * - Port configuration defines input/output ports for network connections.
+ * - Input ports appear on the left edge, output ports on the right edge of the hexagon.
+ * - Anchor points are automatically generated based on port configuration.
+ *
+ * @example
+ * const switch = new NetworkSwitch(10, 20, 100, 100);
+ * switch.ports = { network: { input: 6, output: 6 } };
+ * switch.draw(ctx);
+ *
+ * @see module:core/BaseShape
+ * @see module:config/ConnectionTypes
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
 /**
- * NetworkSwitch shape representing a network switching device.
- * Supports bidirectional network connections.
- * Renders as a hexagon with an 'N' letter drawn in the center.
- * @class NetworkSwitch
+ * Represents a network switching device.
+ *
+ * @class
  * @extends BaseShape
  */
 export class NetworkSwitch extends BaseShape {

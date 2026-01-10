@@ -1,12 +1,26 @@
 /**
- * @fileoverview Configuration constants for connection types, colors, and port types.
- * Defines the available connection types (video, SDI, network, USB) and their associated colors,
- * as well as default colors for system objects and port direction types.
+ * @module config/ConnectionTypes
+ * @description Configuration constants for connection types, colors, and port types. Defines the available connection types (video, SDI, network, USB) and their associated colors, as well as default colors for system objects and port direction types.
+ *
+ * @remarks
+ * - Connection types enable typed network diagrams with color-coded connections.
+ * - Object colors provide default styling for system device shapes.
+ * - Port types define input/output directionality for connection validation.
+ *
+ * @example
+ * import { ConnectionTypes, ConnectionColors, ObjectColors } from './config/ConnectionTypes.js';
+ * const connector = new Connector(start, 'right', end, 'left', ConnectionTypes.VIDEO);
+ * connector.stroke = ConnectionColors.video; // '#FFD700'
+ *
+ * @see module:core/Connector
+ * @see module:shapes/Server
  */
 
 /**
  * Supported connection types for network diagram connectors.
- * @constant {Object<string, string>}
+ *
+ * @readonly
+ * @enum {string}
  */
 export const ConnectionTypes = {
     /** Video connection type */
@@ -21,8 +35,11 @@ export const ConnectionTypes = {
 
 /**
  * Default colors for each connection type.
+ *
  * Colors are used to visually distinguish different connection types on the canvas.
- * @constant {Object<string, string>}
+ *
+ * @readonly
+ * @enum {string}
  */
 export const ConnectionColors = {
     /** Gold color for video connections */
@@ -37,8 +54,11 @@ export const ConnectionColors = {
 
 /**
  * Default fill colors for system object types.
+ *
  * Used to visually distinguish different device types on the canvas.
- * @constant {Object<string, string>}
+ *
+ * @readonly
+ * @enum {string}
  */
 export const ObjectColors = {
     /** Dark blue-gray for server objects */
@@ -55,7 +75,9 @@ export const ObjectColors = {
 
 /**
  * Port direction types for defining input/output ports.
- * @constant {Object<string, string>}
+ *
+ * @readonly
+ * @enum {string}
  */
 export const PortTypes = {
     /** Input port direction */

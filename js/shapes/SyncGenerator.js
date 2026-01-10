@@ -1,11 +1,29 @@
+/**
+ * @module shapes/SyncGenerator
+ * @description SyncGenerator shape representing a video sync generation device. Provides SDI timing signals to other devices in the system.
+ *
+ * @remarks
+ * - Renders as a hexagon with a clock icon in the center.
+ * - Port configuration defines input/output ports for SDI connections only.
+ * - Input ports appear on the left edge, output ports on the right edge of the hexagon.
+ * - Anchor points are automatically generated based on port configuration.
+ *
+ * @example
+ * const sync = new SyncGenerator(10, 20, 100, 100);
+ * sync.ports = { sdi: { input: 2, output: 4 } };
+ * sync.draw(ctx);
+ *
+ * @see module:core/BaseShape
+ * @see module:config/ConnectionTypes
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
 /**
- * SyncGenerator shape representing a video sync generation device.
- * Provides SDI timing signals to other devices in the system.
- * Renders as a hexagon shape.
- * @class SyncGenerator
+ * Represents a video sync generation device.
+ *
+ * @class
  * @extends BaseShape
  */
 export class SyncGenerator extends BaseShape {

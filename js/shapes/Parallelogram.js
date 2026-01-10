@@ -1,12 +1,51 @@
+/**
+ * @module shapes/Parallelogram
+ * @description Parallelogram diagram shape with configurable skew. Extends BaseShape to provide parallelogram geometry and rendering.
+ *
+ * @remarks
+ * - Supports configurable skew factor for different parallelogram angles.
+ * - Handles negative dimensions during drag operations.
+ *
+ * @example
+ * const para = new Parallelogram(10, 20, 120, 60);
+ * para.skew = 0.3; // Increase skew angle
+ * para.draw(ctx);
+ *
+ * @see module:core/BaseShape
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 
+/**
+ * Represents a parallelogram diagram shape.
+ *
+ * @class
+ * @extends BaseShape
+ */
 export class Parallelogram extends BaseShape {
+    /**
+     * Creates a new Parallelogram instance.
+     *
+     * @param {number} x X-coordinate of top-left corner of bounding box.
+     * @param {number} y Y-coordinate of top-left corner of bounding box.
+     * @param {number} width Width of bounding box.
+     * @param {number} height Height of bounding box.
+     */
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.type = 'parallelogram';
-        this.skew = 0.2; // Skew factor (0-1)
+        /** @type {number} Skew factor (0-1) controlling the horizontal offset of top/bottom edges. */
+        this.skew = 0.2;
     }
 
+    /**
+     * Gets the four vertex points of the parallelogram.
+     *
+     * Handles negative widths/heights during drag operations.
+     *
+     * @returns {Array<{x:number, y:number}>} Array of four vertex coordinates.
+     * @private
+     */
     getPoints() {
         const skewOffset = Math.abs(this.width) * this.skew;
         const w = this.width;
@@ -44,6 +83,11 @@ export class Parallelogram extends BaseShape {
         }
     }
 
+    /**
+     * Draws the parallelogram shape on the canvas.
+     *
+     * @param {CanvasRenderingContext2D} ctx Canvas rendering context.
+     */
     draw(ctx) {
         if (!this.visible) return;
 

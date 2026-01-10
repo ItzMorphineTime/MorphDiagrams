@@ -1,17 +1,39 @@
 /**
- * Connector class for drawing lines between shapes on the canvas.
- * Supports multiple connection styles (straight, orthogonal, bezier, polyline),
- * line styles (solid, dashed, dotted), and connection types for typed network diagrams.
- * @class Connector
+ * @module core/Connector
+ * @description Connector class for drawing lines between shapes on the canvas. Supports multiple connection styles (straight, orthogonal, bezier, polyline), line styles (solid, dashed, dotted), and connection types for typed network diagrams.
+ *
+ * @remarks
+ * - Connectors connect shapes via anchor points (top, right, bottom, left, center).
+ * - Connection types (video, sdi, network, usb) enable typed network diagrams.
+ * - Polyline connectors support intermediate waypoints for complex routing.
+ * - Bezier connectors support control points for curved paths.
+ *
+ * @example
+ * const connector = new Connector(startShape, 'right', endShape, 'left', 'video');
+ * connector.style = 'orthogonal';
+ * connector.draw(ctx);
+ *
+ * @see module:core/BaseShape
+ * @see module:config/ConnectionTypes
+ */
+
+/**
+ * Connector class for drawing lines between shapes.
+ *
+ * @class
  */
 export class Connector {
     /**
      * Creates a new Connector instance.
-     * @param {Object} startObject - The shape object where the connector starts
-     * @param {string} startAnchor - The anchor point key on the start object
-     * @param {Object} endObject - The shape object where the connector ends
-     * @param {string} endAnchor - The anchor point key on the end object
-     * @param {string|null} connectionType - Type of connection (video, sdi, network, usb) or null for generic
+     *
+     * @param {Object} startObject The shape object where the connector starts.
+     * @param {string} startAnchor The anchor point key on the start object (e.g., 'top', 'right', 'bottom', 'left', 'center').
+     * @param {Object} endObject The shape object where the connector ends.
+     * @param {string} endAnchor The anchor point key on the end object.
+     * @param {string|null} [connectionType=null] Type of connection: 'video', 'sdi', 'network', 'usb', or null for generic.
+     *
+     * @example
+     * const connector = new Connector(serverShape, 'right', videoMatrixShape, 'left', 'video');
      */
     constructor(startObject, startAnchor, endObject, endAnchor, connectionType = null) {
         /** @type {string} Unique identifier for the connector */
@@ -56,7 +78,8 @@ export class Connector {
 
     /**
      * Generates a unique identifier for the connector.
-     * @returns {string} Unique ID combining timestamp and random string
+     *
+     * @returns {string} Unique ID combining timestamp and random string.
      */
     generateId() {
         return 'conn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -64,7 +87,12 @@ export class Connector {
 
     /**
      * Gets the starting point of the connector from the start object's anchor points.
-     * @returns {{x: number, y: number}|null} Start point coordinates or null if no start object
+     *
+     * @returns {{x:number, y:number}|null} Start point coordinates or null if no start object.
+     *
+     * @example
+     * const start = connector.getStartPoint();
+     * if (start) console.log(`Connector starts at (${start.x}, ${start.y})`);
      */
     getStartPoint() {
         if (!this.startObject) return null;
@@ -74,7 +102,8 @@ export class Connector {
 
     /**
      * Gets the ending point of the connector from the end object's anchor points.
-     * @returns {{x: number, y: number}|null} End point coordinates or null if no end object
+     *
+     * @returns {{x:number, y:number}|null} End point coordinates or null if no end object.
      */
     getEndPoint() {
         if (!this.endObject) return null;
@@ -84,11 +113,18 @@ export class Connector {
 
     /**
      * Checks if a point is near the connector line for hit detection.
-     * Delegates to specific methods based on connector style.
-     * @param {number} x - X-coordinate of the point to test
-     * @param {number} y - Y-coordinate of the point to test
-     * @param {number} [threshold=5] - Maximum distance in pixels to consider "near"
-     * @returns {boolean} True if point is within threshold distance of the connector
+     *
+     * Delegates to specific methods based on connector style (straight, orthogonal, bezier, polyline).
+     *
+     * @param {number} x X-coordinate of the point to test.
+     * @param {number} y Y-coordinate of the point to test.
+     * @param {number} [threshold=5] Maximum distance in pixels to consider "near".
+     * @returns {boolean} True if point is within threshold distance of the connector.
+     *
+     * @example
+     * if (connector.containsPoint(100, 50, 10)) {
+     *   console.log('Mouse is near connector');
+     * }
      */
     containsPoint(x, y, threshold = 5) {
         const start = this.getStartPoint();
@@ -270,9 +306,16 @@ export class Connector {
 
     /**
      * Draws the connector on the canvas.
-     * Applies appropriate styling, draws the connection line based on style,
+     *
+     * Applies appropriate styling, draws the connection line based on style (straight, orthogonal, bezier, polyline),
      * and draws arrows and control points as needed.
-     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+     *
+     * @param {CanvasRenderingContext2D} ctx Canvas rendering context.
+     *
+     * @example
+     * ctx.save();
+     * connector.draw(ctx);
+     * ctx.restore();
      */
     draw(ctx) {
         if (!this.visible) return;
@@ -539,8 +582,14 @@ export class Connector {
 
     /**
      * Serializes the connector to a JSON-compatible object for saving.
+     *
      * Stores object IDs instead of object references for proper serialization.
-     * @returns {Object} JSON representation of the connector with all properties
+     *
+     * @returns {Object} JSON representation of the connector with all properties.
+     *
+     * @example
+     * const json = connector.toJSON();
+     * // json.startObject and json.endObject are now IDs instead of object references
      */
     toJSON() {
         return {

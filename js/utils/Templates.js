@@ -1,7 +1,19 @@
 /**
- * @fileoverview Pre-configured diagram templates for quick start.
- * Provides factory methods for creating common diagram layouts including
- * flowcharts, org charts, network diagrams, and system diagrams.
+ * @module utils/Templates
+ * @description Pre-configured diagram templates for quick start. Provides factory methods for creating common diagram layouts including flowcharts, org charts, network diagrams, and system diagrams.
+ *
+ * @remarks
+ * - Templates return objects with a name and an array of shape/connector objects.
+ * - Templates can be inserted into the canvas via the template system.
+ * - System diagram templates include pre-configured port configurations for network devices.
+ *
+ * @example
+ * import { Templates } from './utils/Templates.js';
+ * const template = Templates.createBasicFlowchart();
+ * objects.push(...template.objects);
+ *
+ * @see module:core/Connector
+ * @see module:shapes/Server
  */
 
 import { Rectangle } from '../shapes/Rectangle.js';
@@ -16,14 +28,20 @@ import { NetworkSwitch } from '../shapes/NetworkSwitch.js';
 
 /**
  * Provides static methods for creating pre-configured diagram templates.
- * Each template returns an object with a name and an array of shape/connector objects.
- * @class Templates
+ *
+ * @class
  */
 export class Templates {
     /**
      * Creates a basic flowchart template with start, process, decision, and end nodes.
+     *
      * @static
-     * @returns {{name: string, objects: Array}} Template with flowchart shapes and connectors
+     * @returns {{name:string, objects:Array}} Template with flowchart shapes and connectors.
+     *
+     * @example
+     * const template = Templates.createBasicFlowchart();
+     * console.log(template.name); // "Basic Flowchart"
+     * objects.push(...template.objects);
      */
     static createBasicFlowchart() {
         const objects = [];
@@ -84,6 +102,12 @@ export class Templates {
         return { name: 'Basic Flowchart', objects };
     }
 
+    /**
+     * Creates a 3-tier architecture template with presentation, business, and data layers.
+     *
+     * @static
+     * @returns {{name:string, objects:Array}} Template with 3-tier architecture shapes and connectors.
+     */
     static createThreeTierArchitecture() {
         const objects = [];
 
@@ -133,6 +157,12 @@ export class Templates {
         return { name: '3-Tier Architecture', objects };
     }
 
+    /**
+     * Creates a network diagram template with server, database, and user icons.
+     *
+     * @static
+     * @returns {{name:string, objects:Array}} Template with network diagram shapes.
+     */
     static createNetworkDiagram() {
         const objects = [];
 
@@ -151,6 +181,12 @@ export class Templates {
         return { name: 'Network Diagram', objects };
     }
 
+    /**
+     * Creates an organization chart template with CEO and manager positions.
+     *
+     * @static
+     * @returns {{name:string, objects:Array}} Template with organization chart shapes and connectors.
+     */
     static createOrgChart() {
         const objects = [];
 
@@ -190,6 +226,18 @@ export class Templates {
         return { name: 'Organization Chart', objects };
     }
 
+    /**
+     * Creates a system diagram template with network devices (Sync Generator, Network Switch, Server, Video Matrix, LED Processor).
+     *
+     * Includes pre-configured port configurations and typed connections between devices.
+     *
+     * @static
+     * @returns {{name:string, objects:Array}} Template with system diagram shapes and connectors.
+     *
+     * @example
+     * const template = Templates.createSystemDiagram();
+     * // Template includes devices with port configurations and typed SDI/Video/Network connections
+     */
     static createSystemDiagram() {
         const objects = [];
 
@@ -296,6 +344,16 @@ export class Templates {
         return { name: 'System Diagram', objects };
     }
 
+    /**
+     * Gets all available templates as an array of template metadata.
+     *
+     * @static
+     * @returns {Array<{id:string, name:string, create:Function}>} Array of all templates with their IDs, names, and create functions.
+     *
+     * @example
+     * const templates = Templates.getAllTemplates();
+     * templates.forEach(t => console.log(t.name));
+     */
     static getAllTemplates() {
         return [
             { id: 'flowchart', name: 'Basic Flowchart', create: this.createBasicFlowchart },

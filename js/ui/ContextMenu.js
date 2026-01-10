@@ -1,14 +1,56 @@
+/**
+ * @module ui/ContextMenu
+ * @description Context menu handler for canvas right-click interactions. Provides context-sensitive menu items based on the clicked object or canvas area.
+ *
+ * @remarks
+ * - Menu items are dynamically generated based on the target object type.
+ * - Supports both object-specific menus (for shapes/connectors) and canvas menus (for empty areas).
+ * - Menu positioning automatically adjusts to prevent going off-screen.
+ * - Menu items can be disabled based on context (e.g., paste disabled when clipboard is empty).
+ *
+ * @example
+ * const contextMenu = new ContextMenu(canvas);
+ * contextMenu.show(event.clientX, event.clientY, clickedObject, {
+ *   onCopy: () => app.copy(),
+ *   onDelete: () => app.deleteSelected()
+ * });
+ *
+ * @see module:main
+ */
+
+/**
+ * Context menu handler for canvas interactions.
+ *
+ * @class
+ */
 export class ContextMenu {
+    /**
+     * Creates a new ContextMenu instance.
+     *
+     * @param {HTMLCanvasElement} canvas Canvas element to attach the context menu to.
+     *
+     * @example
+     * const contextMenu = new ContextMenu(document.getElementById('canvas'));
+     */
     constructor(canvas) {
+        /** @type {HTMLCanvasElement} Canvas element. */
         this.canvas = canvas;
+        /** @type {HTMLElement|null} Menu DOM element. */
         this.menu = null;
+        /** @type {boolean} Whether the menu is currently visible. */
         this.visible = false;
+        /** @type {Object|null} Currently targeted object (if any). */
         this.targetObject = null;
 
         this.createMenu();
         this.setupEventListeners();
     }
 
+    /**
+     * Creates the menu DOM element and appends it to the document body.
+     *
+     * @private
+     */
     createMenu() {
         this.menu = document.createElement('div');
         this.menu.className = 'context-menu';
@@ -16,6 +58,11 @@ export class ContextMenu {
         document.body.appendChild(this.menu);
     }
 
+    /**
+     * Sets up event listeners for hiding the menu on outside clicks or canvas right-clicks.
+     *
+     * @private
+     */
     setupEventListeners() {
         document.addEventListener('click', (e) => {
             if (!this.menu.contains(e.target)) {
@@ -30,6 +77,41 @@ export class ContextMenu {
         });
     }
 
+    /**
+     * Shows the context menu at the specified screen coordinates.
+     *
+     * Menu items are dynamically generated based on the object type. Menu position
+     * is automatically adjusted to prevent going off-screen.
+     *
+     * @param {number} x Screen X-coordinate for menu position.
+     * @param {number} y Screen Y-coordinate for menu position.
+     * @param {Object|null} object Target object (shape or connector) or null for canvas menu.
+     * @param {Object} [options={}] Menu action callbacks.
+     * @param {Function} [options.onCopy] Copy action callback.
+     * @param {Function} [options.onCut] Cut action callback.
+     * @param {Function} [options.onPaste] Paste action callback.
+     * @param {Function} [options.onDuplicate] Duplicate action callback.
+     * @param {Function} [options.onDelete] Delete action callback.
+     * @param {Function} [options.onBringToFront] Bring to front action callback.
+     * @param {Function} [options.onBringForward] Bring forward action callback.
+     * @param {Function} [options.onSendBackward] Send backward action callback.
+     * @param {Function} [options.onSendToBack] Send to back action callback.
+     * @param {Function} [options.onToggleLock] Toggle lock action callback.
+     * @param {Function} [options.onSelectAll] Select all action callback.
+     * @param {Function} [options.onAddImage] Add image action callback.
+     * @param {Function} [options.onInsertIcon] Insert icon action callback.
+     * @param {Function} [options.onInsertTemplate] Insert template action callback.
+     * @param {Function} [options.onChangeConnectorStyle] Change connector style action callback.
+     * @param {Function} [options.onToggleArrows] Toggle arrows action callback.
+     * @param {boolean} [options.hasClipboard=false] Whether clipboard has content (for enabling paste).
+     *
+     * @example
+     * contextMenu.show(100, 200, selectedObject, {
+     *   onCopy: () => app.copy(),
+     *   onDelete: () => app.deleteSelected(),
+     *   hasClipboard: app.clipboard.length > 0
+     * });
+     */
     show(x, y, object, options = {}) {
         this.targetObject = object;
         this.menu.innerHTML = '';
@@ -82,6 +164,16 @@ export class ContextMenu {
         this.visible = true;
     }
 
+    /**
+     * Generates menu items based on the target object type and available options.
+     *
+     * Returns different menu items for object-specific menus vs canvas menus.
+     *
+     * @param {Object|null} object Target object or null for canvas menu.
+     * @param {Object} options Menu action callbacks and configuration.
+     * @returns {Array<Object>} Array of menu item objects with label, shortcut, action, disabled, separator properties.
+     * @private
+     */
     getMenuItems(object, options) {
         const items = [];
 
@@ -198,6 +290,12 @@ export class ContextMenu {
         return items;
     }
 
+    /**
+     * Hides the context menu and clears the target object.
+     *
+     * @example
+     * contextMenu.hide();
+     */
     hide() {
         if (this.visible) {
             this.menu.style.display = 'none';
@@ -206,6 +304,14 @@ export class ContextMenu {
         }
     }
 
+    /**
+     * Destroys the context menu by removing it from the DOM.
+     *
+     * Should be called when the context menu is no longer needed.
+     *
+     * @example
+     * contextMenu.destroy();
+     */
     destroy() {
         if (this.menu && this.menu.parentNode) {
             this.menu.parentNode.removeChild(this.menu);

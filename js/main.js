@@ -1,6 +1,25 @@
 /**
- * @fileoverview Main application controller for the SystemsCanvas diagramming tool.
- * Manages the canvas, user interactions, object manipulation, and rendering.
+ * @module main
+ * @description Main application controller for the SystemsCanvas diagramming tool. Manages the canvas, user interactions, object manipulation, and rendering.
+ *
+ * @remarks
+ * - Handles all user input (mouse, keyboard, touch).
+ * - Manages object creation, selection, manipulation, and deletion.
+ * - Provides undo/redo history system.
+ * - Supports file operations (save, load, export PNG/PDF).
+ * - Integrates with templates, icons, and context menu systems.
+ * - Supports zoom, pan, grid, and snap-to-grid features.
+ *
+ * @example
+ * import { CanvasApp } from './main.js';
+ * document.addEventListener('DOMContentLoaded', () => {
+ *   window.app = new CanvasApp();
+ * });
+ *
+ * @see module:core/BaseShape
+ * @see module:core/Connector
+ * @see module:ui/ContextMenu
+ * @see module:utils/Templates
  */
 
 import { BaseShape } from './core/BaseShape.js';
@@ -27,14 +46,18 @@ import { ConnectionTypes, ConnectionColors, ObjectColors } from './config/Connec
 
 /**
  * Main application class that manages the canvas-based diagramming tool.
- * Handles user input, object creation/manipulation, rendering, and state management.
- * Supports shapes, connectors, groups, templates, zoom/pan, undo/redo, and more.
- * @class CanvasApp
+ *
+ * @class
  */
 class CanvasApp {
     /**
      * Initializes the canvas application with default state and event listeners.
-     * Sets up the canvas, initializes all state properties, and begins rendering.
+     *
+     * Sets up the canvas, initializes all state properties, sets up event listeners,
+     * and begins rendering. Saves initial state for undo/redo history.
+     *
+     * @example
+     * const app = new CanvasApp();
      */
     constructor() {
         /** @type {HTMLCanvasElement} Main canvas element */

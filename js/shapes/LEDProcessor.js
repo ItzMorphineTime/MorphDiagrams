@@ -1,11 +1,32 @@
+/**
+ * @module shapes/LEDProcessor
+ * @description LEDProcessor shape representing an LED video processing device. Handles video and SDI inputs for LED wall output.
+ *
+ * @remarks
+ * - Renders as a rectangle with LED pattern indicators.
+ * - Port configuration defines input/output ports for video and SDI connections.
+ * - Input ports appear on the left side, output ports on the right side.
+ * - Anchor points are automatically generated based on port configuration.
+ *
+ * @example
+ * const processor = new LEDProcessor(10, 20, 120, 100);
+ * processor.ports = {
+ *   video: { input: 4, output: 1 },
+ *   sdi: { input: 1, output: 0 }
+ * };
+ * processor.draw(ctx);
+ *
+ * @see module:core/BaseShape
+ * @see module:config/ConnectionTypes
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
 /**
- * LEDProcessor shape representing an LED video processing device.
- * Handles video and SDI inputs for LED wall output.
- * Renders as a capsule (rounded rectangle) shape.
- * @class LEDProcessor
+ * Represents an LED video processing device.
+ *
+ * @class
  * @extends BaseShape
  */
 export class LEDProcessor extends BaseShape {

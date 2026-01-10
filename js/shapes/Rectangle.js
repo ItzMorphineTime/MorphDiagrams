@@ -1,12 +1,53 @@
+/**
+ * @module shapes/Rectangle
+ * @description Rectangular diagram shape with optional rounded corners. Extends BaseShape to provide rectangular geometry and rendering.
+ *
+ * @remarks
+ * - Supports corner radius for rounded rectangles.
+ * - All rectangular properties (x, y, width, height) are inherited from BaseShape.
+ *
+ * @example
+ * const rect = new Rectangle(10, 20, 120, 60);
+ * rect.cornerRadius = 5;
+ * rect.draw(ctx);
+ *
+ * @see module:core/BaseShape
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 
+/**
+ * Represents a rectangular diagram shape.
+ *
+ * @class
+ * @extends BaseShape
+ */
 export class Rectangle extends BaseShape {
+    /**
+     * Creates a new Rectangle instance.
+     *
+     * @param {number} x X-coordinate of top-left corner.
+     * @param {number} y Y-coordinate of top-left corner.
+     * @param {number} width Width in pixels.
+     * @param {number} height Height in pixels.
+     *
+     * @example
+     * const rect = new Rectangle(10, 20, 120, 60);
+     */
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.type = 'rectangle';
+        /** @type {number} Corner radius for rounded rectangles (0 = sharp corners). */
         this.cornerRadius = 0;
     }
 
+    /**
+     * Draws the rectangle on the canvas.
+     *
+     * Uses rounded rectangle rendering if cornerRadius > 0, otherwise draws a standard rectangle.
+     *
+     * @param {CanvasRenderingContext2D} ctx Canvas rendering context.
+     */
     draw(ctx) {
         if (!this.visible) return;
 
@@ -29,6 +70,12 @@ export class Rectangle extends BaseShape {
         ctx.restore();
     }
 
+    /**
+     * Draws a rounded rectangle using quadratic curves.
+     *
+     * @param {CanvasRenderingContext2D} ctx Canvas rendering context.
+     * @private
+     */
     drawRoundedRect(ctx) {
         const r = Math.min(this.cornerRadius, this.width / 2, this.height / 2);
 
@@ -47,6 +94,11 @@ export class Rectangle extends BaseShape {
         ctx.stroke();
     }
 
+    /**
+     * Serializes the rectangle to JSON, including cornerRadius.
+     *
+     * @returns {Object} JSON representation with all properties.
+     */
     toJSON() {
         return {
             ...super.toJSON(),

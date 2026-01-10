@@ -1,16 +1,38 @@
 /**
+ * @module core/BaseShape
+ * @description Base class for all drawable shapes in the canvas. Provides common properties and methods for shape management, rendering, and interaction.
+ *
+ * @remarks
+ * - All specific shape classes (Rectangle, Server, NetworkSwitch, etc.) extend this base class.
+ * - Shapes should implement the `draw()` method to render themselves.
+ * - Geometry operations (move, resize, rotate) are handled by this base class.
+ *
+ * @example
+ * const shape = new BaseShape(10, 20, 100, 60);
+ * shape.setSelected(true);
+ * shape.draw(ctx);
+ *
+ * @see module:shapes/Rectangle
+ * @see module:core/Connector
+ */
+
+/**
  * Base class for all drawable shapes in the canvas.
- * Provides common properties and methods for shape management, rendering, and interaction.
- * All specific shape classes (Rectangle, Server, NetworkSwitch, etc.) extend this base class.
- * @class BaseShape
+ *
+ * @class
+ * @extends Object
  */
 export class BaseShape {
     /**
      * Creates a new BaseShape instance.
-     * @param {number} x - The x-coordinate of the shape's top-left corner
-     * @param {number} y - The y-coordinate of the shape's top-left corner
-     * @param {number} width - The width of the shape in pixels
-     * @param {number} height - The height of the shape in pixels
+     *
+     * @param {number} x X-coordinate of the shape's top-left corner in canvas coordinates.
+     * @param {number} y Y-coordinate of the shape's top-left corner in canvas coordinates.
+     * @param {number} width Width of the shape in pixels.
+     * @param {number} height Height of the shape in pixels.
+     *
+     * @example
+     * const shape = new BaseShape(10, 20, 100, 60);
      */
     constructor(x, y, width, height) {
         /** @type {string} Unique identifier for the shape */
@@ -55,7 +77,11 @@ export class BaseShape {
 
     /**
      * Generates a unique identifier for the shape.
-     * @returns {string} Unique ID combining timestamp and random string
+     *
+     * @returns {string} Unique ID combining timestamp and random string.
+     *
+     * @example
+     * const id = shape.generateId(); // Returns something like 'shape_1234567890_abc123xyz'
      */
     generateId() {
         return 'shape_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -63,7 +89,12 @@ export class BaseShape {
 
     /**
      * Gets the bounding box of the shape for hit detection.
-     * @returns {{x: number, y: number, width: number, height: number}} Bounding box coordinates and dimensions
+     *
+     * @returns {{x:number, y:number, width:number, height:number}} Bounding box coordinates and dimensions.
+     *
+     * @example
+     * const bounds = shape.getBounds();
+     * console.log(`Shape at (${bounds.x}, ${bounds.y}) size ${bounds.width}x${bounds.height}`);
      */
     getBounds() {
         return {
@@ -76,9 +107,15 @@ export class BaseShape {
 
     /**
      * Checks if a point is inside the shape's bounds.
-     * @param {number} x - X-coordinate of the point to test
-     * @param {number} y - Y-coordinate of the point to test
-     * @returns {boolean} True if point is inside shape bounds
+     *
+     * @param {number} x X-coordinate of the point to test.
+     * @param {number} y Y-coordinate of the point to test.
+     * @returns {boolean} True if point is inside shape bounds.
+     *
+     * @example
+     * if (shape.containsPoint(50, 30)) {
+     *   console.log('Point is inside shape');
+     * }
      */
     containsPoint(x, y) {
         const bounds = this.getBounds();
@@ -87,11 +124,17 @@ export class BaseShape {
     }
 
     /**
-     * Rotates a point around the shape's center based on the shape's rotation.
-     * Uses standard 2D rotation matrix transformation.
-     * @param {number} x - X-coordinate of the point to rotate
-     * @param {number} y - Y-coordinate of the point to rotate
-     * @returns {{x: number, y: number}} Rotated point coordinates
+     * Rotates a point around the shape's center based on the shape's rotation angle.
+     *
+     * Uses standard 2D rotation matrix transformation. If the shape has no rotation,
+     * returns the original coordinates unchanged.
+     *
+     * @param {number} x X-coordinate of the point to rotate.
+     * @param {number} y Y-coordinate of the point to rotate.
+     * @returns {{x:number, y:number}} Rotated point coordinates.
+     *
+     * @example
+     * const rotated = shape.rotatePoint(100, 50);
      */
     rotatePoint(x, y) {
         if (!this.rotation || this.rotation === 0) {
@@ -120,7 +163,12 @@ export class BaseShape {
 
     /**
      * Gets the four corners of the shape's bounding box after rotation is applied.
-     * @returns {Array<{x: number, y: number}>} Array of four corner points
+     *
+     * @returns {Array<{x:number, y:number}>} Array of four corner points.
+     *
+     * @example
+     * const corners = shape.getRotatedBounds();
+     * // corners = [{x:0, y:0}, {x:100, y:0}, {x:100, y:60}, {x:0, y:60}]
      */
     getRotatedBounds() {
         const corners = [
@@ -139,10 +187,16 @@ export class BaseShape {
 
     /**
      * Gets anchor points for connecting lines to this shape.
-     * Returns points at top, right, bottom, left edges and center.
-     * Anchor points are automatically rotated if the shape is rotated.
-     * Subclasses override this to provide port-specific anchor points.
-     * @returns {Object<string, {x: number, y: number}>} Dictionary of anchor points keyed by position name
+     *
+     * Returns points at top, right, bottom, left edges and center. Anchor points
+     * are automatically rotated if the shape is rotated. Subclasses override this
+     * to provide port-specific anchor points.
+     *
+     * @returns {Object<string, {x:number, y:number}>} Dictionary of anchor points keyed by position name (top, right, bottom, left, center).
+     *
+     * @example
+     * const anchors = shape.getAnchorPoints();
+     * const topPoint = anchors.top; // {x: 50, y: 0}
      */
     getAnchorPoints() {
         const cx = this.x + this.width / 2;
@@ -169,9 +223,14 @@ export class BaseShape {
 
     /**
      * Moves the shape by a delta amount in x and y directions.
+     *
      * Movement is prevented if the shape is locked.
-     * @param {number} dx - Change in x position
-     * @param {number} dy - Change in y position
+     *
+     * @param {number} dx Change in x position.
+     * @param {number} dy Change in y position.
+     *
+     * @example
+     * shape.move(10, 20); // Moves shape 10 pixels right, 20 pixels down
      */
     move(dx, dy) {
         if (!this.locked) {
@@ -182,9 +241,14 @@ export class BaseShape {
 
     /**
      * Resizes the shape to new dimensions.
+     *
      * Resizing is prevented if the shape is locked.
-     * @param {number} width - New width in pixels
-     * @param {number} height - New height in pixels
+     *
+     * @param {number} width New width in pixels.
+     * @param {number} height New height in pixels.
+     *
+     * @example
+     * shape.resize(200, 100); // Sets shape to 200x100 pixels
      */
     resize(width, height) {
         if (!this.locked) {
@@ -195,8 +259,17 @@ export class BaseShape {
 
     /**
      * Applies rotation transformation to the canvas context.
-     * Rotates around the shape's center point.
-     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+     *
+     * Rotates around the shape's center point. This should be called before drawing
+     * the shape to apply rotation visually.
+     *
+     * @param {CanvasRenderingContext2D} ctx Canvas rendering context.
+     *
+     * @example
+     * ctx.save();
+     * shape.applyRotation(ctx);
+     * // Draw shape content here
+     * ctx.restore();
      */
     applyRotation(ctx) {
         if (this.rotation && this.rotation !== 0) {
@@ -210,7 +283,12 @@ export class BaseShape {
 
     /**
      * Applies shadow effects to the canvas context if shadow is enabled.
-     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+     *
+     * @param {CanvasRenderingContext2D} ctx Canvas rendering context.
+     *
+     * @example
+     * shape.applyShadow(ctx);
+     * // Subsequent drawing operations will have shadow
      */
     applyShadow(ctx) {
         if (this.shadow) {
@@ -223,7 +301,8 @@ export class BaseShape {
 
     /**
      * Clears shadow effects from the canvas context.
-     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+     *
+     * @param {CanvasRenderingContext2D} ctx Canvas rendering context.
      */
     clearShadow(ctx) {
         ctx.shadowBlur = 0;
@@ -233,10 +312,18 @@ export class BaseShape {
     }
 
     /**
-     * Draws the shape on the canvas. Must be overridden by subclasses.
-     * @abstract
-     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
-     * @throws {Error} If not implemented by subclass
+     * Draws the shape on the canvas.
+     *
+     * Must be overridden by subclasses to provide shape-specific rendering logic.
+     *
+     * @param {CanvasRenderingContext2D} ctx Canvas rendering context.
+     * @throws {Error} If not implemented by subclass.
+     *
+     * @example
+     * // In subclass:
+     * draw(ctx) {
+     *   ctx.fillRect(this.x, this.y, this.width, this.height);
+     * }
      */
     draw(ctx) {
         throw new Error('draw() must be implemented by subclass');
@@ -244,7 +331,12 @@ export class BaseShape {
 
     /**
      * Creates a deep copy of the shape with a new unique ID.
-     * @returns {BaseShape} Cloned shape instance
+     *
+     * @returns {BaseShape} Cloned shape instance.
+     *
+     * @example
+     * const cloned = shape.clone();
+     * cloned.id !== shape.id; // true - new ID assigned
      */
     clone() {
         const cloned = Object.create(Object.getPrototypeOf(this));
@@ -255,7 +347,12 @@ export class BaseShape {
 
     /**
      * Serializes the shape to a JSON-compatible object for saving.
-     * @returns {Object} JSON representation of the shape
+     *
+     * @returns {Object} JSON representation of the shape with all properties.
+     *
+     * @example
+     * const json = shape.toJSON();
+     * localStorage.setItem('shape', JSON.stringify(json));
      */
     toJSON() {
         return {
@@ -283,9 +380,18 @@ export class BaseShape {
 
     /**
      * Restores a shape from a JSON object.
+     *
      * @static
-     * @param {Object} data - JSON data containing shape properties
-     * @returns {BaseShape} Restored shape instance
+     * @param {Object} data JSON data containing shape properties.
+     * @param {number} data.x X-coordinate.
+     * @param {number} data.y Y-coordinate.
+     * @param {number} data.width Width.
+     * @param {number} data.height Height.
+     * @returns {BaseShape} Restored shape instance.
+     *
+     * @example
+     * const json = JSON.parse(localStorage.getItem('shape'));
+     * const restored = BaseShape.fromJSON(json);
      */
     static fromJSON(data) {
         const shape = new this(data.x, data.y, data.width, data.height);

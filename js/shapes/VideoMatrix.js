@@ -1,11 +1,32 @@
+/**
+ * @module shapes/VideoMatrix
+ * @description VideoMatrix shape representing a video routing matrix. Supports video and SDI connections with configurable input/output ports.
+ *
+ * @remarks
+ * - Renders as a rectangle with an 'M' letter drawn in the center.
+ * - Port configuration defines input/output ports for video and SDI connections.
+ * - Input ports appear on the left side, output ports on the right side.
+ * - Anchor points are automatically generated based on port configuration.
+ *
+ * @example
+ * const matrix = new VideoMatrix(10, 20, 120, 180);
+ * matrix.ports = {
+ *   video: { input: 4, output: 4 },
+ *   sdi: { input: 2, output: 2 }
+ * };
+ * matrix.draw(ctx);
+ *
+ * @see module:core/BaseShape
+ * @see module:config/ConnectionTypes
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
 /**
- * VideoMatrix shape representing a video routing matrix.
- * Supports video and SDI connections with configurable input/output ports.
- * Renders as a rectangle with an 'M' letter drawn in the center.
- * @class VideoMatrix
+ * Represents a video routing matrix device.
+ *
+ * @class
  * @extends BaseShape
  */
 export class VideoMatrix extends BaseShape {

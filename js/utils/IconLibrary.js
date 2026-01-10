@@ -1,9 +1,44 @@
+/**
+ * @module utils/IconLibrary
+ * @description Icon library providing pre-configured icon shapes for common diagram elements. Each icon is created from a combination of basic shapes.
+ *
+ * @remarks
+ * - Icons are created as arrays of shape objects that can be added to the canvas.
+ * - Each icon method takes x, y coordinates to position the icon.
+ * - Icons are composed of basic shapes (Rectangle, Circle, Cylinder, TextShape).
+ *
+ * @example
+ * import { IconLibrary } from './utils/IconLibrary.js';
+ * const serverIcon = IconLibrary.createServerIcon(100, 100);
+ * objects.push(...serverIcon);
+ *
+ * @see module:shapes/Rectangle
+ * @see module:shapes/Circle
+ */
+
 import { Rectangle } from '../shapes/Rectangle.js';
 import { Circle } from '../shapes/Circle.js';
 import { Cylinder } from '../shapes/Cylinder.js';
 import { TextShape } from '../shapes/TextShape.js';
 
+/**
+ * Provides static methods for creating pre-configured icon shapes.
+ *
+ * @class
+ */
 export class IconLibrary {
+    /**
+     * Creates a server icon composed of a cylinder body and status lights.
+     *
+     * @static
+     * @param {number} x X-coordinate for icon position.
+     * @param {number} y Y-coordinate for icon position.
+     * @returns {Array<Object>} Array of shape objects representing the server icon.
+     *
+     * @example
+     * const serverIcon = IconLibrary.createServerIcon(100, 100);
+     * objects.push(...serverIcon);
+     */
     static createServerIcon(x, y) {
         const group = [];
 
@@ -24,6 +59,14 @@ export class IconLibrary {
         return group;
     }
 
+    /**
+     * Creates a database icon composed of a cylinder with 'DB' label.
+     *
+     * @static
+     * @param {number} x X-coordinate for icon position.
+     * @param {number} y Y-coordinate for icon position.
+     * @returns {Array<Object>} Array of shape objects representing the database icon.
+     */
     static createDatabaseIcon(x, y) {
         const group = [];
 
@@ -45,6 +88,14 @@ export class IconLibrary {
         return group;
     }
 
+    /**
+     * Creates a user icon composed of two circles (head and body).
+     *
+     * @static
+     * @param {number} x X-coordinate for icon position.
+     * @param {number} y Y-coordinate for icon position.
+     * @returns {Array<Object>} Array of shape objects representing the user icon.
+     */
     static createUserIcon(x, y) {
         const group = [];
 
@@ -63,6 +114,14 @@ export class IconLibrary {
         return group;
     }
 
+    /**
+     * Creates a cloud icon composed of overlapping circles.
+     *
+     * @static
+     * @param {number} x X-coordinate for icon position.
+     * @param {number} y Y-coordinate for icon position.
+     * @returns {Array<Object>} Array of shape objects representing the cloud icon.
+     */
     static createCloudIcon(x, y) {
         const group = [];
 
@@ -84,6 +143,14 @@ export class IconLibrary {
         return group;
     }
 
+    /**
+     * Creates a network icon composed of connected nodes (circles).
+     *
+     * @static
+     * @param {number} x X-coordinate for icon position.
+     * @param {number} y Y-coordinate for icon position.
+     * @returns {Array<Object>} Array of shape objects representing the network icon.
+     */
     static createNetworkIcon(x, y) {
         const group = [];
 
@@ -106,6 +173,14 @@ export class IconLibrary {
         return group;
     }
 
+    /**
+     * Creates a process icon composed of a rounded rectangle with 'Process' label.
+     *
+     * @static
+     * @param {number} x X-coordinate for icon position.
+     * @param {number} y Y-coordinate for icon position.
+     * @returns {Array<Object>} Array of shape objects representing the process icon.
+     */
     static createProcessIcon(x, y) {
         const rect = new Rectangle(x, y, 100, 60);
         rect.fill = '#16a085';
@@ -122,6 +197,14 @@ export class IconLibrary {
         return [rect, label];
     }
 
+    /**
+     * Creates a decision icon composed of a diamond with '?' label.
+     *
+     * @static
+     * @param {number} x X-coordinate for icon position.
+     * @param {number} y Y-coordinate for icon position.
+     * @returns {Array<Object>} Array of shape objects representing the decision icon.
+     */
     static createDecisionIcon(x, y) {
         // Note: Diamond needs to be imported dynamically or at module level
         const diamond = new Rectangle(x, y, 100, 80);
@@ -138,6 +221,16 @@ export class IconLibrary {
         return [diamond, label];
     }
 
+    /**
+     * Gets all available icons as a dictionary mapping icon keys to icon metadata.
+     *
+     * @static
+     * @returns {Object<string, {name:string, create:Function}>} Dictionary of all icons with their names and create functions.
+     *
+     * @example
+     * const icons = IconLibrary.getAllIcons();
+     * const serverIcon = icons.server.create(100, 100);
+     */
     static getAllIcons() {
         return {
             'server': { name: 'Server', create: this.createServerIcon },

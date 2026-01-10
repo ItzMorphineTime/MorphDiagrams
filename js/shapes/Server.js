@@ -1,20 +1,46 @@
+/**
+ * @module shapes/Server
+ * @description Server shape representing a network server with multiple port types. Supports video, SDI, network, and USB connections.
+ *
+ * @remarks
+ * - Renders as a rectangle with horizontal rack lines to indicate server rack units.
+ * - Port configuration defines input/output ports for each connection type (video, sdi, network, usb).
+ * - Input ports appear on the left side, output ports on the right side.
+ * - Anchor points are automatically generated based on port configuration.
+ *
+ * @example
+ * const server = new Server(10, 20, 120, 180);
+ * server.ports = {
+ *   video: { input: 2, output: 4 },
+ *   sdi: { input: 1, output: 0 },
+ *   network: { input: 2, output: 0 }
+ * };
+ * server.draw(ctx);
+ *
+ * @see module:core/BaseShape
+ * @see module:config/ConnectionTypes
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
 
 /**
- * Server shape representing a network server with multiple port types.
- * Supports video, SDI, network, and USB connections.
- * Renders as a rectangle with horizontal rack lines.
- * @class Server
+ * Represents a network server with configurable ports.
+ *
+ * @class
  * @extends BaseShape
  */
 export class Server extends BaseShape {
     /**
      * Creates a new Server instance.
-     * @param {number} x - X-coordinate of top-left corner
-     * @param {number} y - Y-coordinate of top-left corner
-     * @param {number} width - Width in pixels
-     * @param {number} height - Height in pixels
+     *
+     * @param {number} x X-coordinate of top-left corner.
+     * @param {number} y Y-coordinate of top-left corner.
+     * @param {number} width Width in pixels.
+     * @param {number} height Height in pixels.
+     *
+     * @example
+     * const server = new Server(10, 20, 120, 180);
      */
     constructor(x, y, width, height) {
         super(x, y, width, height);

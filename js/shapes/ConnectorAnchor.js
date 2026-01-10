@@ -1,18 +1,40 @@
+/**
+ * @module shapes/ConnectorAnchor
+ * @description ConnectorAnchor shape representing a universal connection point. Acts as a waypoint or junction for connectors, allowing any connection type.
+ *
+ * @remarks
+ * - Renders as a small circle with an inner dot.
+ * - Accepts all connection types (video, sdi, network, usb) or can be configured for specific types.
+ * - Port type is 'both', allowing both input and output connections.
+ * - Fixed size (16x16 pixels) and cannot be resized.
+ *
+ * @example
+ * const anchor = new ConnectorAnchor(100, 200);
+ * anchor.label = 'Junction Point';
+ * anchor.draw(ctx);
+ *
+ * @see module:core/BaseShape
+ * @see module:config/ConnectionTypes
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 import { ConnectionTypes, ConnectionColors } from '../config/ConnectionTypes.js';
 
 /**
- * ConnectorAnchor shape representing a universal connection point.
- * Acts as a waypoint or junction for connectors, allowing any connection type.
- * Renders as a small circle with an inner dot.
- * @class ConnectorAnchor
+ * Represents a universal connection point anchor.
+ *
+ * @class
  * @extends BaseShape
  */
 export class ConnectorAnchor extends BaseShape {
     /**
      * Creates a new ConnectorAnchor instance.
-     * @param {number} x - X-coordinate of top-left corner
-     * @param {number} y - Y-coordinate of top-left corner
+     *
+     * @param {number} x X-coordinate of top-left corner.
+     * @param {number} y Y-coordinate of top-left corner.
+     *
+     * @example
+     * const anchor = new ConnectorAnchor(100, 200);
      */
     constructor(x, y) {
         super(x, y, 16, 16); // Small circle

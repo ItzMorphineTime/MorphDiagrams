@@ -1,20 +1,70 @@
+/**
+ * @module shapes/TextShape
+ * @description Text diagram shape for rendering labels and annotations. Extends BaseShape to provide text rendering capabilities.
+ *
+ * @remarks
+ * - Supports multi-line text via newline characters.
+ * - Text alignment (left, center, right) and baseline positioning are configurable.
+ * - Font family, size, weight, and style are customizable.
+ *
+ * @example
+ * const text = new TextShape(10, 20, 'Hello World');
+ * text.fontSize = 20;
+ * text.textAlign = 'center';
+ * text.draw(ctx);
+ *
+ * @see module:core/BaseShape
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 
+/**
+ * Represents a text diagram shape.
+ *
+ * @class
+ * @extends BaseShape
+ */
 export class TextShape extends BaseShape {
+    /**
+     * Creates a new TextShape instance.
+     *
+     * @param {number} x X-coordinate of top-left corner.
+     * @param {number} y Y-coordinate of top-left corner.
+     * @param {string} [text='Text'] Text content to display.
+     *
+     * @example
+     * const text = new TextShape(10, 20, 'Label');
+     */
     constructor(x, y, text = 'Text') {
         super(x, y, 100, 30);
         this.type = 'text';
+        /** @type {string} Text content to display. Supports multi-line via newlines. */
         this.text = text;
+        /** @type {number} Font size in pixels. */
         this.fontSize = 16;
+        /** @type {string} Font family name. */
         this.fontFamily = 'Arial';
+        /** @type {string} Font weight: 'normal' or 'bold'. */
         this.fontWeight = 'normal';
+        /** @type {string} Font style: 'normal' or 'italic'. */
         this.fontStyle = 'normal';
+        /** @type {string} Text alignment: 'left', 'center', or 'right'. */
         this.textAlign = 'center';
+        /** @type {string} Text baseline: 'top', 'middle', or 'bottom'. */
         this.textBaseline = 'middle';
-        this.fill = '#000000'; // Text color
+        /** @type {string} Text color in hex format. */
+        this.fill = '#000000';
+        /** @type {string} Stroke color (usually transparent for text). */
         this.stroke = 'transparent';
     }
 
+    /**
+     * Draws the text shape on the canvas.
+     *
+     * Supports multi-line text by splitting on newline characters. Centers all lines vertically within the shape bounds.
+     *
+     * @param {CanvasRenderingContext2D} ctx Canvas rendering context.
+     */
     draw(ctx) {
         if (!this.visible) return;
 
