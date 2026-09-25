@@ -2,53 +2,57 @@
 
 _Source: `js/shapes/VideoMatrix.js`_
 
-<a name="VideoMatrix"></a>
+<a name="module_shapes/VideoMatrix"></a>
 
-## VideoMatrix ⇐ <code>BaseShape</code>
-**Kind**: global class  
-**Extends**: <code>BaseShape</code>  
+## shapes/VideoMatrix
+Video routing matrix system object (video + SDI ports). Renders as a rectangle with an "M" glyph.
 
-* [VideoMatrix](#VideoMatrix) ⇐ <code>BaseShape</code>
-    * [new VideoMatrix()](#new_VideoMatrix_new)
-    * [.VideoMatrix](#VideoMatrix+VideoMatrix)
-        * [new exports.VideoMatrix(x, y, width, height)](#new_VideoMatrix+VideoMatrix_new)
-    * [.ports](#VideoMatrix+ports) : <code>Object.&lt;string, {input: number, output: number}&gt;</code>
-    * [.getAnchorPoints()](#VideoMatrix+getAnchorPoints) ⇒ <code>Object.&lt;string, {x: number, y: number, connectionType: string, portType: string}&gt;</code>
+**See**: module:core/SystemObject  
 
-<a name="new_VideoMatrix_new"></a>
+* [shapes/VideoMatrix](#module_shapes/VideoMatrix)
+    * [.VideoMatrix](#module_shapes/VideoMatrix.VideoMatrix)
+        * [new exports.VideoMatrix(x, y, width, height)](#new_module_shapes/VideoMatrix.VideoMatrix_new)
+        * _instance_
+            * [.drawIcon(ctx)](#module_shapes/VideoMatrix.VideoMatrix+drawIcon)
+        * _static_
+            * [.defaultPorts()](#module_shapes/VideoMatrix.VideoMatrix.defaultPorts) ⇒ <code>PortConfig</code>
 
-### new VideoMatrix()
-VideoMatrix shape representing a video routing matrix.
-Supports video and SDI connections with configurable input/output ports.
-Renders as a rectangle with an 'M' letter drawn in the center.
+<a name="module_shapes/VideoMatrix.VideoMatrix"></a>
 
-<a name="VideoMatrix+VideoMatrix"></a>
+### shapes/VideoMatrix.VideoMatrix
+**Kind**: static class of [<code>shapes/VideoMatrix</code>](#module_shapes/VideoMatrix)  
 
-### videoMatrix.VideoMatrix
-**Kind**: instance class of [<code>VideoMatrix</code>](#VideoMatrix)  
-<a name="new_VideoMatrix+VideoMatrix_new"></a>
+* [.VideoMatrix](#module_shapes/VideoMatrix.VideoMatrix)
+    * [new exports.VideoMatrix(x, y, width, height)](#new_module_shapes/VideoMatrix.VideoMatrix_new)
+    * _instance_
+        * [.drawIcon(ctx)](#module_shapes/VideoMatrix.VideoMatrix+drawIcon)
+    * _static_
+        * [.defaultPorts()](#module_shapes/VideoMatrix.VideoMatrix.defaultPorts) ⇒ <code>PortConfig</code>
+
+<a name="new_module_shapes/VideoMatrix.VideoMatrix_new"></a>
 
 #### new exports.VideoMatrix(x, y, width, height)
-Creates a new VideoMatrix instance.
 
+| Param | Type |
+| --- | --- |
+| x | <code>number</code> | 
+| y | <code>number</code> | 
+| width | <code>number</code> | 
+| height | <code>number</code> | 
 
-| Param | Type | Description |
-| --- | --- | --- |
-| x | <code>number</code> | X-coordinate of top-left corner |
-| y | <code>number</code> | Y-coordinate of top-left corner |
-| width | <code>number</code> | Width in pixels |
-| height | <code>number</code> | Height in pixels |
+<a name="module_shapes/VideoMatrix.VideoMatrix+drawIcon"></a>
 
-<a name="VideoMatrix+ports"></a>
+#### videoMatrix.drawIcon(ctx)
+Draws the "M" glyph.
 
-### videoMatrix.ports : <code>Object.&lt;string, {input: number, output: number}&gt;</code>
-Port configuration
+**Kind**: instance method of [<code>VideoMatrix</code>](#module_shapes/VideoMatrix.VideoMatrix)  
 
-**Kind**: instance property of [<code>VideoMatrix</code>](#VideoMatrix)  
-<a name="VideoMatrix+getAnchorPoints"></a>
+| Param | Type |
+| --- | --- |
+| ctx | <code>CanvasRenderingContext2D</code> | 
 
-### videoMatrix.getAnchorPoints() ⇒ <code>Object.&lt;string, {x: number, y: number, connectionType: string, portType: string}&gt;</code>
-Gets anchor points for connections based on port configuration.
+<a name="module_shapes/VideoMatrix.VideoMatrix.defaultPorts"></a>
 
-**Kind**: instance method of [<code>VideoMatrix</code>](#VideoMatrix)  
+#### VideoMatrix.defaultPorts() ⇒ <code>PortConfig</code>
+**Kind**: static method of [<code>VideoMatrix</code>](#module_shapes/VideoMatrix.VideoMatrix)  
 

@@ -14,13 +14,20 @@ This section is generated from JSDoc comments in `/js`.
 
 - [BaseShape](core/BaseShape.md)
 - [Connector](core/Connector.md)
+- [Diagram](core/Diagram.md)
 - [Group](core/Group.md)
+- [Ports](core/Ports.md)
+- [Serialization](core/Serialization.md)
+- [ShapeRegistry](core/ShapeRegistry.md)
+- [SvgExporter](core/SvgExporter.md)
+- [SystemObject](core/SystemObject.md)
 
 ## shapes
 
 - [Circle](shapes/Circle.md)
 - [ConnectorAnchor](shapes/ConnectorAnchor.md)
 - [Cylinder](shapes/Cylinder.md)
+- [Device](shapes/Device.md)
 - [Diamond](shapes/Diamond.md)
 - [Hexagon](shapes/Hexagon.md)
 - [ImageShape](shapes/ImageShape.md)
@@ -36,9 +43,11 @@ This section is generated from JSDoc comments in `/js`.
 ## ui
 
 - [ContextMenu](ui/ContextMenu.md)
+- [LiveSync](ui/LiveSync.md)
 
 ## utils
 
+- [Color](utils/Color.md)
 - [IconLibrary](utils/IconLibrary.md)
 - [Templates](utils/Templates.md)
 

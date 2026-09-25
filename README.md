@@ -1,10 +1,10 @@
 # Morph Diagrams - Professional Diagramming Tool
 
-**Version 2.0** - Feature-complete system diagramming tool with intelligent connectors and extensive editing capabilities
+**Version 2.1** - System diagramming tool with typed hardware ports, intelligent connectors, vector export and an MCP server so LLM agents can build diagrams for you
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-blue?style=for-the-badge)](https://itzmorphinetime.github.io/MorphDiagrams/)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-2.0-orange?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-2.1-orange?style=for-the-badge)
 
 ---
 
@@ -183,6 +183,8 @@ Right-click for quick actions:
 | `H` | Hexagon |
 | `T` | Text |
 | `L` | Connector/Line |
+| `P` | Polyline connector |
+| `E` | Generic device |
 
 ### Actions
 | Shortcut | Action |
@@ -212,6 +214,8 @@ Right-click for quick actions:
 | `Ctrl+Minus` | Zoom Out |
 | `Ctrl+0` | Reset Zoom |
 | `Space+Drag` | Pan Canvas |
+| `Arrow keys` | Nudge selection (Shift: grid step); pan when nothing is selected |
+| `Escape` | Deselect / back to select tool |
 | `Mouse Wheel` | Zoom |
 
 ---
@@ -303,14 +307,16 @@ Right-click for quick actions:
 ### Exporting
 
 #### PNG Export
-- High-quality raster image
+- Whole diagram (not just the viewport) rendered at 2x, without grid or selection handles
 - White background
-- Perfect for presentations
+
+#### SVG Export
+- True vector output (every shape, connector, port dot and label)
+- Same renderer the MCP server uses for previews
 
 #### PDF Export
-- Vector format
-- Scalable without quality loss
-- Professional documentation ready
+- Page sized to the diagram, rendered at 2x (raster; vector PDF is on the roadmap)
+- Needs the jsPDF CDN script; use SVG when offline
 
 ---
 
@@ -320,37 +326,41 @@ Right-click for quick actions:
 
 ```
 MorphDiagrams/
+├── index.html                     # Editor page
+├── styles2.css                    # Editor styles
 ├── js/
-│   ├── main.js                    # Main application controller
+│   ├── main.js                    # Editor (CanvasApp): input, rendering, properties panel, live sync
 │   ├── core/
-│   │   ├── BaseShape.js          # Base class for all shapes
-│   │   ├── Connector.js          # Smart connector system
-│   │   └── Group.js              # Object grouping
+│   │   ├── BaseShape.js           # Base class: geometry, rotation, labels, anchors, serialisation
+│   │   ├── SystemObject.js        # Base class for devices with typed ports (+ hexagon variant)
+│   │   ├── Connector.js           # Connectors: routing, arrows, labels, hit-testing
+│   │   ├── Ports.js               # Port keys and connection rules
+│   │   ├── ShapeRegistry.js       # Catalogue of shape types (create / fromJSON / props)
+│   │   ├── Serialization.js       # JSON file format (v2.1), validation
+│   │   ├── Diagram.js             # Headless document model: connect, validate, auto-layout
+│   │   ├── SvgExporter.js         # Vector SVG rendering (browser + Node)
+│   │   └── Group.js               # (legacy, unused)
 │   ├── shapes/
-│   │   ├── Rectangle.js          # Basic shapes
-│   │   ├── Circle.js
-│   │   ├── Diamond.js
-│   │   ├── Hexagon.js
-│   │   ├── Cylinder.js
-│   │   ├── Parallelogram.js
-│   │   ├── TextShape.js
-│   │   ├── ImageShape.js
-│   │   ├── Server.js             # System objects
-│   │   ├── VideoMatrix.js
-│   │   ├── LEDProcessor.js
-│   │   ├── NetworkSwitch.js
-│   │   ├── SyncGenerator.js
-│   │   └── ConnectorAnchor.js
+│   │   ├── Rectangle.js, Circle.js, Diamond.js, Hexagon.js, Cylinder.js, Parallelogram.js
+│   │   ├── TextShape.js, ImageShape.js
+│   │   ├── Server.js, VideoMatrix.js, LEDProcessor.js, NetworkSwitch.js, SyncGenerator.js
+│   │   ├── Device.js              # Generic device with configurable ports
+│   │   └── ConnectorAnchor.js     # Universal junction point
 │   ├── config/
-│   │   └── ConnectionTypes.js    # Connection type definitions
+│   │   └── ConnectionTypes.js     # Connection type registry (video, sdi, network, usb, custom)
 │   ├── utils/
-│   │   ├── Templates.js          # Diagram templates
-│   │   └── IconLibrary.js        # Icon management
+│   │   ├── Templates.js, IconLibrary.js, Color.js
 │   └── ui/
-│       └── ContextMenu.js        # Right-click menu
-├── css/
-│   └── style.css                 # Application styles
-└── index.html                    # Main HTML file
+│       ├── ContextMenu.js         # Right-click menu
+│       └── LiveSync.js            # Follows the MCP server / bridge over SSE
+├── mcp/
+│   ├── server.js                  # MCP server (stdio) for LLM agents
+│   ├── http-bridge.js             # Live view: serves the editor + /api/diagram + SSE
+│   └── README.md                  # Setup and tool reference
+├── schema/diagram.schema.json     # JSON schema of the file format
+├── test/                          # node --test suites (model + MCP end-to-end)
+├── docs/                          # GitBook docs (generated API pages under docs/api)
+└── IMPROVEMENTS.md                # Assessment and improvement backlog
 ```
 
 ### Key Technologies
@@ -446,39 +456,65 @@ window.app.render();
 
 ---
 
+## 🤖 MCP Server (build diagrams with an LLM agent)
+
+The repository ships an [MCP](https://modelcontextprotocol.io) server so Claude (Desktop or Code) or any
+MCP client can create and edit system diagrams through tools such as `add_device`, `connect`,
+`auto_layout`, `validate_diagram`, `render_svg` and `save_diagram`. It reuses the editor's own model
+code, and a **live view** shows the diagram being built in the browser in real time.
+
+```bash
+npm install
+npm run mcp      # stdio MCP server; live view at http://127.0.0.1:8765/
+npm test         # model + MCP integration tests
+```
+
+Claude Code: `claude mcp add morph-diagrams -- node /path/to/MorphDiagrams/mcp/server.js`
+
+See [mcp/README.md](mcp/README.md) for the Claude Desktop configuration, all tools and the port
+addressing rules.
+
+---
+
 ## 📄 File Format
 
-Diagrams save as JSON:
+Diagrams save as JSON (format 2.1, schema in `schema/diagram.schema.json`):
 
 ```json
 {
-    "version": "1.0",
-    "zoom": 1.0,
-    "panX": 0,
-    "panY": 0,
+    "version": "2.1",
     "objects": [
         {
-            "id": "shape_123",
+            "id": "srv1",
             "type": "server",
+            "label": "Media Server",
             "x": 100,
             "y": 100,
+            "width": 120,
+            "height": 180,
             "ports": {
-                "video": { "input": 2, "output": 2 }
+                "video": { "input": 0, "output": 2 },
+                "network": { "input": 1, "output": 0 }
             },
             "fill": "#2C3E50"
         },
         {
-            "id": "conn_456",
+            "id": "conn1",
             "type": "connector",
-            "startObject": "shape_123",
+            "startObject": "srv1",
             "startAnchor": "video_output_0",
-            "endObject": "shape_789",
+            "endObject": "led1",
             "endAnchor": "video_input_0",
             "connectionType": "video",
             "style": "orthogonal",
-            "lineStyle": "solid"
+            "lineStyle": "solid",
+            "label": "PGM"
         }
-    ]
+    ],
+    "connectionTypes": {
+        "dante": { "label": "Dante", "color": "#3F51B5", "bidirectional": true }
+    },
+    "metadata": { "name": "Stage A", "zoom": 1, "panX": 0, "panY": 0, "nextGroupId": 1 }
 }
 ```
 

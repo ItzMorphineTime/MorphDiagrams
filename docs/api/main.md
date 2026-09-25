@@ -2,631 +2,356 @@
 
 _Source: `js/main.js`_
 
-## Classes
+<a name="module_main"></a>
 
-<dl>
-<dt><a href="#CanvasApp">CanvasApp</a></dt>
-<dd></dd>
-<dt><a href="#CanvasApp">CanvasApp</a></dt>
-<dd></dd>
-</dl>
+## main
+Browser entry point: the `CanvasApp` editor. Handles the canvas, mouse/keyboard input,
+selection and transforms, the properties panel, templates, file operations and live sync with the
+MCP server. All diagram semantics (objects, ports, connections, validation, layout, serialisation)
+live in the headless [module:core/Diagram](module:core/Diagram) model so the editor, the MCP server and the tests
+share one implementation.
 
-<a name="CanvasApp"></a>
+**See**
 
-## CanvasApp
-**Kind**: global class  
+- module:core/Diagram
+- module:core/ShapeRegistry
 
-* [CanvasApp](#CanvasApp)
-    * [new CanvasApp()](#new_CanvasApp_new)
-    * [new CanvasApp()](#new_CanvasApp_new)
-    * [.canvas](#CanvasApp+canvas) : <code>HTMLCanvasElement</code>
-    * [.ctx](#CanvasApp+ctx) : <code>CanvasRenderingContext2D</code>
-    * [.objects](#CanvasApp+objects) : <code>Array</code>
-    * [.selectedObjects](#CanvasApp+selectedObjects) : <code>Array</code>
-    * [.currentTool](#CanvasApp+currentTool) : <code>string</code>
-    * [.clipboard](#CanvasApp+clipboard) : <code>Array</code>
-    * [.nextGroupId](#CanvasApp+nextGroupId) : <code>number</code>
-    * [.isDrawing](#CanvasApp+isDrawing) : <code>boolean</code>
-    * [.isDragging](#CanvasApp+isDragging) : <code>boolean</code>
-    * [.dragStart](#CanvasApp+dragStart) : <code>Object</code> \| <code>null</code>
-    * [.tempObject](#CanvasApp+tempObject) : <code>Object</code> \| <code>null</code>
-    * [.isResizing](#CanvasApp+isResizing) : <code>boolean</code>
-    * [.isRotating](#CanvasApp+isRotating) : <code>boolean</code>
-    * [.resizeHandle](#CanvasApp+resizeHandle) : <code>string</code> \| <code>null</code>
-    * [.rotateCenter](#CanvasApp+rotateCenter) : <code>Object</code> \| <code>null</code>
-    * [.initialBounds](#CanvasApp+initialBounds) : <code>Object</code> \| <code>null</code>
-    * [.initialRotation](#CanvasApp+initialRotation) : <code>number</code>
-    * [.isDraggingWaypoint](#CanvasApp+isDraggingWaypoint) : <code>boolean</code>
-    * [.isDraggingControlPoint](#CanvasApp+isDraggingControlPoint) : <code>boolean</code>
-    * [.waypointConnector](#CanvasApp+waypointConnector) : <code>Connector</code> \| <code>null</code>
-    * [.waypointIndex](#CanvasApp+waypointIndex) : <code>number</code>
-    * [.controlPointConnector](#CanvasApp+controlPointConnector) : <code>Connector</code> \| <code>null</code>
-    * [.controlPointType](#CanvasApp+controlPointType) : <code>string</code> \| <code>null</code>
-    * [.connectorStart](#CanvasApp+connectorStart) : <code>Object</code> \| <code>null</code>
-    * [.isDrawingPolyline](#CanvasApp+isDrawingPolyline) : <code>boolean</code>
-    * [.polylineWaypoints](#CanvasApp+polylineWaypoints) : <code>Array.&lt;{x: number, y: number}&gt;</code>
-    * [.gridSize](#CanvasApp+gridSize) : <code>number</code>
-    * [.showGrid](#CanvasApp+showGrid) : <code>boolean</code>
-    * [.snapToGrid](#CanvasApp+snapToGrid) : <code>boolean</code>
-    * [.showShadows](#CanvasApp+showShadows) : <code>boolean</code>
-    * [.zoom](#CanvasApp+zoom) : <code>number</code>
-    * [.panX](#CanvasApp+panX) : <code>number</code>
-    * [.panY](#CanvasApp+panY) : <code>number</code>
-    * [.isPanning](#CanvasApp+isPanning) : <code>boolean</code>
-    * [.panStartX](#CanvasApp+panStartX) : <code>number</code>
-    * [.panStartY](#CanvasApp+panStartY) : <code>number</code>
-    * [.spacePressed](#CanvasApp+spacePressed) : <code>boolean</code>
-    * [.history](#CanvasApp+history) : <code>Array</code>
-    * [.historyIndex](#CanvasApp+historyIndex) : <code>number</code>
-    * [.maxHistory](#CanvasApp+maxHistory) : <code>number</code>
-    * [.contextMenu](#CanvasApp+contextMenu) : <code>ContextMenu</code>
 
-<a name="new_CanvasApp_new"></a>
+* [main](#module_main)
+    * [~CanvasApp](#module_main..CanvasApp)
+        * [new CanvasApp()](#new_module_main..CanvasApp_new)
+        * [.canvas](#module_main..CanvasApp+canvas) : <code>HTMLCanvasElement</code>
+        * [.ctx](#module_main..CanvasApp+ctx) : <code>CanvasRenderingContext2D</code>
+        * [.diagram](#module_main..CanvasApp+diagram) : <code>Diagram</code>
+        * [.selectedObjects](#module_main..CanvasApp+selectedObjects) : <code>Array</code>
+        * [.currentTool](#module_main..CanvasApp+currentTool) : <code>string</code>
+        * [.clipboard](#module_main..CanvasApp+clipboard) : <code>Array</code>
+        * [.showPortLabels](#module_main..CanvasApp+showPortLabels) : <code>boolean</code>
+        * [.liveSync](#module_main..CanvasApp+liveSync) : <code>LiveSync</code> \| <code>null</code>
+        * [.objects](#module_main..CanvasApp+objects) ⇒ <code>Array</code>
+        * [.nextGroupId](#module_main..CanvasApp+nextGroupId) ⇒ <code>number</code>
+        * [.getMousePos(e, [options])](#module_main..CanvasApp+getMousePos) ⇒ <code>Object</code>
+        * [.applyConnectionType(conn, type)](#module_main..CanvasApp+applyConnectionType)
+        * [.findCompatibleEndAnchor(pos)](#module_main..CanvasApp+findCompatibleEndAnchor) ⇒ <code>Object</code> \| <code>null</code>
+        * [.finalizeConnector(conn)](#module_main..CanvasApp+finalizeConnector)
+        * [.handleWheel(e)](#module_main..CanvasApp+handleWheel)
+        * [.zoomAt(sx, sy, newZoom)](#module_main..CanvasApp+zoomAt)
+        * [.findNearestAnchor(x, y, [threshold], [requiredConnectionType], [requiredPortType])](#module_main..CanvasApp+findNearestAnchor) ⇒ <code>Object</code> \| <code>null</code>
+        * [.copy()](#module_main..CanvasApp+copy)
+        * [.paste()](#module_main..CanvasApp+paste)
+        * [.distribute(axis)](#module_main..CanvasApp+distribute)
+        * [.zoomToFit()](#module_main..CanvasApp+zoomToFit)
+        * [.buildDocument()](#module_main..CanvasApp+buildDocument) ⇒ <code>Object</code>
+        * [.loadDocument(doc, [options])](#module_main..CanvasApp+loadDocument) ⇒ <code>Array.&lt;string&gt;</code>
+        * [.renderScene(ctx, options)](#module_main..CanvasApp+renderScene)
+        * [.showMessage(textContent, [type])](#module_main..CanvasApp+showMessage)
+        * [.getUsedPortKeys()](#module_main..CanvasApp+getUsedPortKeys) ⇒ <code>Set.&lt;string&gt;</code>
+        * [.drawPortDots(ctx, obj, used, scale, includeGeneric)](#module_main..CanvasApp+drawPortDots)
+        * [.drawPortLabels(ctx, obj, scale)](#module_main..CanvasApp+drawPortLabels)
+    * [~OBJECT_COLOR_KEYS](#module_main..OBJECT_COLOR_KEYS)
+    * [~escapeHtml(value)](#module_main..escapeHtml) ⇒ <code>string</code>
 
-### new CanvasApp()
+<a name="module_main..CanvasApp"></a>
+
+### main~CanvasApp
+**Kind**: inner class of [<code>main</code>](#module_main)  
+
+* [~CanvasApp](#module_main..CanvasApp)
+    * [new CanvasApp()](#new_module_main..CanvasApp_new)
+    * [.canvas](#module_main..CanvasApp+canvas) : <code>HTMLCanvasElement</code>
+    * [.ctx](#module_main..CanvasApp+ctx) : <code>CanvasRenderingContext2D</code>
+    * [.diagram](#module_main..CanvasApp+diagram) : <code>Diagram</code>
+    * [.selectedObjects](#module_main..CanvasApp+selectedObjects) : <code>Array</code>
+    * [.currentTool](#module_main..CanvasApp+currentTool) : <code>string</code>
+    * [.clipboard](#module_main..CanvasApp+clipboard) : <code>Array</code>
+    * [.showPortLabels](#module_main..CanvasApp+showPortLabels) : <code>boolean</code>
+    * [.liveSync](#module_main..CanvasApp+liveSync) : <code>LiveSync</code> \| <code>null</code>
+    * [.objects](#module_main..CanvasApp+objects) ⇒ <code>Array</code>
+    * [.nextGroupId](#module_main..CanvasApp+nextGroupId) ⇒ <code>number</code>
+    * [.getMousePos(e, [options])](#module_main..CanvasApp+getMousePos) ⇒ <code>Object</code>
+    * [.applyConnectionType(conn, type)](#module_main..CanvasApp+applyConnectionType)
+    * [.findCompatibleEndAnchor(pos)](#module_main..CanvasApp+findCompatibleEndAnchor) ⇒ <code>Object</code> \| <code>null</code>
+    * [.finalizeConnector(conn)](#module_main..CanvasApp+finalizeConnector)
+    * [.handleWheel(e)](#module_main..CanvasApp+handleWheel)
+    * [.zoomAt(sx, sy, newZoom)](#module_main..CanvasApp+zoomAt)
+    * [.findNearestAnchor(x, y, [threshold], [requiredConnectionType], [requiredPortType])](#module_main..CanvasApp+findNearestAnchor) ⇒ <code>Object</code> \| <code>null</code>
+    * [.copy()](#module_main..CanvasApp+copy)
+    * [.paste()](#module_main..CanvasApp+paste)
+    * [.distribute(axis)](#module_main..CanvasApp+distribute)
+    * [.zoomToFit()](#module_main..CanvasApp+zoomToFit)
+    * [.buildDocument()](#module_main..CanvasApp+buildDocument) ⇒ <code>Object</code>
+    * [.loadDocument(doc, [options])](#module_main..CanvasApp+loadDocument) ⇒ <code>Array.&lt;string&gt;</code>
+    * [.renderScene(ctx, options)](#module_main..CanvasApp+renderScene)
+    * [.showMessage(textContent, [type])](#module_main..CanvasApp+showMessage)
+    * [.getUsedPortKeys()](#module_main..CanvasApp+getUsedPortKeys) ⇒ <code>Set.&lt;string&gt;</code>
+    * [.drawPortDots(ctx, obj, used, scale, includeGeneric)](#module_main..CanvasApp+drawPortDots)
+    * [.drawPortLabels(ctx, obj, scale)](#module_main..CanvasApp+drawPortLabels)
+
+<a name="new_module_main..CanvasApp_new"></a>
+
+#### new CanvasApp()
 Main application class that manages the canvas-based diagramming tool.
-Handles user input, object creation/manipulation, rendering, and state management.
-Supports shapes, connectors, groups, templates, zoom/pan, undo/redo, and more.
 
-<a name="new_CanvasApp_new"></a>
+<a name="module_main..CanvasApp+canvas"></a>
 
-### new CanvasApp()
-Initializes the canvas application with default state and event listeners.
-Sets up the canvas, initializes all state properties, and begins rendering.
+#### canvasApp.canvas : <code>HTMLCanvasElement</code>
+**Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+ctx"></a>
 
-<a name="CanvasApp+canvas"></a>
+#### canvasApp.ctx : <code>CanvasRenderingContext2D</code>
+**Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+diagram"></a>
 
-### canvasApp.canvas : <code>HTMLCanvasElement</code>
-Main canvas element
+#### canvasApp.diagram : <code>Diagram</code>
+Headless document model (objects live in `diagram.objects`)
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+ctx"></a>
+**Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+selectedObjects"></a>
 
-### canvasApp.ctx : <code>CanvasRenderingContext2D</code>
-Canvas 2D rendering context
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+objects"></a>
-
-### canvasApp.objects : <code>Array</code>
-All objects on the canvas (shapes and connectors)
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+selectedObjects"></a>
-
-### canvasApp.selectedObjects : <code>Array</code>
+#### canvasApp.selectedObjects : <code>Array</code>
 Currently selected objects
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+currentTool"></a>
+**Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+currentTool"></a>
 
-### canvasApp.currentTool : <code>string</code>
-Current tool mode (select, rectangle, circle, connector, etc.)
+#### canvasApp.currentTool : <code>string</code>
+Current tool
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+clipboard"></a>
+**Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+clipboard"></a>
 
-### canvasApp.clipboard : <code>Array</code>
-Copied objects for paste operations
+#### canvasApp.clipboard : <code>Array</code>
+Serialised objects for paste operations
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+nextGroupId"></a>
+**Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+showPortLabels"></a>
 
-### canvasApp.nextGroupId : <code>number</code>
-Next available group ID
+#### canvasApp.showPortLabels : <code>boolean</code>
+Draw port names next to port dots on every device
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isDrawing"></a>
+**Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+liveSync"></a>
 
-### canvasApp.isDrawing : <code>boolean</code>
-Whether currently drawing a shape
+#### canvasApp.liveSync : <code>LiveSync</code> \| <code>null</code>
+Live connection to the MCP server / bridge (when served by it)
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isDragging"></a>
+**Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+objects"></a>
 
-### canvasApp.isDragging : <code>boolean</code>
-Whether currently dragging objects
+#### canvasApp.objects ⇒ <code>Array</code>
+**Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+**Returns**: <code>Array</code> - All objects (shapes and connectors)  
+<a name="module_main..CanvasApp+nextGroupId"></a>
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+dragStart"></a>
+#### canvasApp.nextGroupId ⇒ <code>number</code>
+**Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+getMousePos"></a>
 
-### canvasApp.dragStart : <code>Object</code> \| <code>null</code>
-Starting position of drag
+#### canvasApp.getMousePos(e, [options]) ⇒ <code>Object</code>
+Mouse position in world coordinates. Snapping only applies to shape-drawing tools; the select and
+connector tools need the exact position so that closely spaced ports can be picked.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+tempObject"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-### canvasApp.tempObject : <code>Object</code> \| <code>null</code>
-Temporary object being created
+| Param | Type |
+| --- | --- |
+| e | <code>MouseEvent</code> | 
+| [options] | <code>Object</code> | 
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isResizing"></a>
+<a name="module_main..CanvasApp+applyConnectionType"></a>
 
-### canvasApp.isResizing : <code>boolean</code>
-Whether currently resizing
+#### canvasApp.applyConnectionType(conn, type)
+Applies the colour/width convention for a typed connection.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isRotating"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-### canvasApp.isRotating : <code>boolean</code>
-Whether currently rotating
+| Param | Type |
+| --- | --- |
+| conn | <code>Connector</code> | 
+| type | <code>string</code> \| <code>null</code> | 
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+resizeHandle"></a>
+<a name="module_main..CanvasApp+findCompatibleEndAnchor"></a>
 
-### canvasApp.resizeHandle : <code>string</code> \| <code>null</code>
-Active resize handle (nw, n, ne, e, se, s, sw, w)
+#### canvasApp.findCompatibleEndAnchor(pos) ⇒ <code>Object</code> \| <code>null</code>
+Finds the anchor under the cursor that may complete the connector being drawn.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+rotateCenter"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-### canvasApp.rotateCenter : <code>Object</code> \| <code>null</code>
-Center point for rotation
+| Param | Type |
+| --- | --- |
+| pos | <code>Object</code> | 
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+initialBounds"></a>
+<a name="module_main..CanvasApp+finalizeConnector"></a>
 
-### canvasApp.initialBounds : <code>Object</code> \| <code>null</code>
-Initial bounds before transformation
+#### canvasApp.finalizeConnector(conn)
+Finalises a connector: adopts the typed end's connection type when the start was untyped.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+initialRotation"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-### canvasApp.initialRotation : <code>number</code>
-Initial rotation angle
+| Param | Type |
+| --- | --- |
+| conn | <code>Connector</code> | 
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isDraggingWaypoint"></a>
+<a name="module_main..CanvasApp+handleWheel"></a>
 
-### canvasApp.isDraggingWaypoint : <code>boolean</code>
-Whether dragging a polyline waypoint
+#### canvasApp.handleWheel(e)
+Zooms around the cursor so the point under the mouse stays put.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isDraggingControlPoint"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-### canvasApp.isDraggingControlPoint : <code>boolean</code>
-Whether dragging a bezier control point
+| Param | Type |
+| --- | --- |
+| e | <code>WheelEvent</code> | 
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+waypointConnector"></a>
+<a name="module_main..CanvasApp+zoomAt"></a>
 
-### canvasApp.waypointConnector : <code>Connector</code> \| <code>null</code>
-Connector being edited for waypoint
+#### canvasApp.zoomAt(sx, sy, newZoom)
+Sets the zoom keeping the screen point (sx, sy) fixed.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+waypointIndex"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-### canvasApp.waypointIndex : <code>number</code>
-Index of waypoint being dragged
+| Param | Type |
+| --- | --- |
+| sx | <code>number</code> | 
+| sy | <code>number</code> | 
+| newZoom | <code>number</code> | 
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+controlPointConnector"></a>
+<a name="module_main..CanvasApp+findNearestAnchor"></a>
 
-### canvasApp.controlPointConnector : <code>Connector</code> \| <code>null</code>
-Connector being edited for control point
+#### canvasApp.findNearestAnchor(x, y, [threshold], [requiredConnectionType], [requiredPortType]) ⇒ <code>Object</code> \| <code>null</code>
+Finds the closest anchor to a world point within a screen-space threshold.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+controlPointType"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-### canvasApp.controlPointType : <code>string</code> \| <code>null</code>
-Control point type being dragged (cp1 or cp2)
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| x | <code>number</code> |  |  |
+| y | <code>number</code> |  |  |
+| [threshold] | <code>number</code> | <code>15</code> | Threshold in screen pixels. |
+| [requiredConnectionType] | <code>string</code> \| <code>null</code> | <code>null</code> |  |
+| [requiredPortType] | <code>string</code> \| <code>null</code> | <code>null</code> |  |
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+connectorStart"></a>
+<a name="module_main..CanvasApp+copy"></a>
 
-### canvasApp.connectorStart : <code>Object</code> \| <code>null</code>
-Starting object/anchor for connector being drawn
+#### canvasApp.copy()
+Copies the selection plus every connector whose both ends are selected.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isDrawingPolyline"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+paste"></a>
 
-### canvasApp.isDrawingPolyline : <code>boolean</code>
-Whether currently drawing a polyline connector
+#### canvasApp.paste()
+Pastes the clipboard with fresh ids and fresh group ids, offset by 20px.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+polylineWaypoints"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+distribute"></a>
 
-### canvasApp.polylineWaypoints : <code>Array.&lt;{x: number, y: number}&gt;</code>
-Waypoints for polyline being drawn
+#### canvasApp.distribute(axis)
+Distributes the selected shapes with equal gaps along an axis.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+gridSize"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-### canvasApp.gridSize : <code>number</code>
-Grid size in pixels
+| Param | Type |
+| --- | --- |
+| axis | <code>&quot;horizontal&quot;</code> \| <code>&quot;vertical&quot;</code> | 
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+showGrid"></a>
+<a name="module_main..CanvasApp+zoomToFit"></a>
 
-### canvasApp.showGrid : <code>boolean</code>
-Whether to show grid
+#### canvasApp.zoomToFit()
+Fits the whole diagram into the viewport.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+snapToGrid"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+buildDocument"></a>
 
-### canvasApp.snapToGrid : <code>boolean</code>
-Whether to snap objects to grid
+#### canvasApp.buildDocument() ⇒ <code>Object</code>
+Builds the JSON document for the current state.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+showShadows"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+loadDocument"></a>
 
-### canvasApp.showShadows : <code>boolean</code>
-Whether to render shadows
+#### canvasApp.loadDocument(doc, [options]) ⇒ <code>Array.&lt;string&gt;</code>
+Replaces the current content with a document.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+zoom"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+**Returns**: <code>Array.&lt;string&gt;</code> - Loader warnings.  
 
-### canvasApp.zoom : <code>number</code>
-Current zoom level (1.0 = 100%)
+| Param | Type |
+| --- | --- |
+| doc | <code>Object</code> \| <code>string</code> | 
+| [options] | <code>Object</code> | 
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+panX"></a>
+<a name="module_main..CanvasApp+renderScene"></a>
 
-### canvasApp.panX : <code>number</code>
-Pan offset in x direction
+#### canvasApp.renderScene(ctx, options)
+Renders the diagram (without grid or selection chrome) into an arbitrary context.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+panY"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-### canvasApp.panY : <code>number</code>
-Pan offset in y direction
+| Param | Type |
+| --- | --- |
+| ctx | <code>CanvasRenderingContext2D</code> | 
+| options | <code>Object</code> | 
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isPanning"></a>
+<a name="module_main..CanvasApp+showMessage"></a>
 
-### canvasApp.isPanning : <code>boolean</code>
-Whether currently panning
+#### canvasApp.showMessage(textContent, [type])
+Shows a transient toast.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+panStartX"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-### canvasApp.panStartX : <code>number</code>
-Pan gesture start x coordinate
+| Param | Type | Default |
+| --- | --- | --- |
+| textContent | <code>string</code> |  | 
+| [type] | <code>&quot;info&quot;</code> \| <code>&quot;error&quot;</code> | <code>&#x27;info&#x27;</code> | 
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+panStartY"></a>
+<a name="module_main..CanvasApp+getUsedPortKeys"></a>
 
-### canvasApp.panStartY : <code>number</code>
-Pan gesture start y coordinate
+#### canvasApp.getUsedPortKeys() ⇒ <code>Set.&lt;string&gt;</code>
+Set of `<objectId>|<anchorKey>` strings for every connected port.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+spacePressed"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+drawPortDots"></a>
 
-### canvasApp.spacePressed : <code>boolean</code>
-Whether space key is pressed (for pan mode)
+#### canvasApp.drawPortDots(ctx, obj, used, scale, includeGeneric)
+Draws port dots: filled when connected, hollow when free, coloured by connection type.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+history"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-### canvasApp.history : <code>Array</code>
-Undo/redo history stack
+| Param | Type | Description |
+| --- | --- | --- |
+| ctx | <code>CanvasRenderingContext2D</code> |  |
+| obj | <code>Object</code> |  |
+| used | <code>Set.&lt;string&gt;</code> |  |
+| scale | <code>number</code> | Size multiplier (1/zoom on screen). |
+| includeGeneric | <code>boolean</code> | Also draw the untyped side anchors of basic shapes. |
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+historyIndex"></a>
+<a name="module_main..CanvasApp+drawPortLabels"></a>
 
-### canvasApp.historyIndex : <code>number</code>
-Current position in history stack
+#### canvasApp.drawPortLabels(ctx, obj, scale)
+Draws port names just inside the shape edge next to each typed port.
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+maxHistory"></a>
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-### canvasApp.maxHistory : <code>number</code>
-Maximum history entries
+| Param | Type |
+| --- | --- |
+| ctx | <code>CanvasRenderingContext2D</code> | 
+| obj | <code>Object</code> | 
+| scale | <code>number</code> | 
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+contextMenu"></a>
+<a name="module_main..OBJECT_COLOR_KEYS"></a>
 
-### canvasApp.contextMenu : <code>ContextMenu</code>
-Context menu handler
+### main~OBJECT\_COLOR\_KEYS
+Maps system object types to their key in [ObjectColors](ObjectColors).
 
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp"></a>
+**Kind**: inner constant of [<code>main</code>](#module_main)  
+<a name="module_main..escapeHtml"></a>
 
-## CanvasApp
-**Kind**: global class  
+### main~escapeHtml(value) ⇒ <code>string</code>
+Escapes text for safe interpolation into innerHTML.
 
-* [CanvasApp](#CanvasApp)
-    * [new CanvasApp()](#new_CanvasApp_new)
-    * [new CanvasApp()](#new_CanvasApp_new)
-    * [.canvas](#CanvasApp+canvas) : <code>HTMLCanvasElement</code>
-    * [.ctx](#CanvasApp+ctx) : <code>CanvasRenderingContext2D</code>
-    * [.objects](#CanvasApp+objects) : <code>Array</code>
-    * [.selectedObjects](#CanvasApp+selectedObjects) : <code>Array</code>
-    * [.currentTool](#CanvasApp+currentTool) : <code>string</code>
-    * [.clipboard](#CanvasApp+clipboard) : <code>Array</code>
-    * [.nextGroupId](#CanvasApp+nextGroupId) : <code>number</code>
-    * [.isDrawing](#CanvasApp+isDrawing) : <code>boolean</code>
-    * [.isDragging](#CanvasApp+isDragging) : <code>boolean</code>
-    * [.dragStart](#CanvasApp+dragStart) : <code>Object</code> \| <code>null</code>
-    * [.tempObject](#CanvasApp+tempObject) : <code>Object</code> \| <code>null</code>
-    * [.isResizing](#CanvasApp+isResizing) : <code>boolean</code>
-    * [.isRotating](#CanvasApp+isRotating) : <code>boolean</code>
-    * [.resizeHandle](#CanvasApp+resizeHandle) : <code>string</code> \| <code>null</code>
-    * [.rotateCenter](#CanvasApp+rotateCenter) : <code>Object</code> \| <code>null</code>
-    * [.initialBounds](#CanvasApp+initialBounds) : <code>Object</code> \| <code>null</code>
-    * [.initialRotation](#CanvasApp+initialRotation) : <code>number</code>
-    * [.isDraggingWaypoint](#CanvasApp+isDraggingWaypoint) : <code>boolean</code>
-    * [.isDraggingControlPoint](#CanvasApp+isDraggingControlPoint) : <code>boolean</code>
-    * [.waypointConnector](#CanvasApp+waypointConnector) : <code>Connector</code> \| <code>null</code>
-    * [.waypointIndex](#CanvasApp+waypointIndex) : <code>number</code>
-    * [.controlPointConnector](#CanvasApp+controlPointConnector) : <code>Connector</code> \| <code>null</code>
-    * [.controlPointType](#CanvasApp+controlPointType) : <code>string</code> \| <code>null</code>
-    * [.connectorStart](#CanvasApp+connectorStart) : <code>Object</code> \| <code>null</code>
-    * [.isDrawingPolyline](#CanvasApp+isDrawingPolyline) : <code>boolean</code>
-    * [.polylineWaypoints](#CanvasApp+polylineWaypoints) : <code>Array.&lt;{x: number, y: number}&gt;</code>
-    * [.gridSize](#CanvasApp+gridSize) : <code>number</code>
-    * [.showGrid](#CanvasApp+showGrid) : <code>boolean</code>
-    * [.snapToGrid](#CanvasApp+snapToGrid) : <code>boolean</code>
-    * [.showShadows](#CanvasApp+showShadows) : <code>boolean</code>
-    * [.zoom](#CanvasApp+zoom) : <code>number</code>
-    * [.panX](#CanvasApp+panX) : <code>number</code>
-    * [.panY](#CanvasApp+panY) : <code>number</code>
-    * [.isPanning](#CanvasApp+isPanning) : <code>boolean</code>
-    * [.panStartX](#CanvasApp+panStartX) : <code>number</code>
-    * [.panStartY](#CanvasApp+panStartY) : <code>number</code>
-    * [.spacePressed](#CanvasApp+spacePressed) : <code>boolean</code>
-    * [.history](#CanvasApp+history) : <code>Array</code>
-    * [.historyIndex](#CanvasApp+historyIndex) : <code>number</code>
-    * [.maxHistory](#CanvasApp+maxHistory) : <code>number</code>
-    * [.contextMenu](#CanvasApp+contextMenu) : <code>ContextMenu</code>
+**Kind**: inner method of [<code>main</code>](#module_main)  
 
-<a name="new_CanvasApp_new"></a>
+| Param | Type |
+| --- | --- |
+| value | <code>\*</code> | 
 
-### new CanvasApp()
-Main application class that manages the canvas-based diagramming tool.
-Handles user input, object creation/manipulation, rendering, and state management.
-Supports shapes, connectors, groups, templates, zoom/pan, undo/redo, and more.
-
-<a name="new_CanvasApp_new"></a>
-
-### new CanvasApp()
-Initializes the canvas application with default state and event listeners.
-Sets up the canvas, initializes all state properties, and begins rendering.
-
-<a name="CanvasApp+canvas"></a>
-
-### canvasApp.canvas : <code>HTMLCanvasElement</code>
-Main canvas element
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+ctx"></a>
-
-### canvasApp.ctx : <code>CanvasRenderingContext2D</code>
-Canvas 2D rendering context
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+objects"></a>
-
-### canvasApp.objects : <code>Array</code>
-All objects on the canvas (shapes and connectors)
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+selectedObjects"></a>
-
-### canvasApp.selectedObjects : <code>Array</code>
-Currently selected objects
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+currentTool"></a>
-
-### canvasApp.currentTool : <code>string</code>
-Current tool mode (select, rectangle, circle, connector, etc.)
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+clipboard"></a>
-
-### canvasApp.clipboard : <code>Array</code>
-Copied objects for paste operations
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+nextGroupId"></a>
-
-### canvasApp.nextGroupId : <code>number</code>
-Next available group ID
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isDrawing"></a>
-
-### canvasApp.isDrawing : <code>boolean</code>
-Whether currently drawing a shape
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isDragging"></a>
-
-### canvasApp.isDragging : <code>boolean</code>
-Whether currently dragging objects
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+dragStart"></a>
-
-### canvasApp.dragStart : <code>Object</code> \| <code>null</code>
-Starting position of drag
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+tempObject"></a>
-
-### canvasApp.tempObject : <code>Object</code> \| <code>null</code>
-Temporary object being created
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isResizing"></a>
-
-### canvasApp.isResizing : <code>boolean</code>
-Whether currently resizing
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isRotating"></a>
-
-### canvasApp.isRotating : <code>boolean</code>
-Whether currently rotating
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+resizeHandle"></a>
-
-### canvasApp.resizeHandle : <code>string</code> \| <code>null</code>
-Active resize handle (nw, n, ne, e, se, s, sw, w)
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+rotateCenter"></a>
-
-### canvasApp.rotateCenter : <code>Object</code> \| <code>null</code>
-Center point for rotation
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+initialBounds"></a>
-
-### canvasApp.initialBounds : <code>Object</code> \| <code>null</code>
-Initial bounds before transformation
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+initialRotation"></a>
-
-### canvasApp.initialRotation : <code>number</code>
-Initial rotation angle
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isDraggingWaypoint"></a>
-
-### canvasApp.isDraggingWaypoint : <code>boolean</code>
-Whether dragging a polyline waypoint
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isDraggingControlPoint"></a>
-
-### canvasApp.isDraggingControlPoint : <code>boolean</code>
-Whether dragging a bezier control point
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+waypointConnector"></a>
-
-### canvasApp.waypointConnector : <code>Connector</code> \| <code>null</code>
-Connector being edited for waypoint
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+waypointIndex"></a>
-
-### canvasApp.waypointIndex : <code>number</code>
-Index of waypoint being dragged
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+controlPointConnector"></a>
-
-### canvasApp.controlPointConnector : <code>Connector</code> \| <code>null</code>
-Connector being edited for control point
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+controlPointType"></a>
-
-### canvasApp.controlPointType : <code>string</code> \| <code>null</code>
-Control point type being dragged (cp1 or cp2)
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+connectorStart"></a>
-
-### canvasApp.connectorStart : <code>Object</code> \| <code>null</code>
-Starting object/anchor for connector being drawn
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isDrawingPolyline"></a>
-
-### canvasApp.isDrawingPolyline : <code>boolean</code>
-Whether currently drawing a polyline connector
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+polylineWaypoints"></a>
-
-### canvasApp.polylineWaypoints : <code>Array.&lt;{x: number, y: number}&gt;</code>
-Waypoints for polyline being drawn
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+gridSize"></a>
-
-### canvasApp.gridSize : <code>number</code>
-Grid size in pixels
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+showGrid"></a>
-
-### canvasApp.showGrid : <code>boolean</code>
-Whether to show grid
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+snapToGrid"></a>
-
-### canvasApp.snapToGrid : <code>boolean</code>
-Whether to snap objects to grid
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+showShadows"></a>
-
-### canvasApp.showShadows : <code>boolean</code>
-Whether to render shadows
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+zoom"></a>
-
-### canvasApp.zoom : <code>number</code>
-Current zoom level (1.0 = 100%)
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+panX"></a>
-
-### canvasApp.panX : <code>number</code>
-Pan offset in x direction
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+panY"></a>
-
-### canvasApp.panY : <code>number</code>
-Pan offset in y direction
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+isPanning"></a>
-
-### canvasApp.isPanning : <code>boolean</code>
-Whether currently panning
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+panStartX"></a>
-
-### canvasApp.panStartX : <code>number</code>
-Pan gesture start x coordinate
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+panStartY"></a>
-
-### canvasApp.panStartY : <code>number</code>
-Pan gesture start y coordinate
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+spacePressed"></a>
-
-### canvasApp.spacePressed : <code>boolean</code>
-Whether space key is pressed (for pan mode)
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+history"></a>
-
-### canvasApp.history : <code>Array</code>
-Undo/redo history stack
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+historyIndex"></a>
-
-### canvasApp.historyIndex : <code>number</code>
-Current position in history stack
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+maxHistory"></a>
-
-### canvasApp.maxHistory : <code>number</code>
-Maximum history entries
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
-<a name="CanvasApp+contextMenu"></a>
-
-### canvasApp.contextMenu : <code>ContextMenu</code>
-Context menu handler
-
-**Kind**: instance property of [<code>CanvasApp</code>](#CanvasApp)  
 

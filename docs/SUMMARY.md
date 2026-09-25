@@ -2,13 +2,20 @@
 
 * [Introduction](README.md)
 * [Getting started](getting-started.md)
+* [MCP server (LLM agents)](mcp.md)
 
 ## API
 * [API overview](api/README.md)
 
 ### Core
 * [BaseShape](api/core/BaseShape.md)
+* [SystemObject](api/core/SystemObject.md)
 * [Connector](api/core/Connector.md)
+* [Ports](api/core/Ports.md)
+* [ShapeRegistry](api/core/ShapeRegistry.md)
+* [Serialization](api/core/Serialization.md)
+* [Diagram](api/core/Diagram.md)
+* [SvgExporter](api/core/SvgExporter.md)
 * [Group](api/core/Group.md)
 
 ### Shapes
@@ -22,6 +29,7 @@
 * [ImageShape](api/shapes/ImageShape.md)
 
 ### System objects
+* [Device](api/shapes/Device.md)
 * [Server](api/shapes/Server.md)
 * [VideoMatrix](api/shapes/VideoMatrix.md)
 * [LEDProcessor](api/shapes/LEDProcessor.md)
@@ -33,5 +41,7 @@
 * [ConnectionTypes](api/config/ConnectionTypes.md)
 * [Templates](api/utils/Templates.md)
 * [IconLibrary](api/utils/IconLibrary.md)
+* [Color](api/utils/Color.md)
 * [ContextMenu](api/ui/ContextMenu.md)
+* [LiveSync](api/ui/LiveSync.md)
 * [main](api/main.md)

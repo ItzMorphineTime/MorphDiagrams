@@ -2,329 +2,470 @@
 
 _Source: `js/core/Connector.js`_
 
-<a name="Connector"></a>
+<a name="module_core/Connector"></a>
 
-## Connector
-**Kind**: global class  
+## core/Connector
+Connector (edge) between two anchors of two shapes.
 
-* [Connector](#Connector)
-    * [new Connector()](#new_Connector_new)
-    * [.Connector](#Connector+Connector)
-        * [new exports.Connector(startObject, startAnchor, endObject, endAnchor, connectionType)](#new_Connector+Connector_new)
-    * [.id](#Connector+id) : <code>string</code>
-    * [.type](#Connector+type) : <code>string</code>
-    * [.startObject](#Connector+startObject) : <code>Object</code>
-    * [.startAnchor](#Connector+startAnchor) : <code>string</code>
-    * [.endObject](#Connector+endObject) : <code>Object</code>
-    * [.endAnchor](#Connector+endAnchor) : <code>string</code>
-    * [.stroke](#Connector+stroke) : <code>string</code>
-    * [.strokeWidth](#Connector+strokeWidth) : <code>number</code>
-    * [.arrowStart](#Connector+arrowStart) : <code>boolean</code>
-    * [.arrowEnd](#Connector+arrowEnd) : <code>boolean</code>
-    * [.style](#Connector+style) : <code>string</code>
-    * [.lineStyle](#Connector+lineStyle) : <code>string</code>
-    * [.zIndex](#Connector+zIndex) : <code>number</code>
-    * [.visible](#Connector+visible) : <code>boolean</code>
-    * [.selected](#Connector+selected) : <code>boolean</code>
-    * [.connectionType](#Connector+connectionType) : <code>string</code> \| <code>null</code>
-    * [.waypoints](#Connector+waypoints) : <code>Array.&lt;{x: number, y: number}&gt;</code>
-    * [.controlPoint1](#Connector+controlPoint1) : <code>Object</code> \| <code>null</code>
-    * [.controlPoint2](#Connector+controlPoint2) : <code>Object</code> \| <code>null</code>
-    * [.generateId()](#Connector+generateId) ⇒ <code>string</code>
-    * [.getStartPoint()](#Connector+getStartPoint) ⇒ <code>Object</code> \| <code>null</code>
-    * [.getEndPoint()](#Connector+getEndPoint) ⇒ <code>Object</code> \| <code>null</code>
-    * [.containsPoint(x, y, [threshold])](#Connector+containsPoint) ⇒ <code>boolean</code>
-    * [.isNearLine(p1, p2, x, y, threshold)](#Connector+isNearLine) ⇒ <code>boolean</code>
-    * [.isNearPolyline(x, y, threshold)](#Connector+isNearPolyline) ⇒ <code>boolean</code>
-    * [.isNearOrthogonal(x, y, threshold)](#Connector+isNearOrthogonal) ⇒ <code>boolean</code>
-    * [.isNearBezier(x, y, threshold)](#Connector+isNearBezier) ⇒ <code>boolean</code>
-    * [.getBezierPoint(t)](#Connector+getBezierPoint) ⇒ <code>Object</code>
-    * [.getDefaultControlPoint1()](#Connector+getDefaultControlPoint1) ⇒ <code>Object</code>
-    * [.getDefaultControlPoint2()](#Connector+getDefaultControlPoint2) ⇒ <code>Object</code>
-    * [.draw(ctx)](#Connector+draw)
-    * [.toJSON()](#Connector+toJSON) ⇒ <code>Object</code>
+Supports four path styles (`straight`, `orthogonal`, `bezier`, `polyline`), three line styles
+(`solid`, `dashed`, `dotted`), optional arrows at either end, a typed connection (video, sdi, ...)
+and a text label drawn at the middle of the path.
 
-<a name="new_Connector_new"></a>
+**Remarks**: - Endpoints are resolved lazily from the attached shapes' anchor points, so connectors follow shapes.
+- If a referenced port no longer exists (e.g. the port count was reduced) the connector falls back to
+  the shape centre and reports `isDangling()`; it is never silently hidden.
+- Orthogonal routing leaves each port along its outward normal ("stub") before turning, which keeps
+  links from crossing through the devices they connect.  
+**See**
 
-### new Connector()
-Connector class for drawing lines between shapes on the canvas.
-Supports multiple connection styles (straight, orthogonal, bezier, polyline),
-line styles (solid, dashed, dotted), and connection types for typed network diagrams.
+- module:core/Ports
+- module:core/BaseShape
 
-<a name="Connector+Connector"></a>
+**Example**  
+```js
+const link = new Connector(server, 'video_output_0', matrix, 'video_input_0', 'video');
+link.style = 'orthogonal';
+link.label = 'Program A';
+```
 
-### connector.Connector
-**Kind**: instance class of [<code>Connector</code>](#Connector)  
-<a name="new_Connector+Connector_new"></a>
+* [core/Connector](#module_core/Connector)
+    * [.Connector](#module_core/Connector.Connector)
+        * [new exports.Connector(startObject, startAnchor, endObject, endAnchor, [connectionType])](#new_module_core/Connector.Connector_new)
+        * _instance_
+            * [.id](#module_core/Connector.Connector+id) : <code>string</code>
+            * [.type](#module_core/Connector.Connector+type) : <code>string</code>
+            * [.startObject](#module_core/Connector.Connector+startObject) : <code>Object</code>
+            * [.startAnchor](#module_core/Connector.Connector+startAnchor) : <code>string</code>
+            * [.endObject](#module_core/Connector.Connector+endObject) : <code>Object</code> \| <code>null</code>
+            * [.endAnchor](#module_core/Connector.Connector+endAnchor) : <code>string</code>
+            * [.stroke](#module_core/Connector.Connector+stroke) : <code>string</code>
+            * [.strokeWidth](#module_core/Connector.Connector+strokeWidth) : <code>number</code>
+            * [.arrowStart](#module_core/Connector.Connector+arrowStart) : <code>boolean</code>
+            * [.arrowEnd](#module_core/Connector.Connector+arrowEnd) : <code>boolean</code>
+            * [.style](#module_core/Connector.Connector+style) : <code>&quot;straight&quot;</code> \| <code>&quot;orthogonal&quot;</code> \| <code>&quot;bezier&quot;</code> \| <code>&quot;polyline&quot;</code>
+            * [.lineStyle](#module_core/Connector.Connector+lineStyle) : <code>&quot;solid&quot;</code> \| <code>&quot;dashed&quot;</code> \| <code>&quot;dotted&quot;</code>
+            * [.zIndex](#module_core/Connector.Connector+zIndex) : <code>number</code>
+            * [.visible](#module_core/Connector.Connector+visible) : <code>boolean</code>
+            * [.selected](#module_core/Connector.Connector+selected) : <code>boolean</code>
+            * [.connectionType](#module_core/Connector.Connector+connectionType) : <code>string</code> \| <code>null</code>
+            * [.waypoints](#module_core/Connector.Connector+waypoints) : <code>Array.&lt;{x:number, y:number}&gt;</code>
+            * [.controlPoint1](#module_core/Connector.Connector+controlPoint1) : <code>Object</code> \| <code>null</code>
+            * [.controlPoint2](#module_core/Connector.Connector+controlPoint2) : <code>Object</code> \| <code>null</code>
+            * [.label](#module_core/Connector.Connector+label) : <code>string</code>
+            * [.generateId()](#module_core/Connector.Connector+generateId) ⇒ <code>string</code>
+            * [.getStartAnchorInfo()](#module_core/Connector.Connector+getStartAnchorInfo) ⇒ <code>AnchorPoint</code> \| <code>null</code>
+            * [.getEndAnchorInfo()](#module_core/Connector.Connector+getEndAnchorInfo) ⇒ <code>AnchorPoint</code> \| <code>null</code>
+            * [.getStartPoint()](#module_core/Connector.Connector+getStartPoint) ⇒ <code>Object</code> \| <code>null</code>
+            * [.getEndPoint()](#module_core/Connector.Connector+getEndPoint) ⇒ <code>Object</code> \| <code>null</code>
+            * [.isDangling()](#module_core/Connector.Connector+isDangling) ⇒ <code>boolean</code>
+            * [.getPathPoints()](#module_core/Connector.Connector+getPathPoints) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
+            * [.getBezierSamples([samples])](#module_core/Connector.Connector+getBezierSamples) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
+            * [.containsPoint(x, y, [threshold])](#module_core/Connector.Connector+containsPoint) ⇒ <code>boolean</code>
+            * ~~[.isNearLine()](#module_core/Connector.Connector+isNearLine)~~
+            * [.getBezierPoint(t)](#module_core/Connector.Connector+getBezierPoint) ⇒ <code>Object</code>
+            * [.getDefaultControlPoint1()](#module_core/Connector.Connector+getDefaultControlPoint1) ⇒ <code>Object</code>
+            * [.getDefaultControlPoint2()](#module_core/Connector.Connector+getDefaultControlPoint2) ⇒ <code>Object</code>
+            * [.getMidpoint()](#module_core/Connector.Connector+getMidpoint) ⇒ <code>Object</code> \| <code>null</code>
+            * [.getArrowAngles()](#module_core/Connector.Connector+getArrowAngles) ⇒ <code>Object</code> \| <code>null</code>
+            * [.draw(ctx)](#module_core/Connector.Connector+draw)
+            * [.drawArrowWithAngle(ctx, point, angle)](#module_core/Connector.Connector+drawArrowWithAngle)
+            * [.getBezierTangentAtStart()](#module_core/Connector.Connector+getBezierTangentAtStart) ⇒ <code>number</code>
+            * [.getBezierTangentAtEnd()](#module_core/Connector.Connector+getBezierTangentAtEnd) ⇒ <code>number</code>
+            * [.drawWaypoints(ctx)](#module_core/Connector.Connector+drawWaypoints)
+            * [.drawControlPoints(ctx)](#module_core/Connector.Connector+drawControlPoints)
+            * [.getLabelLayout([measure])](#module_core/Connector.Connector+getLabelLayout) ⇒ <code>Object</code> \| <code>null</code>
+            * [.drawLabel(ctx)](#module_core/Connector.Connector+drawLabel)
+            * [.toJSON()](#module_core/Connector.Connector+toJSON) ⇒ <code>Object</code>
+        * _static_
+            * [.orthogonalRoute(start, end, ns, ne, [stub])](#module_core/Connector.Connector.orthogonalRoute) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
+            * [.isNearSegment(p1, p2, x, y, threshold)](#module_core/Connector.Connector.isNearSegment) ⇒ <code>boolean</code>
+    * [.ORTHOGONAL_STUB](#module_core/Connector.ORTHOGONAL_STUB)
 
-#### new exports.Connector(startObject, startAnchor, endObject, endAnchor, connectionType)
-Creates a new Connector instance.
+<a name="module_core/Connector.Connector"></a>
 
+### core/Connector.Connector
+**Kind**: static class of [<code>core/Connector</code>](#module_core/Connector)  
+
+* [.Connector](#module_core/Connector.Connector)
+    * [new exports.Connector(startObject, startAnchor, endObject, endAnchor, [connectionType])](#new_module_core/Connector.Connector_new)
+    * _instance_
+        * [.id](#module_core/Connector.Connector+id) : <code>string</code>
+        * [.type](#module_core/Connector.Connector+type) : <code>string</code>
+        * [.startObject](#module_core/Connector.Connector+startObject) : <code>Object</code>
+        * [.startAnchor](#module_core/Connector.Connector+startAnchor) : <code>string</code>
+        * [.endObject](#module_core/Connector.Connector+endObject) : <code>Object</code> \| <code>null</code>
+        * [.endAnchor](#module_core/Connector.Connector+endAnchor) : <code>string</code>
+        * [.stroke](#module_core/Connector.Connector+stroke) : <code>string</code>
+        * [.strokeWidth](#module_core/Connector.Connector+strokeWidth) : <code>number</code>
+        * [.arrowStart](#module_core/Connector.Connector+arrowStart) : <code>boolean</code>
+        * [.arrowEnd](#module_core/Connector.Connector+arrowEnd) : <code>boolean</code>
+        * [.style](#module_core/Connector.Connector+style) : <code>&quot;straight&quot;</code> \| <code>&quot;orthogonal&quot;</code> \| <code>&quot;bezier&quot;</code> \| <code>&quot;polyline&quot;</code>
+        * [.lineStyle](#module_core/Connector.Connector+lineStyle) : <code>&quot;solid&quot;</code> \| <code>&quot;dashed&quot;</code> \| <code>&quot;dotted&quot;</code>
+        * [.zIndex](#module_core/Connector.Connector+zIndex) : <code>number</code>
+        * [.visible](#module_core/Connector.Connector+visible) : <code>boolean</code>
+        * [.selected](#module_core/Connector.Connector+selected) : <code>boolean</code>
+        * [.connectionType](#module_core/Connector.Connector+connectionType) : <code>string</code> \| <code>null</code>
+        * [.waypoints](#module_core/Connector.Connector+waypoints) : <code>Array.&lt;{x:number, y:number}&gt;</code>
+        * [.controlPoint1](#module_core/Connector.Connector+controlPoint1) : <code>Object</code> \| <code>null</code>
+        * [.controlPoint2](#module_core/Connector.Connector+controlPoint2) : <code>Object</code> \| <code>null</code>
+        * [.label](#module_core/Connector.Connector+label) : <code>string</code>
+        * [.generateId()](#module_core/Connector.Connector+generateId) ⇒ <code>string</code>
+        * [.getStartAnchorInfo()](#module_core/Connector.Connector+getStartAnchorInfo) ⇒ <code>AnchorPoint</code> \| <code>null</code>
+        * [.getEndAnchorInfo()](#module_core/Connector.Connector+getEndAnchorInfo) ⇒ <code>AnchorPoint</code> \| <code>null</code>
+        * [.getStartPoint()](#module_core/Connector.Connector+getStartPoint) ⇒ <code>Object</code> \| <code>null</code>
+        * [.getEndPoint()](#module_core/Connector.Connector+getEndPoint) ⇒ <code>Object</code> \| <code>null</code>
+        * [.isDangling()](#module_core/Connector.Connector+isDangling) ⇒ <code>boolean</code>
+        * [.getPathPoints()](#module_core/Connector.Connector+getPathPoints) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
+        * [.getBezierSamples([samples])](#module_core/Connector.Connector+getBezierSamples) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
+        * [.containsPoint(x, y, [threshold])](#module_core/Connector.Connector+containsPoint) ⇒ <code>boolean</code>
+        * ~~[.isNearLine()](#module_core/Connector.Connector+isNearLine)~~
+        * [.getBezierPoint(t)](#module_core/Connector.Connector+getBezierPoint) ⇒ <code>Object</code>
+        * [.getDefaultControlPoint1()](#module_core/Connector.Connector+getDefaultControlPoint1) ⇒ <code>Object</code>
+        * [.getDefaultControlPoint2()](#module_core/Connector.Connector+getDefaultControlPoint2) ⇒ <code>Object</code>
+        * [.getMidpoint()](#module_core/Connector.Connector+getMidpoint) ⇒ <code>Object</code> \| <code>null</code>
+        * [.getArrowAngles()](#module_core/Connector.Connector+getArrowAngles) ⇒ <code>Object</code> \| <code>null</code>
+        * [.draw(ctx)](#module_core/Connector.Connector+draw)
+        * [.drawArrowWithAngle(ctx, point, angle)](#module_core/Connector.Connector+drawArrowWithAngle)
+        * [.getBezierTangentAtStart()](#module_core/Connector.Connector+getBezierTangentAtStart) ⇒ <code>number</code>
+        * [.getBezierTangentAtEnd()](#module_core/Connector.Connector+getBezierTangentAtEnd) ⇒ <code>number</code>
+        * [.drawWaypoints(ctx)](#module_core/Connector.Connector+drawWaypoints)
+        * [.drawControlPoints(ctx)](#module_core/Connector.Connector+drawControlPoints)
+        * [.getLabelLayout([measure])](#module_core/Connector.Connector+getLabelLayout) ⇒ <code>Object</code> \| <code>null</code>
+        * [.drawLabel(ctx)](#module_core/Connector.Connector+drawLabel)
+        * [.toJSON()](#module_core/Connector.Connector+toJSON) ⇒ <code>Object</code>
+    * _static_
+        * [.orthogonalRoute(start, end, ns, ne, [stub])](#module_core/Connector.Connector.orthogonalRoute) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
+        * [.isNearSegment(p1, p2, x, y, threshold)](#module_core/Connector.Connector.isNearSegment) ⇒ <code>boolean</code>
+
+<a name="new_module_core/Connector.Connector_new"></a>
+
+#### new exports.Connector(startObject, startAnchor, endObject, endAnchor, [connectionType])
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
-| startObject | <code>Object</code> |  | The shape object where the connector starts |
-| startAnchor | <code>string</code> |  | The anchor point key on the start object |
-| endObject | <code>Object</code> |  | The shape object where the connector ends |
-| endAnchor | <code>string</code> |  | The anchor point key on the end object |
-| connectionType | <code>string</code> \| <code>null</code> | <code>null</code> | Type of connection (video, sdi, network, usb) or null for generic |
+| startObject | <code>Object</code> |  | Shape the connector starts at. |
+| startAnchor | <code>string</code> |  | Anchor key on the start object. |
+| endObject | <code>Object</code> \| <code>null</code> |  | Shape the connector ends at (null while being drawn). |
+| endAnchor | <code>string</code> \| <code>null</code> |  | Anchor key on the end object. |
+| [connectionType] | <code>string</code> \| <code>null</code> | <code>null</code> | Connection type id or null for untyped. |
 
-<a name="Connector+id"></a>
+<a name="module_core/Connector.Connector+id"></a>
 
-### connector.id : <code>string</code>
-Unique identifier for the connector
+#### connector.id : <code>string</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+type"></a>
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+type"></a>
+#### connector.type : <code>string</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+startObject"></a>
 
-### connector.type : <code>string</code>
-Type identifier
+#### connector.startObject : <code>Object</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+startAnchor"></a>
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+startObject"></a>
+#### connector.startAnchor : <code>string</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+endObject"></a>
 
-### connector.startObject : <code>Object</code>
-Shape object where the connector starts
+#### connector.endObject : <code>Object</code> \| <code>null</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+endAnchor"></a>
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+startAnchor"></a>
+#### connector.endAnchor : <code>string</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+stroke"></a>
 
-### connector.startAnchor : <code>string</code>
-Anchor point key on the start object
+#### connector.stroke : <code>string</code>
+Stroke colour
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+endObject"></a>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+strokeWidth"></a>
 
-### connector.endObject : <code>Object</code>
-Shape object where the connector ends
+#### connector.strokeWidth : <code>number</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+arrowStart"></a>
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+endAnchor"></a>
+#### connector.arrowStart : <code>boolean</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+arrowEnd"></a>
 
-### connector.endAnchor : <code>string</code>
-Anchor point key on the end object
+#### connector.arrowEnd : <code>boolean</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+style"></a>
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+stroke"></a>
+#### connector.style : <code>&quot;straight&quot;</code> \| <code>&quot;orthogonal&quot;</code> \| <code>&quot;bezier&quot;</code> \| <code>&quot;polyline&quot;</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+lineStyle"></a>
 
-### connector.stroke : <code>string</code>
-Stroke color in hex format
+#### connector.lineStyle : <code>&quot;solid&quot;</code> \| <code>&quot;dashed&quot;</code> \| <code>&quot;dotted&quot;</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+zIndex"></a>
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+strokeWidth"></a>
+#### connector.zIndex : <code>number</code>
+Connectors render below shapes by default
 
-### connector.strokeWidth : <code>number</code>
-Width of the line in pixels
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+visible"></a>
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+arrowStart"></a>
+#### connector.visible : <code>boolean</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+selected"></a>
 
-### connector.arrowStart : <code>boolean</code>
-Whether to draw arrow at start point
+#### connector.selected : <code>boolean</code>
+Transient selection flag (not serialised)
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+arrowEnd"></a>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+connectionType"></a>
 
-### connector.arrowEnd : <code>boolean</code>
-Whether to draw arrow at end point
+#### connector.connectionType : <code>string</code> \| <code>null</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+waypoints"></a>
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+style"></a>
-
-### connector.style : <code>string</code>
-Connection style: 'straight', 'orthogonal', 'bezier', or 'polyline'
-
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+lineStyle"></a>
-
-### connector.lineStyle : <code>string</code>
-Line dash style: 'solid', 'dashed', or 'dotted'
-
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+zIndex"></a>
-
-### connector.zIndex : <code>number</code>
-Z-index for rendering order (connectors default to -1, below shapes)
-
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+visible"></a>
-
-### connector.visible : <code>boolean</code>
-Whether the connector is visible
-
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+selected"></a>
-
-### connector.selected : <code>boolean</code>
-Whether the connector is currently selected
-
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+connectionType"></a>
-
-### connector.connectionType : <code>string</code> \| <code>null</code>
-Connection type for network objects (video, sdi, network, usb)
-
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+waypoints"></a>
-
-### connector.waypoints : <code>Array.&lt;{x: number, y: number}&gt;</code>
+#### connector.waypoints : <code>Array.&lt;{x:number, y:number}&gt;</code>
 Intermediate points for polyline connectors
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+controlPoint1"></a>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+controlPoint1"></a>
 
-### connector.controlPoint1 : <code>Object</code> \| <code>null</code>
-First control point for bezier connectors
+#### connector.controlPoint1 : <code>Object</code> \| <code>null</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+controlPoint2"></a>
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+controlPoint2"></a>
+#### connector.controlPoint2 : <code>Object</code> \| <code>null</code>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+label"></a>
 
-### connector.controlPoint2 : <code>Object</code> \| <code>null</code>
-Second control point for bezier connectors
+#### connector.label : <code>string</code>
+Text label drawn at the middle of the connector
 
-**Kind**: instance property of [<code>Connector</code>](#Connector)  
-<a name="Connector+generateId"></a>
+**Kind**: instance property of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+generateId"></a>
 
-### connector.generateId() ⇒ <code>string</code>
-Generates a unique identifier for the connector.
+#### connector.generateId() ⇒ <code>string</code>
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+getStartAnchorInfo"></a>
 
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-**Returns**: <code>string</code> - Unique ID combining timestamp and random string  
-<a name="Connector+getStartPoint"></a>
+#### connector.getStartAnchorInfo() ⇒ <code>AnchorPoint</code> \| <code>null</code>
+Resolves the start anchor (position, normal, type info).
 
-### connector.getStartPoint() ⇒ <code>Object</code> \| <code>null</code>
-Gets the starting point of the connector from the start object's anchor points.
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+getEndAnchorInfo"></a>
 
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-**Returns**: <code>Object</code> \| <code>null</code> - Start point coordinates or null if no start object  
-<a name="Connector+getEndPoint"></a>
+#### connector.getEndAnchorInfo() ⇒ <code>AnchorPoint</code> \| <code>null</code>
+Resolves the end anchor. While a connector is being drawn (`endObject` null) the transient
+`endX`/`endY` fields are used.
 
-### connector.getEndPoint() ⇒ <code>Object</code> \| <code>null</code>
-Gets the ending point of the connector from the end object's anchor points.
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+getStartPoint"></a>
 
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-**Returns**: <code>Object</code> \| <code>null</code> - End point coordinates or null if no end object  
-<a name="Connector+containsPoint"></a>
+#### connector.getStartPoint() ⇒ <code>Object</code> \| <code>null</code>
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+getEndPoint"></a>
 
-### connector.containsPoint(x, y, [threshold]) ⇒ <code>boolean</code>
-Checks if a point is near the connector line for hit detection.
-Delegates to specific methods based on connector style.
+#### connector.getEndPoint() ⇒ <code>Object</code> \| <code>null</code>
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+isDangling"></a>
 
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-**Returns**: <code>boolean</code> - True if point is within threshold distance of the connector  
+#### connector.isDangling() ⇒ <code>boolean</code>
+True when one of the referenced anchor keys does not exist on its shape any more.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+getPathPoints"></a>
+
+#### connector.getPathPoints() ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
+Ordered points of the connector path for straight, polyline and orthogonal styles.
+Bezier connectors return the sampled curve (see [Connector#getBezierSamples](Connector#getBezierSamples)).
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+**Returns**: <code>Array.&lt;{x:number, y:number}&gt;</code> - Empty when an endpoint is unresolved.  
+<a name="module_core/Connector.Connector+getBezierSamples"></a>
+
+#### connector.getBezierSamples([samples]) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
+Samples the bezier curve into a polyline.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+
+| Param | Type | Default |
+| --- | --- | --- |
+| [samples] | <code>number</code> | <code>24</code> | 
+
+<a name="module_core/Connector.Connector+containsPoint"></a>
+
+#### connector.containsPoint(x, y, [threshold]) ⇒ <code>boolean</code>
+Hit test: is the point within `threshold` of the path?
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+
+| Param | Type | Default |
+| --- | --- | --- |
+| x | <code>number</code> |  | 
+| y | <code>number</code> |  | 
+| [threshold] | <code>number</code> | <code>5</code> | 
+
+<a name="module_core/Connector.Connector+isNearLine"></a>
+
+#### ~~connector.isNearLine()~~
+***Use [Connector.isNearSegment](Connector.isNearSegment).***
+
+Kept for backwards compatibility.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+getBezierPoint"></a>
+
+#### connector.getBezierPoint(t) ⇒ <code>Object</code>
+Point on the cubic bezier at parameter `t`.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| t | <code>number</code> | 0..1 |
+
+<a name="module_core/Connector.Connector+getDefaultControlPoint1"></a>
+
+#### connector.getDefaultControlPoint1() ⇒ <code>Object</code>
+Default first control point (25% along, offset perpendicular).
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+getDefaultControlPoint2"></a>
+
+#### connector.getDefaultControlPoint2() ⇒ <code>Object</code>
+Default second control point (75% along, offset perpendicular).
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+getMidpoint"></a>
+
+#### connector.getMidpoint() ⇒ <code>Object</code> \| <code>null</code>
+Point halfway along the path (by length) plus the direction angle of that segment.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+getArrowAngles"></a>
+
+#### connector.getArrowAngles() ⇒ <code>Object</code> \| <code>null</code>
+Arrow angles (radians) at both ends, pointing outwards along the path.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+draw"></a>
+
+#### connector.draw(ctx)
+Draws the connector.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+
+| Param | Type |
+| --- | --- |
+| ctx | <code>CanvasRenderingContext2D</code> | 
+
+<a name="module_core/Connector.Connector+drawArrowWithAngle"></a>
+
+#### connector.drawArrowWithAngle(ctx, point, angle)
+Draws a filled arrow head at `point` pointing in direction `angle`.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| ctx | <code>CanvasRenderingContext2D</code> |  |
+| point | <code>Object</code> |  |
+| angle | <code>number</code> | Radians. |
+
+<a name="module_core/Connector.Connector+getBezierTangentAtStart"></a>
+
+#### connector.getBezierTangentAtStart() ⇒ <code>number</code>
+Tangent angle at the start (pointing away from the curve).
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+getBezierTangentAtEnd"></a>
+
+#### connector.getBezierTangentAtEnd() ⇒ <code>number</code>
+Tangent angle at the end.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector+drawWaypoints"></a>
+
+#### connector.drawWaypoints(ctx)
+Draws polyline waypoint handles.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+
+| Param | Type |
+| --- | --- |
+| ctx | <code>CanvasRenderingContext2D</code> | 
+
+<a name="module_core/Connector.Connector+drawControlPoints"></a>
+
+#### connector.drawControlPoints(ctx)
+Draws bezier control point handles and guide lines.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+
+| Param | Type |
+| --- | --- |
+| ctx | <code>CanvasRenderingContext2D</code> | 
+
+<a name="module_core/Connector.Connector+getLabelLayout"></a>
+
+#### connector.getLabelLayout([measure]) ⇒ <code>Object</code> \| <code>null</code>
+Layout of the label box at the middle of the path.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| [measure] | <code>function</code> | Text width measurer for the label font. |
+
+<a name="module_core/Connector.Connector+drawLabel"></a>
+
+#### connector.drawLabel(ctx)
+Draws the label with a light background so it stays readable over the line.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+
+| Param | Type |
+| --- | --- |
+| ctx | <code>CanvasRenderingContext2D</code> | 
+
+<a name="module_core/Connector.Connector+toJSON"></a>
+
+#### connector.toJSON() ⇒ <code>Object</code>
+Serialises the connector, storing object ids instead of references.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+<a name="module_core/Connector.Connector.orthogonalRoute"></a>
+
+#### Connector.orthogonalRoute(start, end, ns, ne, [stub]) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
+Computes an orthogonal (right-angled) route between two points, leaving each endpoint along its
+outward normal first.
+
+**Kind**: static method of [<code>Connector</code>](#module_core/Connector.Connector)  
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
-| x | <code>number</code> |  | X-coordinate of the point to test |
-| y | <code>number</code> |  | Y-coordinate of the point to test |
-| [threshold] | <code>number</code> | <code>5</code> | Maximum distance in pixels to consider "near" |
+| start | <code>Object</code> |  |  |
+| end | <code>Object</code> |  |  |
+| ns | <code>Object</code> \| <code>null</code> |  | Outward unit normal at the start (null = free point). |
+| ne | <code>Object</code> \| <code>null</code> |  | Outward unit normal at the end (null = free point). |
+| [stub] | <code>number</code> | <code>ORTHOGONAL_STUB</code> |  |
 
-<a name="Connector+isNearLine"></a>
+<a name="module_core/Connector.Connector.isNearSegment"></a>
 
-### connector.isNearLine(p1, p2, x, y, threshold) ⇒ <code>boolean</code>
-Checks if a point is near a straight line segment using perpendicular distance.
+#### Connector.isNearSegment(p1, p2, x, y, threshold) ⇒ <code>boolean</code>
+Distance test from a point to a segment.
 
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-**Returns**: <code>boolean</code> - True if point is within threshold distance of the line segment  
+**Kind**: static method of [<code>Connector</code>](#module_core/Connector.Connector)  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| p1 | <code>Object</code> | First endpoint of the line |
-| p2 | <code>Object</code> | Second endpoint of the line |
-| x | <code>number</code> | X-coordinate of the point to test |
-| y | <code>number</code> | Y-coordinate of the point to test |
-| threshold | <code>number</code> | Maximum distance to consider "near" |
+| Param | Type |
+| --- | --- |
+| p1 | <code>Object</code> | 
+| p2 | <code>Object</code> | 
+| x | <code>number</code> | 
+| y | <code>number</code> | 
+| threshold | <code>number</code> | 
 
-<a name="Connector+isNearPolyline"></a>
+<a name="module_core/Connector.ORTHOGONAL_STUB"></a>
 
-### connector.isNearPolyline(x, y, threshold) ⇒ <code>boolean</code>
-Checks if a point is near a polyline connector by testing each segment.
+### core/Connector.ORTHOGONAL\_STUB
+Length of the straight stub leaving a port before an orthogonal connector turns.
 
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-**Returns**: <code>boolean</code> - True if point is near any segment of the polyline  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| x | <code>number</code> | X-coordinate of the point to test |
-| y | <code>number</code> | Y-coordinate of the point to test |
-| threshold | <code>number</code> | Maximum distance to consider "near" |
-
-<a name="Connector+isNearOrthogonal"></a>
-
-### connector.isNearOrthogonal(x, y, threshold) ⇒ <code>boolean</code>
-Checks if a point is near an orthogonal (right-angled) connector.
-Orthogonal connectors use 3 segments forming right angles.
-
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-**Returns**: <code>boolean</code> - True if point is near the orthogonal path  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| x | <code>number</code> | X-coordinate of the point to test |
-| y | <code>number</code> | Y-coordinate of the point to test |
-| threshold | <code>number</code> | Maximum distance to consider "near" |
-
-<a name="Connector+isNearBezier"></a>
-
-### connector.isNearBezier(x, y, threshold) ⇒ <code>boolean</code>
-Checks if a point is near a bezier curve connector by sampling points along the curve.
-
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-**Returns**: <code>boolean</code> - True if point is near the bezier curve  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| x | <code>number</code> | X-coordinate of the point to test |
-| y | <code>number</code> | Y-coordinate of the point to test |
-| threshold | <code>number</code> | Maximum distance to consider "near" |
-
-<a name="Connector+getBezierPoint"></a>
-
-### connector.getBezierPoint(t) ⇒ <code>Object</code>
-Calculates a point on the bezier curve at parameter t using cubic bezier formula.
-
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-**Returns**: <code>Object</code> - Point coordinates on the bezier curve  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| t | <code>number</code> | Parameter value between 0 and 1 (0=start, 1=end) |
-
-<a name="Connector+getDefaultControlPoint1"></a>
-
-### connector.getDefaultControlPoint1() ⇒ <code>Object</code>
-Gets the default position for the first bezier control point.
-Positioned at 25% along the line with slight curve offset.
-
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-**Returns**: <code>Object</code> - Default first control point coordinates  
-<a name="Connector+getDefaultControlPoint2"></a>
-
-### connector.getDefaultControlPoint2() ⇒ <code>Object</code>
-Gets the default position for the second bezier control point.
-Positioned at 75% along the line with slight curve offset.
-
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-**Returns**: <code>Object</code> - Default second control point coordinates  
-<a name="Connector+draw"></a>
-
-### connector.draw(ctx)
-Draws the connector on the canvas.
-Applies appropriate styling, draws the connection line based on style,
-and draws arrows and control points as needed.
-
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| ctx | <code>CanvasRenderingContext2D</code> | Canvas rendering context |
-
-<a name="Connector+toJSON"></a>
-
-### connector.toJSON() ⇒ <code>Object</code>
-Serializes the connector to a JSON-compatible object for saving.
-Stores object IDs instead of object references for proper serialization.
-
-**Kind**: instance method of [<code>Connector</code>](#Connector)  
-**Returns**: <code>Object</code> - JSON representation of the connector with all properties  
+**Kind**: static constant of [<code>core/Connector</code>](#module_core/Connector)  
 

@@ -2,53 +2,58 @@
 
 _Source: `js/shapes/LEDProcessor.js`_
 
-<a name="LEDProcessor"></a>
+<a name="module_shapes/LEDProcessor"></a>
 
-## LEDProcessor ⇐ <code>BaseShape</code>
-**Kind**: global class  
-**Extends**: <code>BaseShape</code>  
+## shapes/LEDProcessor
+LED wall processor system object (video + SDI inputs, video outputs). Renders as a rectangle
+with three LED dots.
 
-* [LEDProcessor](#LEDProcessor) ⇐ <code>BaseShape</code>
-    * [new LEDProcessor()](#new_LEDProcessor_new)
-    * [.LEDProcessor](#LEDProcessor+LEDProcessor)
-        * [new exports.LEDProcessor(x, y, width, height)](#new_LEDProcessor+LEDProcessor_new)
-    * [.ports](#LEDProcessor+ports) : <code>Object.&lt;string, {input: number, output: number}&gt;</code>
-    * [.getAnchorPoints()](#LEDProcessor+getAnchorPoints) ⇒ <code>Object.&lt;string, {x: number, y: number, connectionType: string, portType: string}&gt;</code>
+**See**: module:core/SystemObject  
 
-<a name="new_LEDProcessor_new"></a>
+* [shapes/LEDProcessor](#module_shapes/LEDProcessor)
+    * [.LEDProcessor](#module_shapes/LEDProcessor.LEDProcessor)
+        * [new exports.LEDProcessor(x, y, width, height)](#new_module_shapes/LEDProcessor.LEDProcessor_new)
+        * _instance_
+            * [.drawIcon(ctx)](#module_shapes/LEDProcessor.LEDProcessor+drawIcon)
+        * _static_
+            * [.defaultPorts()](#module_shapes/LEDProcessor.LEDProcessor.defaultPorts) ⇒ <code>PortConfig</code>
 
-### new LEDProcessor()
-LEDProcessor shape representing an LED video processing device.
-Handles video and SDI inputs for LED wall output.
-Renders as a capsule (rounded rectangle) shape.
+<a name="module_shapes/LEDProcessor.LEDProcessor"></a>
 
-<a name="LEDProcessor+LEDProcessor"></a>
+### shapes/LEDProcessor.LEDProcessor
+**Kind**: static class of [<code>shapes/LEDProcessor</code>](#module_shapes/LEDProcessor)  
 
-### ledProcessor.LEDProcessor
-**Kind**: instance class of [<code>LEDProcessor</code>](#LEDProcessor)  
-<a name="new_LEDProcessor+LEDProcessor_new"></a>
+* [.LEDProcessor](#module_shapes/LEDProcessor.LEDProcessor)
+    * [new exports.LEDProcessor(x, y, width, height)](#new_module_shapes/LEDProcessor.LEDProcessor_new)
+    * _instance_
+        * [.drawIcon(ctx)](#module_shapes/LEDProcessor.LEDProcessor+drawIcon)
+    * _static_
+        * [.defaultPorts()](#module_shapes/LEDProcessor.LEDProcessor.defaultPorts) ⇒ <code>PortConfig</code>
+
+<a name="new_module_shapes/LEDProcessor.LEDProcessor_new"></a>
 
 #### new exports.LEDProcessor(x, y, width, height)
-Creates a new LEDProcessor instance.
 
+| Param | Type |
+| --- | --- |
+| x | <code>number</code> | 
+| y | <code>number</code> | 
+| width | <code>number</code> | 
+| height | <code>number</code> | 
 
-| Param | Type | Description |
-| --- | --- | --- |
-| x | <code>number</code> | X-coordinate of top-left corner |
-| y | <code>number</code> | Y-coordinate of top-left corner |
-| width | <code>number</code> | Width in pixels |
-| height | <code>number</code> | Height in pixels |
+<a name="module_shapes/LEDProcessor.LEDProcessor+drawIcon"></a>
 
-<a name="LEDProcessor+ports"></a>
+#### ledProcessor.drawIcon(ctx)
+Draws the LED dots.
 
-### ledProcessor.ports : <code>Object.&lt;string, {input: number, output: number}&gt;</code>
-Port configuration
+**Kind**: instance method of [<code>LEDProcessor</code>](#module_shapes/LEDProcessor.LEDProcessor)  
 
-**Kind**: instance property of [<code>LEDProcessor</code>](#LEDProcessor)  
-<a name="LEDProcessor+getAnchorPoints"></a>
+| Param | Type |
+| --- | --- |
+| ctx | <code>CanvasRenderingContext2D</code> | 
 
-### ledProcessor.getAnchorPoints() ⇒ <code>Object.&lt;string, {x: number, y: number, connectionType: string, portType: string}&gt;</code>
-Gets anchor points for connections based on port configuration.
+<a name="module_shapes/LEDProcessor.LEDProcessor.defaultPorts"></a>
 
-**Kind**: instance method of [<code>LEDProcessor</code>](#LEDProcessor)  
+#### LEDProcessor.defaultPorts() ⇒ <code>PortConfig</code>
+**Kind**: static method of [<code>LEDProcessor</code>](#module_shapes/LEDProcessor.LEDProcessor)  
 

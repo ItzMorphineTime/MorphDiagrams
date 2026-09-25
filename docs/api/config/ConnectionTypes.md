@@ -2,166 +2,251 @@
 
 _Source: `js/config/ConnectionTypes.js`_
 
-## Constants
+<a name="module_config/ConnectionTypes"></a>
 
-<dl>
-<dt><a href="#ConnectionTypes">ConnectionTypes</a> : <code>Object.&lt;string, string&gt;</code></dt>
-<dd><p>Supported connection types for network diagram connectors.</p>
-</dd>
-<dt><a href="#ConnectionColors">ConnectionColors</a> : <code>Object.&lt;string, string&gt;</code></dt>
-<dd><p>Default colors for each connection type.
-Colors are used to visually distinguish different connection types on the canvas.</p>
-</dd>
-<dt><a href="#ObjectColors">ObjectColors</a> : <code>Object.&lt;string, string&gt;</code></dt>
-<dd><p>Default fill colors for system object types.
-Used to visually distinguish different device types on the canvas.</p>
-</dd>
-<dt><a href="#PortTypes">PortTypes</a> : <code>Object.&lt;string, string&gt;</code></dt>
-<dd><p>Port direction types for defining input/output ports.</p>
-</dd>
-</dl>
+## config/ConnectionTypes
+Connection-type registry (video, SDI, network, USB, ... plus user-defined types),
+their colours, default system-object colours and port direction constants.
 
-<a name="ConnectionTypes"></a>
+The registry is the single source of truth for which typed connections exist. The legacy
+`ConnectionColors` map is kept as a live view of the registry so older code (and the settings
+panel) can keep reading `ConnectionColors[type]`.
 
-## ConnectionTypes : <code>Object.&lt;string, string&gt;</code>
-Supported connection types for network diagram connectors.
+**Example**  
+```js
+import { ConnectionTypeRegistry } from './config/ConnectionTypes.js';
+ConnectionTypeRegistry.register({ id: 'hdmi', label: 'HDMI', color: '#FF00AA' });
+ConnectionTypeRegistry.colorFor('hdmi'); // '#FF00AA'
+```
 
-**Kind**: global constant  
+* [config/ConnectionTypes](#module_config/ConnectionTypes)
+    * _static_
+        * [.ConnectionTypes](#module_config/ConnectionTypes.ConnectionTypes) : <code>enum</code>
+        * [.PortTypes](#module_config/ConnectionTypes.PortTypes) : <code>enum</code>
+        * [.ObjectColors](#module_config/ConnectionTypes.ObjectColors) : <code>Object.&lt;string, string&gt;</code>
+        * [.DEFAULT_OBJECT_COLORS](#module_config/ConnectionTypes.DEFAULT_OBJECT_COLORS)
+        * [.ConnectionColors](#module_config/ConnectionTypes.ConnectionColors) : <code>Object.&lt;string, string&gt;</code>
+        * [.DEFAULT_CONNECTION_COLORS](#module_config/ConnectionTypes.DEFAULT_CONNECTION_COLORS)
+    * _inner_
+        * [~ConnectionTypeRegistry](#module_config/ConnectionTypes..ConnectionTypeRegistry) : <code>object</code>
+            * [.normalizeId](#module_config/ConnectionTypes..ConnectionTypeRegistry.normalizeId) ⇒ <code>string</code>
+            * [.register(def)](#module_config/ConnectionTypes..ConnectionTypeRegistry.register) ⇒ <code>ConnectionTypeDef</code>
+            * [.get(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.get)
+            * [.has(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.has)
+            * [.list()](#module_config/ConnectionTypes..ConnectionTypeRegistry.list) ⇒ <code>Array.&lt;ConnectionTypeDef&gt;</code>
+            * [.ids()](#module_config/ConnectionTypes..ConnectionTypeRegistry.ids) ⇒ <code>Array.&lt;string&gt;</code>
+            * [.colorFor(id, [fallback])](#module_config/ConnectionTypes..ConnectionTypeRegistry.colorFor) ⇒ <code>string</code>
+            * [.setColor(id, color)](#module_config/ConnectionTypes..ConnectionTypeRegistry.setColor)
+            * [.isBidirectional(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.isBidirectional) ⇒ <code>boolean</code>
+            * [.unregister(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.unregister) ⇒ <code>boolean</code>
+            * [.reset()](#module_config/ConnectionTypes..ConnectionTypeRegistry.reset)
+            * [.toJSON([options])](#module_config/ConnectionTypes..ConnectionTypeRegistry.toJSON) ⇒ <code>Object.&lt;string, {label:string, color:string, bidirectional:boolean, description:string}&gt;</code>
+            * [.fromJSON(json)](#module_config/ConnectionTypes..ConnectionTypeRegistry.fromJSON)
+        * [~ConnectionTypeDef](#module_config/ConnectionTypes..ConnectionTypeDef) : <code>Object</code>
 
-* [ConnectionTypes](#ConnectionTypes) : <code>Object.&lt;string, string&gt;</code>
-    * [.VIDEO](#ConnectionTypes.VIDEO)
-    * [.SDI](#ConnectionTypes.SDI)
-    * [.NETWORK](#ConnectionTypes.NETWORK)
-    * [.USB](#ConnectionTypes.USB)
+<a name="module_config/ConnectionTypes.ConnectionTypes"></a>
 
-<a name="ConnectionTypes.VIDEO"></a>
+### config/ConnectionTypes.ConnectionTypes : <code>enum</code>
+Built-in connection type identifiers.
 
-### ConnectionTypes.VIDEO
-Video connection type
+**Kind**: static enum of [<code>config/ConnectionTypes</code>](#module_config/ConnectionTypes)  
+**Read only**: true  
+<a name="module_config/ConnectionTypes.PortTypes"></a>
 
-**Kind**: static property of [<code>ConnectionTypes</code>](#ConnectionTypes)  
-<a name="ConnectionTypes.SDI"></a>
+### config/ConnectionTypes.PortTypes : <code>enum</code>
+Port direction identifiers.
 
-### ConnectionTypes.SDI
-SDI (Serial Digital Interface) connection type
+**Kind**: static enum of [<code>config/ConnectionTypes</code>](#module_config/ConnectionTypes)  
+**Read only**: true  
+<a name="module_config/ConnectionTypes.ObjectColors"></a>
 
-**Kind**: static property of [<code>ConnectionTypes</code>](#ConnectionTypes)  
-<a name="ConnectionTypes.NETWORK"></a>
+### config/ConnectionTypes.ObjectColors : <code>Object.&lt;string, string&gt;</code>
+Default fill colours for the built-in system object types.
+Mutated at runtime by the settings panel.
 
-### ConnectionTypes.NETWORK
-Network/Ethernet connection type
+**Kind**: static constant of [<code>config/ConnectionTypes</code>](#module_config/ConnectionTypes)  
+<a name="module_config/ConnectionTypes.DEFAULT_OBJECT_COLORS"></a>
 
-**Kind**: static property of [<code>ConnectionTypes</code>](#ConnectionTypes)  
-<a name="ConnectionTypes.USB"></a>
+### config/ConnectionTypes.DEFAULT\_OBJECT\_COLORS
+Factory defaults for [ObjectColors](ObjectColors), used by "Reset to defaults".
 
-### ConnectionTypes.USB
-USB connection type
+**Kind**: static constant of [<code>config/ConnectionTypes</code>](#module_config/ConnectionTypes)  
+<a name="module_config/ConnectionTypes.ConnectionColors"></a>
 
-**Kind**: static property of [<code>ConnectionTypes</code>](#ConnectionTypes)  
-<a name="ConnectionColors"></a>
+### config/ConnectionTypes.ConnectionColors : <code>Object.&lt;string, string&gt;</code>
+Live map of connection type id -> colour. Kept in sync with the registry.
 
-## ConnectionColors : <code>Object.&lt;string, string&gt;</code>
-Default colors for each connection type.
-Colors are used to visually distinguish different connection types on the canvas.
+**Kind**: static constant of [<code>config/ConnectionTypes</code>](#module_config/ConnectionTypes)  
+<a name="module_config/ConnectionTypes.DEFAULT_CONNECTION_COLORS"></a>
 
-**Kind**: global constant  
+### config/ConnectionTypes.DEFAULT\_CONNECTION\_COLORS
+Factory colours of the built-in connection types, used by "Reset to defaults".
 
-* [ConnectionColors](#ConnectionColors) : <code>Object.&lt;string, string&gt;</code>
-    * [.ConnectionTypes.VIDEO](#ConnectionColors.ConnectionTypes.VIDEO)
-    * [.ConnectionTypes.SDI](#ConnectionColors.ConnectionTypes.SDI)
-    * [.ConnectionTypes.NETWORK](#ConnectionColors.ConnectionTypes.NETWORK)
-    * [.ConnectionTypes.USB](#ConnectionColors.ConnectionTypes.USB)
+**Kind**: static constant of [<code>config/ConnectionTypes</code>](#module_config/ConnectionTypes)  
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry"></a>
 
-<a name="ConnectionColors.ConnectionTypes.VIDEO"></a>
+### config/ConnectionTypes~ConnectionTypeRegistry : <code>object</code>
+Registry of connection types.
 
-### ConnectionColors.ConnectionTypes.VIDEO
-Gold color for video connections
+**Kind**: inner namespace of [<code>config/ConnectionTypes</code>](#module_config/ConnectionTypes)  
 
-**Kind**: static property of [<code>ConnectionColors</code>](#ConnectionColors)  
-<a name="ConnectionColors.ConnectionTypes.SDI"></a>
+* [~ConnectionTypeRegistry](#module_config/ConnectionTypes..ConnectionTypeRegistry) : <code>object</code>
+    * [.normalizeId](#module_config/ConnectionTypes..ConnectionTypeRegistry.normalizeId) ⇒ <code>string</code>
+    * [.register(def)](#module_config/ConnectionTypes..ConnectionTypeRegistry.register) ⇒ <code>ConnectionTypeDef</code>
+    * [.get(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.get)
+    * [.has(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.has)
+    * [.list()](#module_config/ConnectionTypes..ConnectionTypeRegistry.list) ⇒ <code>Array.&lt;ConnectionTypeDef&gt;</code>
+    * [.ids()](#module_config/ConnectionTypes..ConnectionTypeRegistry.ids) ⇒ <code>Array.&lt;string&gt;</code>
+    * [.colorFor(id, [fallback])](#module_config/ConnectionTypes..ConnectionTypeRegistry.colorFor) ⇒ <code>string</code>
+    * [.setColor(id, color)](#module_config/ConnectionTypes..ConnectionTypeRegistry.setColor)
+    * [.isBidirectional(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.isBidirectional) ⇒ <code>boolean</code>
+    * [.unregister(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.unregister) ⇒ <code>boolean</code>
+    * [.reset()](#module_config/ConnectionTypes..ConnectionTypeRegistry.reset)
+    * [.toJSON([options])](#module_config/ConnectionTypes..ConnectionTypeRegistry.toJSON) ⇒ <code>Object.&lt;string, {label:string, color:string, bidirectional:boolean, description:string}&gt;</code>
+    * [.fromJSON(json)](#module_config/ConnectionTypes..ConnectionTypeRegistry.fromJSON)
 
-### ConnectionColors.ConnectionTypes.SDI
-Orange red color for SDI connections
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.normalizeId"></a>
 
-**Kind**: static property of [<code>ConnectionColors</code>](#ConnectionColors)  
-<a name="ConnectionColors.ConnectionTypes.NETWORK"></a>
+#### ConnectionTypeRegistry.normalizeId ⇒ <code>string</code>
+Normalises an id the same way [ConnectionTypeRegistry.register](ConnectionTypeRegistry.register) does.
 
-### ConnectionColors.ConnectionTypes.NETWORK
-Dark turquoise color for network connections
+**Kind**: static property of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
 
-**Kind**: static property of [<code>ConnectionColors</code>](#ConnectionColors)  
-<a name="ConnectionColors.ConnectionTypes.USB"></a>
+| Param | Type |
+| --- | --- |
+| id | <code>string</code> | 
 
-### ConnectionColors.ConnectionTypes.USB
-Medium purple color for USB connections
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.register"></a>
 
-**Kind**: static property of [<code>ConnectionColors</code>](#ConnectionColors)  
-<a name="ObjectColors"></a>
+#### ConnectionTypeRegistry.register(def) ⇒ <code>ConnectionTypeDef</code>
+Registers (or updates) a connection type.
 
-## ObjectColors : <code>Object.&lt;string, string&gt;</code>
-Default fill colors for system object types.
-Used to visually distinguish different device types on the canvas.
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
+**Returns**: <code>ConnectionTypeDef</code> - The stored definition.  
+**Throws**:
 
-**Kind**: global constant  
+- <code>Error</code> If the id is empty after normalisation.
 
-* [ObjectColors](#ObjectColors) : <code>Object.&lt;string, string&gt;</code>
-    * [.SERVER](#ObjectColors.SERVER)
-    * [.NETWORK_SWITCH](#ObjectColors.NETWORK_SWITCH)
-    * [.VIDEO_MATRIX](#ObjectColors.VIDEO_MATRIX)
-    * [.LED_PROCESSOR](#ObjectColors.LED_PROCESSOR)
-    * [.SYNC_GENERATOR](#ObjectColors.SYNC_GENERATOR)
 
-<a name="ObjectColors.SERVER"></a>
+| Param | Type |
+| --- | --- |
+| def | <code>Object</code> | 
 
-### ObjectColors.SERVER
-Dark blue-gray for server objects
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.get"></a>
 
-**Kind**: static property of [<code>ObjectColors</code>](#ObjectColors)  
-<a name="ObjectColors.NETWORK_SWITCH"></a>
+#### ConnectionTypeRegistry.get(id)
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
 
-### ObjectColors.NETWORK\_SWITCH
-Green for network switch objects
+| Param | Type | Description |
+| --- | --- | --- |
+| id | <code>string</code> | @returns {ConnectionTypeDef|undefined} |
 
-**Kind**: static property of [<code>ObjectColors</code>](#ObjectColors)  
-<a name="ObjectColors.VIDEO_MATRIX"></a>
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.has"></a>
 
-### ObjectColors.VIDEO\_MATRIX
-Red for video matrix objects
+#### ConnectionTypeRegistry.has(id)
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
 
-**Kind**: static property of [<code>ObjectColors</code>](#ObjectColors)  
-<a name="ObjectColors.LED_PROCESSOR"></a>
+| Param | Type | Description |
+| --- | --- | --- |
+| id | <code>string</code> | @returns {boolean} |
 
-### ObjectColors.LED\_PROCESSOR
-Orange for LED processor objects
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.list"></a>
 
-**Kind**: static property of [<code>ObjectColors</code>](#ObjectColors)  
-<a name="ObjectColors.SYNC_GENERATOR"></a>
+#### ConnectionTypeRegistry.list() ⇒ <code>Array.&lt;ConnectionTypeDef&gt;</code>
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
+**Returns**: <code>Array.&lt;ConnectionTypeDef&gt;</code> - All registered types in registration order.  
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.ids"></a>
 
-### ObjectColors.SYNC\_GENERATOR
-Purple for sync generator objects
+#### ConnectionTypeRegistry.ids() ⇒ <code>Array.&lt;string&gt;</code>
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.colorFor"></a>
 
-**Kind**: static property of [<code>ObjectColors</code>](#ObjectColors)  
-<a name="PortTypes"></a>
+#### ConnectionTypeRegistry.colorFor(id, [fallback]) ⇒ <code>string</code>
+Colour for a connection type. Unknown types get a stable palette colour so they still render distinctly.
 
-## PortTypes : <code>Object.&lt;string, string&gt;</code>
-Port direction types for defining input/output ports.
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
 
-**Kind**: global constant  
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| id | <code>string</code> \| <code>null</code> \| <code>undefined</code> |  |  |
+| [fallback] | <code>string</code> | <code>&quot;&#x27;#0066cc&#x27;&quot;</code> | Colour for null/undefined (untyped) connections. |
 
-* [PortTypes](#PortTypes) : <code>Object.&lt;string, string&gt;</code>
-    * [.INPUT](#PortTypes.INPUT)
-    * [.OUTPUT](#PortTypes.OUTPUT)
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.setColor"></a>
 
-<a name="PortTypes.INPUT"></a>
+#### ConnectionTypeRegistry.setColor(id, color)
+Changes the colour of an existing type (also updates `ConnectionColors`).
 
-### PortTypes.INPUT
-Input port direction
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
 
-**Kind**: static property of [<code>PortTypes</code>](#PortTypes)  
-<a name="PortTypes.OUTPUT"></a>
+| Param | Type |
+| --- | --- |
+| id | <code>string</code> | 
+| color | <code>string</code> | 
 
-### PortTypes.OUTPUT
-Output port direction
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.isBidirectional"></a>
 
-**Kind**: static property of [<code>PortTypes</code>](#PortTypes)  
+#### ConnectionTypeRegistry.isBidirectional(id) ⇒ <code>boolean</code>
+Whether ports of this type can connect regardless of input/output direction.
+
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
+
+| Param | Type |
+| --- | --- |
+| id | <code>string</code> \| <code>null</code> | 
+
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.unregister"></a>
+
+#### ConnectionTypeRegistry.unregister(id) ⇒ <code>boolean</code>
+Removes a user-defined type. Built-in types cannot be removed.
+
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
+**Returns**: <code>boolean</code> - True if removed.  
+
+| Param | Type |
+| --- | --- |
+| id | <code>string</code> | 
+
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.reset"></a>
+
+#### ConnectionTypeRegistry.reset()
+Restores factory colours for built-in types and removes user-defined types.
+
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.toJSON"></a>
+
+#### ConnectionTypeRegistry.toJSON([options]) ⇒ <code>Object.&lt;string, {label:string, color:string, bidirectional:boolean, description:string}&gt;</code>
+Serialisable snapshot of the registry (used in the diagram file's `connectionTypes` block).
+
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
+
+| Param | Type |
+| --- | --- |
+| [options] | <code>Object</code> | 
+
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.fromJSON"></a>
+
+#### ConnectionTypeRegistry.fromJSON(json)
+Registers every type found in a `connectionTypes` block from a diagram file.
+
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
+
+| Param | Type |
+| --- | --- |
+| json | <code>Object.&lt;string, Partial.&lt;ConnectionTypeDef&gt;&gt;</code> \| <code>null</code> \| <code>undefined</code> | 
+
+<a name="module_config/ConnectionTypes..ConnectionTypeDef"></a>
+
+### config/ConnectionTypes~ConnectionTypeDef : <code>Object</code>
+**Kind**: inner typedef of [<code>config/ConnectionTypes</code>](#module_config/ConnectionTypes)  
+**Properties**
+
+| Name | Type | Description |
+| --- | --- | --- |
+| id | <code>string</code> | Machine identifier (lowercase, used in port keys such as `video_input_0`). |
+| label | <code>string</code> | Human readable name. |
+| color | <code>string</code> | Hex colour used for ports and connectors of this type. |
+| bidirectional | <code>boolean</code> | When true, ports of this type may connect input-to-input or output-to-output   (e.g. network links). When false, connections must run from an output to an input. |
+| [description] | <code>string</code> | Free-form description shown to users and agents. |
+| [builtin] | <code>boolean</code> | True for the four factory types. |
+
 

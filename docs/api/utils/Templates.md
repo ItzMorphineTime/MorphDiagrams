@@ -14,8 +14,7 @@ _Source: `js/utils/Templates.js`_
 <a name="new_Templates_new"></a>
 
 ### new Templates()
-Provides static methods for creating pre-configured diagram templates.
-Each template returns an object with a name and an array of shape/connector objects.
+Provides static methods for creating pre-configured diagram templates.Each template returns an object with a name and an array of shape/connector objects.
 
 <a name="Templates.createBasicFlowchart"></a>
 

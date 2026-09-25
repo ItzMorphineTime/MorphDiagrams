@@ -2,54 +2,57 @@
 
 _Source: `js/shapes/NetworkSwitch.js`_
 
-<a name="NetworkSwitch"></a>
+<a name="module_shapes/NetworkSwitch"></a>
 
-## NetworkSwitch ⇐ <code>BaseShape</code>
-**Kind**: global class  
-**Extends**: <code>BaseShape</code>  
+## shapes/NetworkSwitch
+Network switch system object with bidirectional network ports. Renders as a hexagon with an "N" glyph.
 
-* [NetworkSwitch](#NetworkSwitch) ⇐ <code>BaseShape</code>
-    * [new NetworkSwitch()](#new_NetworkSwitch_new)
-    * [.NetworkSwitch](#NetworkSwitch+NetworkSwitch)
-        * [new exports.NetworkSwitch(x, y, width, height)](#new_NetworkSwitch+NetworkSwitch_new)
-    * [.ports](#NetworkSwitch+ports) : <code>Object.&lt;string, {input: number, output: number}&gt;</code>
-    * [.getPoints()](#NetworkSwitch+getPoints) ⇒ <code>Array.&lt;{x: number, y: number}&gt;</code>
+**See**: module:core/SystemObject  
 
-<a name="new_NetworkSwitch_new"></a>
+* [shapes/NetworkSwitch](#module_shapes/NetworkSwitch)
+    * [.NetworkSwitch](#module_shapes/NetworkSwitch.NetworkSwitch)
+        * [new exports.NetworkSwitch(x, y, width, height)](#new_module_shapes/NetworkSwitch.NetworkSwitch_new)
+        * _instance_
+            * [.drawIcon(ctx)](#module_shapes/NetworkSwitch.NetworkSwitch+drawIcon)
+        * _static_
+            * [.defaultPorts()](#module_shapes/NetworkSwitch.NetworkSwitch.defaultPorts) ⇒ <code>PortConfig</code>
 
-### new NetworkSwitch()
-NetworkSwitch shape representing a network switching device.
-Supports bidirectional network connections.
-Renders as a hexagon with an 'N' letter drawn in the center.
+<a name="module_shapes/NetworkSwitch.NetworkSwitch"></a>
 
-<a name="NetworkSwitch+NetworkSwitch"></a>
+### shapes/NetworkSwitch.NetworkSwitch
+**Kind**: static class of [<code>shapes/NetworkSwitch</code>](#module_shapes/NetworkSwitch)  
 
-### networkSwitch.NetworkSwitch
-**Kind**: instance class of [<code>NetworkSwitch</code>](#NetworkSwitch)  
-<a name="new_NetworkSwitch+NetworkSwitch_new"></a>
+* [.NetworkSwitch](#module_shapes/NetworkSwitch.NetworkSwitch)
+    * [new exports.NetworkSwitch(x, y, width, height)](#new_module_shapes/NetworkSwitch.NetworkSwitch_new)
+    * _instance_
+        * [.drawIcon(ctx)](#module_shapes/NetworkSwitch.NetworkSwitch+drawIcon)
+    * _static_
+        * [.defaultPorts()](#module_shapes/NetworkSwitch.NetworkSwitch.defaultPorts) ⇒ <code>PortConfig</code>
+
+<a name="new_module_shapes/NetworkSwitch.NetworkSwitch_new"></a>
 
 #### new exports.NetworkSwitch(x, y, width, height)
-Creates a new NetworkSwitch instance.
 
+| Param | Type |
+| --- | --- |
+| x | <code>number</code> | 
+| y | <code>number</code> | 
+| width | <code>number</code> | 
+| height | <code>number</code> | 
 
-| Param | Type | Description |
-| --- | --- | --- |
-| x | <code>number</code> | X-coordinate of top-left corner |
-| y | <code>number</code> | Y-coordinate of top-left corner |
-| width | <code>number</code> | Width in pixels |
-| height | <code>number</code> | Height in pixels |
+<a name="module_shapes/NetworkSwitch.NetworkSwitch+drawIcon"></a>
 
-<a name="NetworkSwitch+ports"></a>
+#### networkSwitch.drawIcon(ctx)
+Draws the "N" glyph.
 
-### networkSwitch.ports : <code>Object.&lt;string, {input: number, output: number}&gt;</code>
-Port configuration
+**Kind**: instance method of [<code>NetworkSwitch</code>](#module_shapes/NetworkSwitch.NetworkSwitch)  
 
-**Kind**: instance property of [<code>NetworkSwitch</code>](#NetworkSwitch)  
-<a name="NetworkSwitch+getPoints"></a>
+| Param | Type |
+| --- | --- |
+| ctx | <code>CanvasRenderingContext2D</code> | 
 
-### networkSwitch.getPoints() ⇒ <code>Array.&lt;{x: number, y: number}&gt;</code>
-Calculates the hexagon vertex points based on position and size.
+<a name="module_shapes/NetworkSwitch.NetworkSwitch.defaultPorts"></a>
 
-**Kind**: instance method of [<code>NetworkSwitch</code>](#NetworkSwitch)  
-**Returns**: <code>Array.&lt;{x: number, y: number}&gt;</code> - Array of 6 hexagon vertices  
+#### NetworkSwitch.defaultPorts() ⇒ <code>PortConfig</code>
+**Kind**: static method of [<code>NetworkSwitch</code>](#module_shapes/NetworkSwitch.NetworkSwitch)  
 

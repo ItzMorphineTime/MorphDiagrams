@@ -2,121 +2,98 @@
 
 _Source: `js/shapes/ConnectorAnchor.js`_
 
-<a name="ConnectorAnchor"></a>
+<a name="module_shapes/ConnectorAnchor"></a>
 
-## ConnectorAnchor ⇐ <code>BaseShape</code>
-**Kind**: global class  
-**Extends**: <code>BaseShape</code>  
+## shapes/ConnectorAnchor
+Universal connection point / junction. Exposes a single `anchor_point` anchor that accepts
+any connection type in any direction, so it can be used as a waypoint hub, a patch point or a
+"to be defined" endpoint. A connection type may optionally be pinned on it.
 
-* [ConnectorAnchor](#ConnectorAnchor) ⇐ <code>BaseShape</code>
-    * [new ConnectorAnchor()](#new_ConnectorAnchor_new)
-    * [.ConnectorAnchor](#ConnectorAnchor+ConnectorAnchor)
-        * [new exports.ConnectorAnchor(x, y)](#new_ConnectorAnchor+ConnectorAnchor_new)
-    * [.type](#ConnectorAnchor+type) : <code>string</code>
-    * [.fill](#ConnectorAnchor+fill) : <code>string</code>
-    * [.stroke](#ConnectorAnchor+stroke) : <code>string</code>
-    * [.strokeWidth](#ConnectorAnchor+strokeWidth) : <code>number</code>
-    * [.resizable](#ConnectorAnchor+resizable) : <code>boolean</code>
-    * [.connectionType](#ConnectorAnchor+connectionType) : <code>string</code> \| <code>null</code>
-    * [.portType](#ConnectorAnchor+portType) : <code>string</code>
-    * [.label](#ConnectorAnchor+label) : <code>string</code>
-    * [.getAnchorPoints()](#ConnectorAnchor+getAnchorPoints) ⇒ <code>Object.&lt;string, {x: number, y: number, connectionType: null, portType: string}&gt;</code>
-    * [.draw(ctx)](#ConnectorAnchor+draw)
-    * [.toJSON()](#ConnectorAnchor+toJSON) ⇒ <code>Object</code>
+**See**: module:core/Connector  
 
-<a name="new_ConnectorAnchor_new"></a>
+* [shapes/ConnectorAnchor](#module_shapes/ConnectorAnchor)
+    * [.ConnectorAnchor](#module_shapes/ConnectorAnchor.ConnectorAnchor)
+        * [new exports.ConnectorAnchor(x, y)](#new_module_shapes/ConnectorAnchor.ConnectorAnchor_new)
+        * [.resizable](#module_shapes/ConnectorAnchor.ConnectorAnchor+resizable) : <code>boolean</code>
+        * [.connectionType](#module_shapes/ConnectorAnchor.ConnectorAnchor+connectionType) : <code>string</code> \| <code>null</code>
+        * [.portType](#module_shapes/ConnectorAnchor.ConnectorAnchor+portType) : <code>string</code>
+        * [.getAnchorPoints()](#module_shapes/ConnectorAnchor.ConnectorAnchor+getAnchorPoints) ⇒ <code>Object.&lt;string, AnchorPoint&gt;</code>
+        * [.getLabelLayout([measure])](#module_shapes/ConnectorAnchor.ConnectorAnchor+getLabelLayout) ⇒ <code>Object</code> \| <code>null</code>
+        * [.draw(ctx)](#module_shapes/ConnectorAnchor.ConnectorAnchor+draw)
+        * [.toJSON()](#module_shapes/ConnectorAnchor.ConnectorAnchor+toJSON) ⇒ <code>Object</code>
 
-### new ConnectorAnchor()
-ConnectorAnchor shape representing a universal connection point.
-Acts as a waypoint or junction for connectors, allowing any connection type.
-Renders as a small circle with an inner dot.
+<a name="module_shapes/ConnectorAnchor.ConnectorAnchor"></a>
 
-<a name="ConnectorAnchor+ConnectorAnchor"></a>
+### shapes/ConnectorAnchor.ConnectorAnchor
+**Kind**: static class of [<code>shapes/ConnectorAnchor</code>](#module_shapes/ConnectorAnchor)  
 
-### connectorAnchor.ConnectorAnchor
-**Kind**: instance class of [<code>ConnectorAnchor</code>](#ConnectorAnchor)  
-<a name="new_ConnectorAnchor+ConnectorAnchor_new"></a>
+* [.ConnectorAnchor](#module_shapes/ConnectorAnchor.ConnectorAnchor)
+    * [new exports.ConnectorAnchor(x, y)](#new_module_shapes/ConnectorAnchor.ConnectorAnchor_new)
+    * [.resizable](#module_shapes/ConnectorAnchor.ConnectorAnchor+resizable) : <code>boolean</code>
+    * [.connectionType](#module_shapes/ConnectorAnchor.ConnectorAnchor+connectionType) : <code>string</code> \| <code>null</code>
+    * [.portType](#module_shapes/ConnectorAnchor.ConnectorAnchor+portType) : <code>string</code>
+    * [.getAnchorPoints()](#module_shapes/ConnectorAnchor.ConnectorAnchor+getAnchorPoints) ⇒ <code>Object.&lt;string, AnchorPoint&gt;</code>
+    * [.getLabelLayout([measure])](#module_shapes/ConnectorAnchor.ConnectorAnchor+getLabelLayout) ⇒ <code>Object</code> \| <code>null</code>
+    * [.draw(ctx)](#module_shapes/ConnectorAnchor.ConnectorAnchor+draw)
+    * [.toJSON()](#module_shapes/ConnectorAnchor.ConnectorAnchor+toJSON) ⇒ <code>Object</code>
+
+<a name="new_module_shapes/ConnectorAnchor.ConnectorAnchor_new"></a>
 
 #### new exports.ConnectorAnchor(x, y)
-Creates a new ConnectorAnchor instance.
 
+| Param | Type |
+| --- | --- |
+| x | <code>number</code> | 
+| y | <code>number</code> | 
 
-| Param | Type | Description |
-| --- | --- | --- |
-| x | <code>number</code> | X-coordinate of top-left corner |
-| y | <code>number</code> | Y-coordinate of top-left corner |
+<a name="module_shapes/ConnectorAnchor.ConnectorAnchor+resizable"></a>
 
-<a name="ConnectorAnchor+type"></a>
+#### connectorAnchor.resizable : <code>boolean</code>
+Anchors have a fixed size
 
-### connectorAnchor.type : <code>string</code>
-Shape type identifier
+**Kind**: instance property of [<code>ConnectorAnchor</code>](#module_shapes/ConnectorAnchor.ConnectorAnchor)  
+<a name="module_shapes/ConnectorAnchor.ConnectorAnchor+connectionType"></a>
 
-**Kind**: instance property of [<code>ConnectorAnchor</code>](#ConnectorAnchor)  
-<a name="ConnectorAnchor+fill"></a>
+#### connectorAnchor.connectionType : <code>string</code> \| <code>null</code>
+Pinned connection type, or null to accept anything
 
-### connectorAnchor.fill : <code>string</code>
-Fill color (white)
+**Kind**: instance property of [<code>ConnectorAnchor</code>](#module_shapes/ConnectorAnchor.ConnectorAnchor)  
+<a name="module_shapes/ConnectorAnchor.ConnectorAnchor+portType"></a>
 
-**Kind**: instance property of [<code>ConnectorAnchor</code>](#ConnectorAnchor)  
-<a name="ConnectorAnchor+stroke"></a>
+#### connectorAnchor.portType : <code>string</code>
+Anchors accept inputs and outputs
 
-### connectorAnchor.stroke : <code>string</code>
-Stroke color
+**Kind**: instance property of [<code>ConnectorAnchor</code>](#module_shapes/ConnectorAnchor.ConnectorAnchor)  
+<a name="module_shapes/ConnectorAnchor.ConnectorAnchor+getAnchorPoints"></a>
 
-**Kind**: instance property of [<code>ConnectorAnchor</code>](#ConnectorAnchor)  
-<a name="ConnectorAnchor+strokeWidth"></a>
+#### connectorAnchor.getAnchorPoints() ⇒ <code>Object.&lt;string, AnchorPoint&gt;</code>
+Single wildcard anchor at the centre.
 
-### connectorAnchor.strokeWidth : <code>number</code>
-Stroke width
+**Kind**: instance method of [<code>ConnectorAnchor</code>](#module_shapes/ConnectorAnchor.ConnectorAnchor)  
+<a name="module_shapes/ConnectorAnchor.ConnectorAnchor+getLabelLayout"></a>
 
-**Kind**: instance property of [<code>ConnectorAnchor</code>](#ConnectorAnchor)  
-<a name="ConnectorAnchor+resizable"></a>
+#### connectorAnchor.getLabelLayout([measure]) ⇒ <code>Object</code> \| <code>null</code>
+The legacy default label "Anchor" is treated as "no label" so older files do not sprout captions.
 
-### connectorAnchor.resizable : <code>boolean</code>
-Shape cannot be resized
+**Kind**: instance method of [<code>ConnectorAnchor</code>](#module_shapes/ConnectorAnchor.ConnectorAnchor)  
 
-**Kind**: instance property of [<code>ConnectorAnchor</code>](#ConnectorAnchor)  
-<a name="ConnectorAnchor+connectionType"></a>
+| Param | Type |
+| --- | --- |
+| [measure] | <code>function</code> | 
 
-### connectorAnchor.connectionType : <code>string</code> \| <code>null</code>
-Connection type - null allows any connection type
+<a name="module_shapes/ConnectorAnchor.ConnectorAnchor+draw"></a>
 
-**Kind**: instance property of [<code>ConnectorAnchor</code>](#ConnectorAnchor)  
-<a name="ConnectorAnchor+portType"></a>
+#### connectorAnchor.draw(ctx)
+Draws the anchor as a ring with a centre dot (tinted by the pinned connection type).
 
-### connectorAnchor.portType : <code>string</code>
-Port type - 'both' allows input and output connections
+**Kind**: instance method of [<code>ConnectorAnchor</code>](#module_shapes/ConnectorAnchor.ConnectorAnchor)  
 
-**Kind**: instance property of [<code>ConnectorAnchor</code>](#ConnectorAnchor)  
-<a name="ConnectorAnchor+label"></a>
+| Param | Type |
+| --- | --- |
+| ctx | <code>CanvasRenderingContext2D</code> | 
 
-### connectorAnchor.label : <code>string</code>
-Display label
+<a name="module_shapes/ConnectorAnchor.ConnectorAnchor+toJSON"></a>
 
-**Kind**: instance property of [<code>ConnectorAnchor</code>](#ConnectorAnchor)  
-<a name="ConnectorAnchor+getAnchorPoints"></a>
-
-### connectorAnchor.getAnchorPoints() ⇒ <code>Object.&lt;string, {x: number, y: number, connectionType: null, portType: string}&gt;</code>
-Gets the anchor point at the center of the shape.
-Returns a single universal anchor that accepts any connection type.
-
-**Kind**: instance method of [<code>ConnectorAnchor</code>](#ConnectorAnchor)  
-<a name="ConnectorAnchor+draw"></a>
-
-### connectorAnchor.draw(ctx)
-Draws the connector anchor as a circle with an inner dot.
-
-**Kind**: instance method of [<code>ConnectorAnchor</code>](#ConnectorAnchor)  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| ctx | <code>CanvasRenderingContext2D</code> | Canvas rendering context |
-
-<a name="ConnectorAnchor+toJSON"></a>
-
-### connectorAnchor.toJSON() ⇒ <code>Object</code>
-Serializes the connector anchor to JSON, including connection properties.
-
-**Kind**: instance method of [<code>ConnectorAnchor</code>](#ConnectorAnchor)  
-**Returns**: <code>Object</code> - JSON representation with connectionType, portType, and label  
+#### connectorAnchor.toJSON() ⇒ <code>Object</code>
+**Kind**: instance method of [<code>ConnectorAnchor</code>](#module_shapes/ConnectorAnchor.ConnectorAnchor)  
 
