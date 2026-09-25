@@ -211,6 +211,18 @@ export class SystemObject extends BaseShape {
  */
 export class HexSystemObject extends SystemObject {
     /**
+     * @param {number} x
+     * @param {number} y
+     * @param {number} width
+     * @param {number} height
+     * @param {Object} [options] See {@link SystemObject}. Labels default to `below` because the hexagon
+     *   narrows towards the bottom edge.
+     */
+    constructor(x, y, width, height, options = {}) {
+        super(x, y, width, height, { labelPosition: 'below', ...options });
+    }
+
+    /**
      * The six vertices, starting at the top and going clockwise.
      * @returns {Array<{x:number, y:number}>}
      */

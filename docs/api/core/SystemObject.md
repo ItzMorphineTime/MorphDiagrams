@@ -50,6 +50,7 @@ Object.keys(dev.getAnchorPoints()); // ['hdmi_input_0', 'hdmi_output_0', 'hdmi_o
             * _static_
                 * [.normalizePorts(ports)](#module_core/SystemObject.SystemObject.normalizePorts) ⇒ <code>PortConfig</code>
         * [.HexSystemObject](#module_core/SystemObject.HexSystemObject) ⇐ <code>SystemObject</code>
+            * [new exports.HexSystemObject(x, y, width, height, [options])](#new_module_core/SystemObject.HexSystemObject_new)
             * [.getPoints()](#module_core/SystemObject.HexSystemObject+getPoints) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
             * [.getPortEdges()](#module_core/SystemObject.HexSystemObject+getPortEdges) ⇒ <code>Object</code>
             * [.containsPoint(x, y)](#module_core/SystemObject.HexSystemObject+containsPoint) ⇒ <code>boolean</code>
@@ -190,10 +191,23 @@ outputs on the right vertical edge.
 **Extends**: <code>SystemObject</code>  
 
 * [.HexSystemObject](#module_core/SystemObject.HexSystemObject) ⇐ <code>SystemObject</code>
+    * [new exports.HexSystemObject(x, y, width, height, [options])](#new_module_core/SystemObject.HexSystemObject_new)
     * [.getPoints()](#module_core/SystemObject.HexSystemObject+getPoints) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
     * [.getPortEdges()](#module_core/SystemObject.HexSystemObject+getPortEdges) ⇒ <code>Object</code>
     * [.containsPoint(x, y)](#module_core/SystemObject.HexSystemObject+containsPoint) ⇒ <code>boolean</code>
     * [.drawBody(ctx)](#module_core/SystemObject.HexSystemObject+drawBody)
+
+<a name="new_module_core/SystemObject.HexSystemObject_new"></a>
+
+#### new exports.HexSystemObject(x, y, width, height, [options])
+
+| Param | Type | Description |
+| --- | --- | --- |
+| x | <code>number</code> |  |
+| y | <code>number</code> |  |
+| width | <code>number</code> |  |
+| height | <code>number</code> |  |
+| [options] | <code>Object</code> | See [SystemObject](SystemObject). Labels default to `below` because the hexagon   narrows towards the bottom edge. |
 
 <a name="module_core/SystemObject.HexSystemObject+getPoints"></a>
 

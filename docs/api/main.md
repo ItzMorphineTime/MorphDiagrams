@@ -40,6 +40,7 @@ validation, layout, serialisation) live in the headless [module:core/Diagram](mo
         * [.pasteAt(at)](#module_main..CanvasApp+pasteAt)
         * [.revealObjects(ids)](#module_main..CanvasApp+revealObjects)
         * [.traceFrom(objs, direction)](#module_main..CanvasApp+traceFrom)
+        * [.applyUrlParams()](#module_main..CanvasApp+applyUrlParams)
         * [.showMessage(textContent, [type])](#module_main..CanvasApp+showMessage)
         * [.drawPortLabels(ctx, obj, scale)](#module_main..CanvasApp+drawPortLabels)
         * [.findWaypointAtPoint(x, y, [anyConnector])](#module_main..CanvasApp+findWaypointAtPoint) ⇒ <code>Object</code> \| <code>null</code>
@@ -73,6 +74,7 @@ validation, layout, serialisation) live in the headless [module:core/Diagram](mo
     * [.pasteAt(at)](#module_main..CanvasApp+pasteAt)
     * [.revealObjects(ids)](#module_main..CanvasApp+revealObjects)
     * [.traceFrom(objs, direction)](#module_main..CanvasApp+traceFrom)
+    * [.applyUrlParams()](#module_main..CanvasApp+applyUrlParams)
     * [.showMessage(textContent, [type])](#module_main..CanvasApp+showMessage)
     * [.drawPortLabels(ctx, obj, scale)](#module_main..CanvasApp+drawPortLabels)
     * [.findWaypointAtPoint(x, y, [anyConnector])](#module_main..CanvasApp+findWaypointAtPoint) ⇒ <code>Object</code> \| <code>null</code>
@@ -248,6 +250,15 @@ Highlights the signal path from the given shapes.
 | objs | <code>Array</code> | 
 | direction | <code>&quot;downstream&quot;</code> \| <code>&quot;upstream&quot;</code> \| <code>&quot;both&quot;</code> | 
 
+<a name="module_main..CanvasApp+applyUrlParams"></a>
+
+#### canvasApp.applyUrlParams()
+Applies view state from the page URL, so views can be shared or scripted:
+`?load=examples/vp-volume.json` (fetch a diagram file, same origin or CORS-enabled), `?view=fit`,
+`?zoom=0.5`, `?select=id1,id2`, `?filter=video,sdi`, `?devices=camera,kvm`,
+`?trace=id:downstream|upstream|both`, `?hide=1` (hide instead of dim), `?labels=1` (port labels).
+
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 <a name="module_main..CanvasApp+showMessage"></a>
 
 #### canvasApp.showMessage(textContent, [type])

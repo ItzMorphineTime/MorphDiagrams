@@ -2219,6 +2219,7 @@ class CanvasApp {
         }
         if (!available) {
             this.offerAutosaveRestore();
+            this.applyUrlParams();
             return;
         }
         this.liveSync = new LiveSync({
@@ -2227,6 +2228,57 @@ class CanvasApp {
             onStatus: (status, info) => this.updateLiveStatus(status, info)
         });
         await this.liveSync.start();
+        this.applyUrlParams();
+    }
+
+    /**
+     * Applies view state from the page URL, so views can be shared or scripted:
+     * `?load=examples/vp-volume.json` (fetch a diagram file, same origin or CORS-enabled), `?view=fit`,
+     * `?zoom=0.5`, `?select=id1,id2`, `?filter=video,sdi`, `?devices=camera,kvm`,
+     * `?trace=id:downstream|upstream|both`, `?hide=1` (hide instead of dim), `?labels=1` (port labels).
+     */
+    async applyUrlParams() {
+        let params;
+        try {
+            params = new URLSearchParams(window.location.search);
+        } catch {
+            return;
+        }
+        if (![...params.keys()].length) return;
+        if (params.get('load')) {
+            try {
+                const res = await fetch(params.get('load'), { cache: 'no-store' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const warnings = this.loadDocument(await res.json(), { resetView: true });
+                if (warnings.length) showToast(`Loaded with ${warnings.length} warning(s): ${warnings[0]}`, { type: 'error', timeout: 6000 });
+            } catch (err) {
+                showToast(`Could not load ${params.get('load')}: ${err.message}`, { type: 'error', timeout: 8000 });
+            }
+        }
+        const list = key => (params.get(key) || '').split(',').map(s => s.trim()).filter(Boolean);
+        const filter = {};
+        if (list('filter').length) filter.connectionTypes = list('filter');
+        if (list('devices').length) filter.shapeTypes = list('devices');
+        if (params.get('trace')) {
+            const [ids, direction] = params.get('trace').split(':');
+            const from = ids.split(',').map(s => s.trim()).filter(id => this.diagram.getById(id));
+            if (from.length) filter.trace = { from, direction: ['downstream', 'upstream', 'both'].includes(direction) ? direction : 'downstream' };
+        }
+        if (params.get('hide') === '1') filter.mode = 'hide';
+        if (Object.keys(filter).length) this.setFilter(filter);
+        if (list('select').length) {
+            const ids = list('select');
+            this.selectedObjects = this.objects.filter(o => ids.includes(o.id));
+            this.updatePropertiesPanel();
+        }
+        if (params.get('labels') === '1') {
+            this.showPortLabels = true;
+            const toggle = document.getElementById('port-labels-toggle');
+            if (toggle) toggle.checked = true;
+        }
+        if (params.get('view') === 'fit') this.zoomToFit();
+        else if (params.get('zoom')) this.setZoom(parseFloat(params.get('zoom')) || 1);
+        this.render();
     }
 
     applyRemoteDocument(doc) {

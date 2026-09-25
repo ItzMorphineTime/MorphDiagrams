@@ -263,6 +263,24 @@ function connectorSvg(conn) {
 function portsSvg(shape, usage, options) {
     if (!shape.getAnchorPoints) return '';
     const anchors = shape.getAnchorPoints();
+    // Port labels are skipped on sides where the ports are packed too tightly for the text (same rule as the canvas).
+    const fontSize = 8;
+    const crowded = new Set();
+    if (options.showPortLabels) {
+        const bySide = {};
+        for (const [, a] of Object.entries(anchors)) {
+            if (!a.connectionType || !a.normal) continue;
+            (bySide[a.side || 'free'] ||= []).push(Math.abs(a.normal.x) >= Math.abs(a.normal.y) ? a.y : a.x);
+        }
+        for (const [side, coords] of Object.entries(bySide)) {
+            coords.sort((u, v) => u - v);
+            for (let i = 1; i < coords.length; i++) {
+                if (coords[i] - coords[i - 1] < fontSize + 2) { crowded.add(side); break; }
+            }
+        }
+    }
+    const b = shape.getBounds();
+    const maxWidth = Math.max(20, b.width / 2 - 12);
     let out = '';
     for (const [key, a] of Object.entries(anchors)) {
         if (key === 'center') continue;
@@ -271,12 +289,12 @@ function portsSvg(shape, usage, options) {
         const color = ConnectionTypeRegistry.colorFor(a.connectionType);
         const used = usage.has(key);
         out += `<circle cx="${num(a.x)}" cy="${num(a.y)}" r="4" fill="${used ? color : '#ffffff'}" stroke="${used ? '#ffffff' : color}" stroke-width="1.5"/>`;
-        if (options.showPortLabels && a.connectionType) {
-            const inward = a.normal ? { x: -a.normal.x, y: -a.normal.y } : { x: 0, y: 0 };
+        if (options.showPortLabels && a.connectionType && a.normal && !crowded.has(a.side || 'free')) {
+            const inward = { x: -a.normal.x, y: -a.normal.y };
             const tx = a.x + inward.x * 8;
             const ty = a.y + inward.y * 8;
             const anchor = Math.abs(inward.x) < 0.5 ? 'middle' : (inward.x > 0 ? 'start' : 'end');
-            out += `<text x="${num(tx)}" y="${num(ty)}" font-family="Arial, sans-serif" font-size="8" fill="${contrastColor(shape.fill)}" text-anchor="${anchor}" dominant-baseline="middle">${escapeXml(a.label || portLabel(key))}</text>`;
+            out += `<text x="${num(tx)}" y="${num(ty)}" font-family="Arial, sans-serif" font-size="${fontSize}" fill="${contrastColor(shape.fill)}" text-anchor="${anchor}" dominant-baseline="middle" textLength="${num(Math.min(maxWidth, (a.label || portLabel(key)).length * fontSize * 0.55))}" lengthAdjust="spacingAndGlyphs">${escapeXml(a.label || portLabel(key))}</text>`;
         }
     }
     return out ? `<g data-ports-of="${escapeXml(shape.id)}">${out}</g>` : '';
