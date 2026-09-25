@@ -499,6 +499,24 @@ server.registerTool('auto_layout', {
     return { ...result, bounds: state.diagram.getBounds() };
 }, { mutates: true }));
 
+server.registerTool('trace_signal_path', {
+    title: 'Trace signal path',
+    description: 'Follows the connections from one or more devices and returns every device reachable downstream (what this feeds), upstream (what feeds it) or both, with the connectors used. Optionally restrict to connection types (e.g. ["sdi","video"]). Bidirectional types such as network are followed in both directions.',
+    inputSchema: {
+        from: z.union([refSchema, z.array(refSchema).min(1)]).describe('start object(s): id or unique label'),
+        direction: z.enum(['downstream', 'upstream', 'both']).optional().describe('default downstream'),
+        connectionTypes: z.array(z.string()).optional().describe('only follow these connection types'),
+        maxDepth: z.number().int().min(1).optional().describe('limit the number of hops')
+    },
+    annotations: { readOnlyHint: true }
+}, tool(({ from, direction, connectionTypes, maxDepth }) => {
+    const result = state.diagram.tracePath(from, direction || 'downstream', { connectionTypes, maxDepth });
+    const shapes = result.shapes.map(s => ({ ...shapeSummary(state.diagram.getById(s.id)), depth: s.depth }));
+    const connectors = result.connectors.map(id => shapeSummary(state.diagram.getById(id)));
+    const lines = shapes.map(s => `${'  '.repeat(s.depth)}${s.depth ? '→ ' : ''}${s.label || s.id} [${s.type}]`);
+    return { direction: direction || 'downstream', shapes, connectors, summary: lines.join('\n') };
+}));
+
 server.registerTool('validate_diagram', {
     title: 'Validate diagram',
     description: 'Checks the diagram: dangling ports, incompatible or duplicated connections, shared ports, overlapping devices, unlabeled devices, unknown types.',

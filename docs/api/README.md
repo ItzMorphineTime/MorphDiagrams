@@ -25,6 +25,7 @@ This section is generated from JSDoc comments in `/js`.
 
 ## shapes
 
+- [Camera](shapes/Camera.md)
 - [Circle](shapes/Circle.md)
 - [ConnectorAnchor](shapes/ConnectorAnchor.md)
 - [Cylinder](shapes/Cylinder.md)
@@ -32,9 +33,13 @@ This section is generated from JSDoc comments in `/js`.
 - [Diamond](shapes/Diamond.md)
 - [Hexagon](shapes/Hexagon.md)
 - [ImageShape](shapes/ImageShape.md)
+- [KVM](shapes/KVM.md)
+- [LEDDistro](shapes/LEDDistro.md)
 - [LEDProcessor](shapes/LEDProcessor.md)
+- [Monitor](shapes/Monitor.md)
 - [NetworkSwitch](shapes/NetworkSwitch.md)
 - [Parallelogram](shapes/Parallelogram.md)
+- [PowerSupply](shapes/PowerSupply.md)
 - [Rectangle](shapes/Rectangle.md)
 - [Server](shapes/Server.md)
 - [SyncGenerator](shapes/SyncGenerator.md)
@@ -47,6 +52,7 @@ This section is generated from JSDoc comments in `/js`.
 - [Dialogs](ui/Dialogs.md)
 - [LiveSync](ui/LiveSync.md)
 - [PropertiesPanel](ui/PropertiesPanel.md)
+- [Tooltip](ui/Tooltip.md)
 
 ## utils
 

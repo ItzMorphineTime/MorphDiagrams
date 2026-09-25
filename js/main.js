@@ -36,8 +36,15 @@ const OBJECT_COLOR_KEYS = {
     video_matrix: 'VIDEO_MATRIX',
     led_processor: 'LED_PROCESSOR',
     sync_generator: 'SYNC_GENERATOR',
-    device: 'DEVICE'
+    device: 'DEVICE',
+    monitor: 'MONITOR',
+    camera: 'CAMERA',
+    power_supply: 'POWER_SUPPLY',
+    led_distro: 'LED_DISTRO',
+    kvm: 'KVM'
 };
+
+const EMPTY_FILTER = () => ({ connectionTypes: [], shapeTypes: [], trace: null, mode: 'dim' });
 
 const AUTOSAVE_KEY = 'morph:autosave';
 
@@ -71,6 +78,9 @@ class CanvasApp {
         this.clipboard = [];
         /** @type {string} Path style for new connectors */
         this.defaultConnectorStyle = 'orthogonal';
+        /** @type {{connectionTypes:string[], shapeTypes:string[], trace:(Object|null), mode:("dim"|"hide")}} View filter */
+        this.viewFilter = EMPTY_FILTER();
+        this.filterCache = null;
 
         this.dpr = 1;
         this.viewWidth = 0;
@@ -240,7 +250,16 @@ class CanvasApp {
         on('export-pdf-btn', 'click', () => { this.closeDropdowns(); this.exportPDF(); });
         on('export-btn', 'click', (e) => {
             e.stopPropagation();
-            e.currentTarget.parentElement.classList.toggle('open');
+            const dd = e.currentTarget.parentElement;
+            const open = dd.classList.contains('open');
+            this.closeDropdowns();
+            if (!open) dd.classList.add('open');
+        });
+        on('filter-btn', 'click', (e) => { e.stopPropagation(); this.toggleFilterMenu(); });
+        on('filter-menu', 'click', (e) => e.stopPropagation());
+        on('status-filter', 'click', (e) => {
+            e.stopPropagation();
+            if (e.target.closest('.x')) this.clearFilter(); else this.openFilterMenu();
         });
         document.addEventListener('click', () => this.closeDropdowns());
 
@@ -562,6 +581,7 @@ class CanvasApp {
         if (type) {
             conn.stroke = ConnectionTypeRegistry.colorFor(type);
             conn.strokeWidth = 3;
+            conn.lineStyle = ConnectionTypeRegistry.lineStyleFor(type);
         }
     }
 
@@ -980,6 +1000,9 @@ class CanvasApp {
         const commit = () => { this.saveState(); this.updatePropertiesPanel(); this.render(); };
 
         if (!obj) {
+            if (this.isFilterActive()) {
+                items.push({ label: 'Clear view filter', shortcut: 'Esc', icon: 'i-filter', action: () => this.clearFilter() }, { separator: true });
+            }
             items.push(
                 { label: 'Paste', shortcut: 'Ctrl+V', icon: 'i-paste', disabled: !this.clipboard.length, action: () => this.pasteAt(pos) },
                 { label: 'Select all', shortcut: 'Ctrl+A', icon: 'i-select-all', action: () => this.selectAll() },
@@ -1029,6 +1052,12 @@ class CanvasApp {
                 commit();
             } });
             items.push({ label: 'Edit label…', shortcut: 'F2', icon: 'i-label', action: () => this.startInlineEdit(obj) });
+            const linkType = this.diagram.connectionTypeOf(obj);
+            if (linkType) {
+                const def = ConnectionTypeRegistry.get(linkType);
+                items.push({ separator: true });
+                items.push({ label: `Show only ${def ? def.label : linkType} links`, icon: 'i-filter', action: () => this.setFilter({ connectionTypes: [linkType] }) });
+            }
             items.push({ separator: true });
             items.push({ label: 'Delete', shortcut: 'Del', icon: 'i-trash', danger: true, action: () => this.deleteSelected() });
             return items;
@@ -1050,6 +1079,13 @@ class CanvasApp {
         if (grouped) items.push({ label: 'Ungroup', shortcut: 'Ctrl+Shift+G', icon: 'i-ungroup', action: () => this.ungroupSelected() });
         if (obj.ports) {
             items.push({ label: 'Select connected objects', icon: 'i-select-all', action: () => this.selectConnected(obj) });
+        }
+        if (obj.type !== 'text' && obj.type !== 'image') {
+            items.push({ separator: true });
+            items.push({ label: 'Trace downstream from here', icon: 'i-trace', action: () => this.traceFrom(shapes.length ? shapes : [obj], 'downstream') });
+            items.push({ label: 'Trace upstream to here', icon: 'i-trace', action: () => this.traceFrom(shapes.length ? shapes : [obj], 'upstream') });
+            if (this.isFilterActive()) items.push({ label: 'Clear view filter', shortcut: 'Esc', icon: 'i-filter', action: () => this.clearFilter() });
+            items.push({ separator: true });
         }
         items.push({ label: obj.locked ? 'Unlock' : 'Lock', icon: 'i-lock', action: () => {
             shapes.forEach(s => { s.locked = !obj.locked; });
@@ -1216,6 +1252,8 @@ class CanvasApp {
             } else if (this.selectedObjects.length) {
                 this.selectedObjects = [];
                 this.updatePropertiesPanel();
+            } else if (this.isFilterActive()) {
+                this.clearFilter();
             } else if (this.currentTool !== 'select') {
                 this.setTool('select');
             }
@@ -1278,6 +1316,7 @@ class CanvasApp {
             case 'l': this.setTool('connector'); break;
             case 'p': this.setTool('polyline'); break;
             case 'e': this.setTool('device'); break;
+            case 'f': this.toggleFilterMenu(); break;
         }
     }
 
@@ -1316,11 +1355,11 @@ class CanvasApp {
     findObjectAtPoint(x, y) {
         const sorted = [...this.objects].sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0));
         for (const obj of sorted) {
-            if (obj.type === 'connector' || obj.visible === false) continue;
+            if (obj.type === 'connector' || obj.visible === false || this.isHiddenByFilter(obj)) continue;
             if (obj.containsPoint && obj.containsPoint(x, y)) return obj;
         }
         for (const obj of sorted) {
-            if (obj.type === 'connector' && obj.visible !== false && obj.containsPoint(x, y, 6 / this.zoom)) return obj;
+            if (obj.type === 'connector' && obj.visible !== false && !this.isHiddenByFilter(obj) && obj.containsPoint(x, y, 6 / this.zoom)) return obj;
         }
         return null;
     }
@@ -1330,7 +1369,7 @@ class CanvasApp {
         let minDist = threshold / this.zoom;
 
         for (const obj of this.objects) {
-            if (obj.type === 'connector' || !obj.getAnchorPoints || obj.visible === false) continue;
+            if (obj.type === 'connector' || !obj.getAnchorPoints || obj.visible === false || this.isHiddenByFilter(obj)) continue;
             const anchors = obj.getAnchorPoints();
             for (const [side, pos] of Object.entries(anchors)) {
                 if (side === 'center') continue;
@@ -1688,6 +1727,191 @@ class CanvasApp {
     }
 
     // ------------------------------------------------------------------
+    // View filter (signal types, device types, signal path tracing)
+    // ------------------------------------------------------------------
+    getFilterResult() {
+        if (!this.filterCache) this.filterCache = this.diagram.computeFilter(this.viewFilter);
+        return this.filterCache;
+    }
+
+    isFilterActive() {
+        return this.getFilterResult().active;
+    }
+
+    isDimmedByFilter(obj) {
+        const fr = this.getFilterResult();
+        return fr.active && !fr.ids.has(obj.id);
+    }
+
+    isHiddenByFilter(obj) {
+        return this.viewFilter.mode === 'hide' && this.isDimmedByFilter(obj);
+    }
+
+    setFilter(patch) {
+        Object.assign(this.viewFilter, patch);
+        this.filterCache = null;
+        this.updateFilterUi();
+        this.updatePropertiesPanel();
+        this.render();
+    }
+
+    clearFilter() {
+        const mode = this.viewFilter.mode;
+        this.viewFilter = { ...EMPTY_FILTER(), mode };
+        this.filterCache = null;
+        this.closeDropdowns();
+        this.updateFilterUi();
+        this.updatePropertiesPanel();
+        this.render();
+    }
+
+    /**
+     * Highlights the signal path from the given shapes.
+     * @param {Array} objs
+     * @param {("downstream"|"upstream"|"both")} direction
+     */
+    traceFrom(objs, direction) {
+        const ids = objs.filter(o => o && o.type !== 'connector').map(o => o.id);
+        if (!ids.length) {
+            showToast('Select a device first to trace its signal path', { type: 'error' });
+            return;
+        }
+        this.setFilter({ trace: { from: ids, direction } });
+        const names = objs.map(o => o.label || ShapeRegistry.displayName(o.type)).slice(0, 3).join(', ');
+        showToast(`Tracing ${direction} from ${names}${objs.length > 3 ? '…' : ''} — Esc clears`, { timeout: 2500 });
+    }
+
+    describeFilter() {
+        const parts = [];
+        const f = this.viewFilter;
+        if (f.connectionTypes.length) {
+            parts.push(f.connectionTypes.map(t => (ConnectionTypeRegistry.get(t) || { label: t }).label).join(', ') + ' links');
+        }
+        if (f.shapeTypes.length) parts.push(f.shapeTypes.map(t => ShapeRegistry.displayName(t)).join(', '));
+        if (f.trace && f.trace.from && f.trace.from.length) {
+            const names = f.trace.from.map(id => { const o = this.diagram.getById(id); return o ? (o.label || ShapeRegistry.displayName(o.type)) : id; });
+            parts.push(`${f.trace.direction} from ${names.join(', ')}`);
+        }
+        return parts.join(' · ') || 'No filter';
+    }
+
+    updateFilterUi() {
+        const fr = this.getFilterResult();
+        const chip = document.getElementById('status-filter');
+        if (chip) {
+            if (fr.active) {
+                chip.style.display = 'inline-block';
+                chip.innerHTML = `Filter: ${escapeHtml(this.describeFilter())} · ${fr.shapes} of ${this.diagram.shapes.length} shapes<span class="x" title="Clear filter">×</span>`;
+            } else {
+                chip.style.display = 'none';
+            }
+        }
+        const btn = document.getElementById('filter-btn');
+        if (btn) btn.classList.toggle('filter-on', fr.active);
+        const dd = document.getElementById('filter-dropdown');
+        if (dd && dd.classList.contains('open')) this.renderFilterMenu();
+    }
+
+    toggleFilterMenu() {
+        const dd = document.getElementById('filter-dropdown');
+        if (!dd) return;
+        const open = dd.classList.contains('open');
+        this.closeDropdowns();
+        if (!open) this.openFilterMenu();
+    }
+
+    openFilterMenu() {
+        const dd = document.getElementById('filter-dropdown');
+        if (!dd) return;
+        this.closeDropdowns();
+        this.renderFilterMenu();
+        dd.classList.add('open');
+    }
+
+    renderFilterMenu() {
+        const menu = document.getElementById('filter-menu');
+        if (!menu) return;
+        const f = this.viewFilter;
+        const fr = this.getFilterResult();
+        const presentTypes = new Set();
+        const presentShapeTypes = new Set();
+        for (const s of this.diagram.shapes) {
+            if (ShapeRegistry.get(s.type)?.hasPorts) presentShapeTypes.add(s.type);
+            if (s.ports) Object.keys(s.ports).forEach(t => presentTypes.add(t));
+        }
+        for (const c of this.diagram.connectors) {
+            const t = this.diagram.connectionTypeOf(c);
+            if (t) presentTypes.add(t);
+        }
+        const typeChips = ConnectionTypeRegistry.list().map(t => {
+            const active = f.connectionTypes.includes(t.id);
+            const present = presentTypes.has(t.id);
+            return `<button class="chip ${active ? 'active' : ''}" data-filter-type="${escapeHtml(t.id)}" ${present || active ? '' : 'disabled'} title="${present ? '' : 'Not used in this diagram'}"><span class="swatch" style="background:${escapeHtml(t.color)}"></span>${escapeHtml(t.label)}</button>`;
+        }).join('');
+        const shapeChips = ShapeRegistry.list('system').filter(d => d.hasPorts).map(d => {
+            const active = f.shapeTypes.includes(d.type);
+            const present = presentShapeTypes.has(d.type);
+            return `<button class="chip ${active ? 'active' : ''}" data-filter-shape="${escapeHtml(d.type)}" ${present || active ? '' : 'disabled'}>${escapeHtml(d.name)}</button>`;
+        }).join('');
+        const selectedShapes = this.selectedObjects.filter(o => o.type !== 'connector' && o.type !== 'text' && o.type !== 'image');
+        const traceFrom = f.trace && f.trace.from && f.trace.from.length ? f.trace.from : null;
+        const canTrace = selectedShapes.length > 0 || !!traceFrom;
+        const traceNames = (traceFrom
+            ? traceFrom.map(id => { const o = this.diagram.getById(id); return o ? (o.label || ShapeRegistry.displayName(o.type)) : id; })
+            : selectedShapes.map(o => o.label || ShapeRegistry.displayName(o.type))).slice(0, 4).join(', ');
+        const traceChip = (dir, label) => `<button class="chip ${f.trace && f.trace.direction === dir ? 'active' : ''}" data-filter-trace="${dir}" ${canTrace ? '' : 'disabled'}>${label}</button>`;
+
+        menu.innerHTML = `
+            <div class="filter-section">
+                <div class="filter-section-title">Signal types <button class="mini-btn" data-filter-all="types" ${f.connectionTypes.length ? '' : 'disabled'}>All</button></div>
+                <div class="chip-row">${typeChips}</div>
+            </div>
+            <div class="filter-section">
+                <div class="filter-section-title">Device types <button class="mini-btn" data-filter-all="shapes" ${f.shapeTypes.length ? '' : 'disabled'}>All</button></div>
+                <div class="chip-row">${shapeChips || '<span class="hint">No devices in this diagram yet</span>'}</div>
+            </div>
+            <div class="filter-section">
+                <div class="filter-section-title">Signal path ${traceFrom ? '<button class="mini-btn" data-filter-all="trace">Stop</button>' : ''}</div>
+                <div class="chip-row">${traceChip('downstream', '↓ Downstream')}${traceChip('upstream', '↑ Upstream')}${traceChip('both', '↕ Both')}</div>
+                <p class="hint">${traceFrom ? `Tracing ${escapeHtml(f.trace.direction)} from ${escapeHtml(traceNames)}` : (selectedShapes.length ? `From the selection: ${escapeHtml(traceNames)}` : 'Select one or more devices, then pick a direction.')}</p>
+            </div>
+            <div class="filter-actions">
+                <div class="filter-radio">
+                    <label><input type="radio" name="filter-mode" value="dim" ${f.mode !== 'hide' ? 'checked' : ''}> Dim others</label>
+                    <label><input type="radio" name="filter-mode" value="hide" ${f.mode === 'hide' ? 'checked' : ''}> Hide others</label>
+                </div>
+                <span class="hint">${fr.active ? `${fr.shapes} of ${this.diagram.shapes.length} shapes shown` : ''}</span>
+                <button class="mini-btn wide" data-filter-clear ${fr.active ? '' : 'disabled'}>Clear</button>
+            </div>`;
+
+        menu.querySelectorAll('[data-filter-type]').forEach(btn => btn.addEventListener('click', () => {
+            const id = btn.dataset.filterType;
+            const next = f.connectionTypes.includes(id) ? f.connectionTypes.filter(t => t !== id) : [...f.connectionTypes, id];
+            this.setFilter({ connectionTypes: next });
+        }));
+        menu.querySelectorAll('[data-filter-shape]').forEach(btn => btn.addEventListener('click', () => {
+            const id = btn.dataset.filterShape;
+            const next = f.shapeTypes.includes(id) ? f.shapeTypes.filter(t => t !== id) : [...f.shapeTypes, id];
+            this.setFilter({ shapeTypes: next });
+        }));
+        menu.querySelectorAll('[data-filter-trace]').forEach(btn => btn.addEventListener('click', () => {
+            const dir = btn.dataset.filterTrace;
+            const from = traceFrom || selectedShapes.map(o => o.id);
+            if (f.trace && f.trace.direction === dir && traceFrom) this.setFilter({ trace: null });
+            else this.setFilter({ trace: { from, direction: dir } });
+        }));
+        menu.querySelectorAll('[data-filter-all]').forEach(btn => btn.addEventListener('click', () => {
+            const what = btn.dataset.filterAll;
+            if (what === 'types') this.setFilter({ connectionTypes: [] });
+            else if (what === 'shapes') this.setFilter({ shapeTypes: [] });
+            else this.setFilter({ trace: null });
+        }));
+        menu.querySelectorAll('input[name="filter-mode"]').forEach(input => input.addEventListener('change', () => this.setFilter({ mode: input.value })));
+        const clear = menu.querySelector('[data-filter-clear]');
+        if (clear) clear.addEventListener('click', () => this.clearFilter());
+    }
+
+    // ------------------------------------------------------------------
     // Settings (colours, connection types)
     // ------------------------------------------------------------------
     showSettings() {
@@ -1895,11 +2119,15 @@ class CanvasApp {
         const used = this.getUsedPortKeys();
         const sorted = [...this.objects].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
         for (const obj of sorted) {
+            if (this.isHiddenByFilter(obj)) continue;
             if (obj.type === 'connector') obj.selected = false;
+            const dimmed = this.isDimmedByFilter(obj);
+            if (dimmed) ctx.globalAlpha = 0.12;
             if (obj.draw) obj.draw(ctx);
+            if (dimmed) ctx.globalAlpha = 1;
         }
         for (const obj of this.objects) {
-            if (obj.type !== 'connector' && ShapeRegistry.alwaysShowPorts(obj.type)) {
+            if (obj.type !== 'connector' && ShapeRegistry.alwaysShowPorts(obj.type) && !this.isDimmedByFilter(obj)) {
                 this.drawPortDots(ctx, obj, used, 1, false);
                 if (this.showPortLabels) this.drawPortLabels(ctx, obj, 1);
             }
@@ -1924,7 +2152,11 @@ class CanvasApp {
 
     exportSVG() {
         if (!this.objects.length) { showToast('Nothing to export yet', { type: 'error' }); return; }
-        const svg = diagramToSvg(this.objects, { showPortLabels: this.showPortLabels });
+        const fr = this.getFilterResult();
+        const svg = diagramToSvg(this.objects, {
+            showPortLabels: this.showPortLabels,
+            highlight: fr.active ? { ids: fr.ids, mode: this.viewFilter.mode } : undefined
+        });
         downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${this.exportBaseName()}.svg`);
     }
 
@@ -2050,8 +2282,10 @@ class CanvasApp {
         this.history.push(serializeObjects(this.objects));
         if (this.history.length > this.maxHistory) this.history.shift();
         else this.historyIndex++;
+        this.filterCache = null;
         this.updateUndoRedoButtons();
         this.updateValidationChip();
+        this.updateFilterUi();
         this.updateEmptyState();
         if (this.selectedObjects.length === 0) this.propertiesPanel.render();
         if (this.liveSync && !this.applyingRemote) this.liveSync.push();
@@ -2064,9 +2298,11 @@ class CanvasApp {
         this.objects = deserializeObjects(JSON.parse(JSON.stringify(this.history[index])), { onWarning: w => console.warn(w) });
         this.selectedObjects = this.objects.filter(o => selectedIds.includes(o.id));
         this.hoverObject = null;
+        this.filterCache = null;
         this.updatePropertiesPanel();
         this.updateUndoRedoButtons();
         this.updateValidationChip();
+        this.updateFilterUi();
         this.updateEmptyState();
         if (this.liveSync) this.liveSync.push();
         this.scheduleAutosave();
@@ -2124,14 +2360,19 @@ class CanvasApp {
         if (this.showGrid) this.drawGrid();
 
         const sorted = [...this.objects].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
+        const filterActive = this.isFilterActive();
         for (const obj of sorted) {
             if (!obj.draw) continue;
+            if (filterActive && this.isHiddenByFilter(obj)) continue;
+            const dimmed = filterActive && this.isDimmedByFilter(obj);
             if (obj.type === 'connector') obj.selected = this.selectedObjects.includes(obj);
+            if (dimmed) ctx.globalAlpha = 0.12;
             obj.draw(ctx);
             if (obj.type === 'connector' && obj.isDangling()) this.drawDanglingMarkers(obj);
+            if (dimmed) ctx.globalAlpha = 1;
         }
 
-        if (this.hoverObject && !this.selectedObjects.includes(this.hoverObject) && !this.isDragging && !this.isDrawing) {
+        if (this.hoverObject && !this.selectedObjects.includes(this.hoverObject) && !this.isDragging && !this.isDrawing && !this.isHiddenByFilter(this.hoverObject)) {
             this.drawHover(this.hoverObject);
         }
 
@@ -2147,6 +2388,7 @@ class CanvasApp {
 
         for (const obj of this.objects) {
             if (obj.type === 'connector' || !obj.getAnchorPoints || obj.visible === false) continue;
+            if (filterActive && this.isDimmedByFilter(obj)) continue;
             const selected = this.selectedObjects.includes(obj);
             const showTyped = ShapeRegistry.alwaysShowPorts(obj.type) || selected || connectorToolActive;
             if (!showTyped) continue;

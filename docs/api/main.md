@@ -26,6 +26,7 @@ validation, layout, serialisation) live in the headless [module:core/Diagram](mo
         * [.currentTool](#module_main..CanvasApp+currentTool) : <code>string</code>
         * [.clipboard](#module_main..CanvasApp+clipboard) : <code>Array</code>
         * [.defaultConnectorStyle](#module_main..CanvasApp+defaultConnectorStyle) : <code>string</code>
+        * [.viewFilter](#module_main..CanvasApp+viewFilter) : <code>Object</code>
         * [.showPortLabels](#module_main..CanvasApp+showPortLabels) : <code>boolean</code>
         * [.liveSync](#module_main..CanvasApp+liveSync) : <code>LiveSync</code> \| <code>null</code>
         * [.objects](#module_main..CanvasApp+objects) ⇒ <code>Array</code>
@@ -38,6 +39,7 @@ validation, layout, serialisation) live in the headless [module:core/Diagram](mo
         * [.buildContextMenu(obj, pos, waypointHit)](#module_main..CanvasApp+buildContextMenu) ⇒ <code>Array</code>
         * [.pasteAt(at)](#module_main..CanvasApp+pasteAt)
         * [.revealObjects(ids)](#module_main..CanvasApp+revealObjects)
+        * [.traceFrom(objs, direction)](#module_main..CanvasApp+traceFrom)
         * [.showMessage(textContent, [type])](#module_main..CanvasApp+showMessage)
         * [.drawPortLabels(ctx, obj, scale)](#module_main..CanvasApp+drawPortLabels)
         * [.findWaypointAtPoint(x, y, [anyConnector])](#module_main..CanvasApp+findWaypointAtPoint) ⇒ <code>Object</code> \| <code>null</code>
@@ -57,6 +59,7 @@ validation, layout, serialisation) live in the headless [module:core/Diagram](mo
     * [.currentTool](#module_main..CanvasApp+currentTool) : <code>string</code>
     * [.clipboard](#module_main..CanvasApp+clipboard) : <code>Array</code>
     * [.defaultConnectorStyle](#module_main..CanvasApp+defaultConnectorStyle) : <code>string</code>
+    * [.viewFilter](#module_main..CanvasApp+viewFilter) : <code>Object</code>
     * [.showPortLabels](#module_main..CanvasApp+showPortLabels) : <code>boolean</code>
     * [.liveSync](#module_main..CanvasApp+liveSync) : <code>LiveSync</code> \| <code>null</code>
     * [.objects](#module_main..CanvasApp+objects) ⇒ <code>Array</code>
@@ -69,6 +72,7 @@ validation, layout, serialisation) live in the headless [module:core/Diagram](mo
     * [.buildContextMenu(obj, pos, waypointHit)](#module_main..CanvasApp+buildContextMenu) ⇒ <code>Array</code>
     * [.pasteAt(at)](#module_main..CanvasApp+pasteAt)
     * [.revealObjects(ids)](#module_main..CanvasApp+revealObjects)
+    * [.traceFrom(objs, direction)](#module_main..CanvasApp+traceFrom)
     * [.showMessage(textContent, [type])](#module_main..CanvasApp+showMessage)
     * [.drawPortLabels(ctx, obj, scale)](#module_main..CanvasApp+drawPortLabels)
     * [.findWaypointAtPoint(x, y, [anyConnector])](#module_main..CanvasApp+findWaypointAtPoint) ⇒ <code>Object</code> \| <code>null</code>
@@ -114,6 +118,12 @@ Serialised objects for paste operations
 
 #### canvasApp.defaultConnectorStyle : <code>string</code>
 Path style for new connectors
+
+**Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+viewFilter"></a>
+
+#### canvasApp.viewFilter : <code>Object</code>
+View filter
 
 **Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 <a name="module_main..CanvasApp+showPortLabels"></a>
@@ -225,6 +235,18 @@ Selects objects by id and scrolls them into view.
 | Param | Type |
 | --- | --- |
 | ids | <code>Array.&lt;string&gt;</code> | 
+
+<a name="module_main..CanvasApp+traceFrom"></a>
+
+#### canvasApp.traceFrom(objs, direction)
+Highlights the signal path from the given shapes.
+
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+
+| Param | Type |
+| --- | --- |
+| objs | <code>Array</code> | 
+| direction | <code>&quot;downstream&quot;</code> \| <code>&quot;upstream&quot;</code> \| <code>&quot;both&quot;</code> | 
 
 <a name="module_main..CanvasApp+showMessage"></a>
 

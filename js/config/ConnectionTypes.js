@@ -50,7 +50,12 @@ export const ObjectColors = {
     VIDEO_MATRIX: '#E74C3C',
     LED_PROCESSOR: '#F39C12',
     SYNC_GENERATOR: '#8E44AD',
-    DEVICE: '#455A64'
+    DEVICE: '#455A64',
+    MONITOR: '#1B6CA8',
+    CAMERA: '#5D6D7E',
+    POWER_SUPPLY: '#922B21',
+    LED_DISTRO: '#B9770E',
+    KVM: '#117A65'
 };
 
 /** Factory defaults for {@link ObjectColors}, used by "Reset to defaults". */
@@ -70,14 +75,18 @@ export const ConnectionColors = {};
  * @property {boolean} bidirectional When true, ports of this type may connect input-to-input or output-to-output
  *   (e.g. network links). When false, connections must run from an output to an input.
  * @property {string} [description] Free-form description shown to users and agents.
- * @property {boolean} [builtin] True for the four factory types.
+ * @property {("solid"|"dashed"|"dotted")} [lineStyle] Default line style for new connectors of this type.
+ * @property {boolean} [builtin] True for the factory types.
  */
 
 const BUILTIN_TYPES = [
     { id: 'video', label: 'Video', color: '#FFD700', bidirectional: false, description: 'Baseband/digital video feed (HDMI, DisplayPort, DVI, ...)' },
     { id: 'sdi', label: 'SDI', color: '#FF4500', bidirectional: false, description: 'Serial digital interface video / sync' },
     { id: 'network', label: 'Network', color: '#00CED1', bidirectional: true, description: 'Ethernet / IP link (bidirectional)' },
-    { id: 'usb', label: 'USB', color: '#9370DB', bidirectional: false, description: 'USB peripheral link' }
+    { id: 'usb', label: 'USB', color: '#9370DB', bidirectional: false, description: 'USB peripheral link' },
+    { id: 'fibre', label: 'Fibre', color: '#D81B60', bidirectional: true, description: 'Fibre optic network link (bidirectional)' },
+    { id: 'power', label: 'Power', color: '#B71C1C', bidirectional: false, description: 'Mains / DC power feed (from a supply output to a device input)' },
+    { id: 'wifi', label: 'Wi-Fi', color: '#43A047', bidirectional: true, lineStyle: 'dashed', description: 'Wireless network link (bidirectional, drawn dashed)' }
 ];
 
 /** Factory colours of the built-in connection types, used by "Reset to defaults". */
@@ -104,12 +113,14 @@ export const ConnectionTypeRegistry = {
         const id = normalizeId(def.id);
         if (!id) throw new Error('Connection type id must contain letters or digits');
         const existing = registry.get(id) || {};
+        const lineStyle = def.lineStyle !== undefined ? def.lineStyle : existing.lineStyle;
         const entry = {
             id,
             label: def.label || existing.label || id.toUpperCase(),
             color: def.color || existing.color || paletteColorFor(id),
             bidirectional: def.bidirectional !== undefined ? !!def.bidirectional : !!existing.bidirectional,
             description: def.description !== undefined ? def.description : (existing.description || ''),
+            lineStyle: ['solid', 'dashed', 'dotted'].includes(lineStyle) ? lineStyle : 'solid',
             builtin: existing.builtin || !!def.builtin
         };
         registry.set(id, entry);
@@ -170,6 +181,17 @@ export const ConnectionTypeRegistry = {
     },
 
     /**
+     * Default line style for connectors of a type (`solid` unless the type says otherwise).
+     * @param {string|null|undefined} id
+     * @returns {("solid"|"dashed"|"dotted")}
+     */
+    lineStyleFor(id) {
+        if (!id) return 'solid';
+        const entry = registry.get(normalizeId(id));
+        return entry && entry.lineStyle ? entry.lineStyle : 'solid';
+    },
+
+    /**
      * Whether ports of this type can connect regardless of input/output direction.
      * @param {string|null} id
      * @returns {boolean}
@@ -220,6 +242,7 @@ export const ConnectionTypeRegistry = {
                 label: entry.label,
                 color: entry.color,
                 bidirectional: entry.bidirectional,
+                ...(entry.lineStyle && entry.lineStyle !== 'solid' ? { lineStyle: entry.lineStyle } : {}),
                 ...(entry.description ? { description: entry.description } : {})
             };
         }

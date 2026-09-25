@@ -25,6 +25,7 @@
           "label": { "type": "string" },
           "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
           "bidirectional": { "type": "boolean" },
+          "lineStyle": { "type": "string", "enum": ["solid", "dashed", "dotted"] },
           "description": { "type": "string" }
         }
       }
@@ -67,7 +68,7 @@
         "id": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["rectangle", "circle", "diamond", "hexagon", "cylinder", "parallelogram", "text", "image", "server", "network_switch", "video_matrix", "led_processor", "sync_generator", "device", "connector_anchor"]
+          "enum": ["rectangle", "circle", "diamond", "hexagon", "cylinder", "parallelogram", "text", "image", "server", "network_switch", "video_matrix", "led_processor", "sync_generator", "device", "monitor", "camera", "power_supply", "led_distro", "kvm", "connector_anchor"]
         },
         "x": { "type": "number" },
         "y": { "type": "number" },

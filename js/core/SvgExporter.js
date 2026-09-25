@@ -108,6 +108,54 @@ function iconSvg(shape) {
             return `<circle cx="${num(cx)}" cy="${num(cy)}" r="${num(r)}" fill="none" stroke="#ffffff" stroke-width="2"/>` +
                 `<path d="M${num(cx)},${num(cy)} V${num(cy - r * 0.6)} M${num(cx)},${num(cy)} H${num(cx + r * 0.4)}" stroke="#ffffff" stroke-width="2" fill="none"/>`;
         }
+        case 'monitor': {
+            const inset = Math.min(b.width, b.height) * 0.12;
+            const screenH = b.height * 0.62;
+            const standTop = b.y + inset + screenH;
+            const standH = Math.min(14, b.height - inset - screenH - 4);
+            return `<rect x="${num(b.x + inset)}" y="${num(b.y + inset)}" width="${num(b.width - inset * 2)}" height="${num(screenH)}" fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>` +
+                `<path d="M${num(cx)},${num(standTop)} V${num(standTop + standH * 0.6)} M${num(cx - b.width * 0.15)},${num(standTop + standH)} H${num(cx + b.width * 0.15)}" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" fill="none"/>`;
+        }
+        case 'camera': {
+            const cyy = cy - (shape.label ? b.height * 0.06 : 0);
+            const r = Math.min(b.width, b.height) * 0.22;
+            return `<circle cx="${num(cx)}" cy="${num(cyy)}" r="${num(r)}" fill="rgba(0,0,0,0.25)" stroke="rgba(255,255,255,0.85)" stroke-width="2"/>` +
+                `<circle cx="${num(cx)}" cy="${num(cyy)}" r="${num(r * 0.45)}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2"/>` +
+                `<rect x="${num(cx + r * 0.6)}" y="${num(cyy - r * 1.35)}" width="${num(r * 0.9)}" height="${num(r * 0.5)}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2"/>`;
+        }
+        case 'power_supply': {
+            const cyy = cy - (shape.label ? b.height * 0.06 : 0);
+            const s = Math.min(b.width, b.height) * 0.22;
+            const pts = [
+                { x: cx + s * 0.25, y: cyy - s }, { x: cx - s * 0.45, y: cyy + s * 0.15 }, { x: cx + s * 0.02, y: cyy + s * 0.15 },
+                { x: cx - s * 0.25, y: cyy + s }, { x: cx + s * 0.45, y: cyy - s * 0.15 }, { x: cx - s * 0.02, y: cyy - s * 0.15 }
+            ];
+            return `<polygon points="${pointsAttr(pts)}" fill="#FFD54F" stroke="rgba(0,0,0,0.35)" stroke-width="1"/>`;
+        }
+        case 'led_distro': {
+            const cyy = cy - (shape.label ? b.height * 0.08 : 0);
+            const size = Math.min(b.width, b.height) * 0.28;
+            const w = Math.min(b.width * 0.6, 60);
+            const step = w / 4;
+            const y = cyy + size * 0.65;
+            let out = `<text x="${num(cx)}" y="${num(cyy - size * 0.15)}" font-family="Arial, sans-serif" font-weight="bold" font-size="${num(size)}" fill="rgba(255,255,255,0.9)" text-anchor="middle" dominant-baseline="middle">XD</text>`;
+            for (let i = 0; i < 4; i++) {
+                const ox = cx - w / 2 + step * i + step / 2;
+                out += `<rect x="${num(ox - step * 0.3)}" y="${num(y - 3)}" width="${num(step * 0.6)}" height="6" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1"/>`;
+            }
+            return out;
+        }
+        case 'kvm': {
+            const cyy = cy - (shape.label ? b.height * 0.06 : 0);
+            const s = Math.min(b.width, b.height) * 0.24;
+            let out = `<rect x="${num(cx - s)}" y="${num(cyy - s)}" width="${num(s * 2)}" height="${num(s * 1.2)}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>` +
+                `<rect x="${num(cx - s * 0.9)}" y="${num(cyy + s * 0.45)}" width="${num(s * 1.8)}" height="${num(s * 0.5)}" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>`;
+            for (let i = 0; i < 4; i++) {
+                const kx = cx - s * 0.65 + i * s * 0.43;
+                out += `<path d="M${num(kx)},${num(cyy + s * 0.6)} H${num(kx + s * 0.2)}" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>`;
+            }
+            return out;
+        }
         default:
             return '';
     }
@@ -244,10 +292,15 @@ function portsSvg(shape, usage, options) {
  * @param {boolean} [options.showPortLabels=false] Draw port names next to the dots.
  * @param {boolean} [options.showGenericAnchors=false] Draw the side anchors of basic shapes.
  * @param {{x:number,y:number,width:number,height:number}} [options.bounds] Explicit view box (defaults to content bounds).
+ * @param {{ids: (Set<string>|string[]), mode: ("dim"|"hide")}} [options.highlight] View filter: objects whose id is not
+ *   in `ids` are drawn faded (`dim`) or left out (`hide`).
  * @returns {string}
  */
 export function diagramToSvg(objects, options = {}) {
     const opts = { padding: 40, background: '#ffffff', showPorts: true, showPortLabels: false, showGenericAnchors: false, ...options };
+    const highlight = opts.highlight && opts.highlight.ids ? { ids: new Set(opts.highlight.ids), mode: opts.highlight.mode === 'hide' ? 'hide' : 'dim' } : null;
+    if (highlight && highlight.mode === 'hide') objects = objects.filter(o => highlight.ids.has(o.id));
+    const faded = obj => !!(highlight && highlight.mode === 'dim' && !highlight.ids.has(obj.id));
     const shapes = objects.filter(o => o.type !== 'connector');
     const connectors = objects.filter(o => o.type === 'connector');
 
@@ -279,11 +332,12 @@ export function diagramToSvg(objects, options = {}) {
     const sorted = [...objects].sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0));
     const parts = [];
     for (const obj of sorted) {
-        parts.push(obj.type === 'connector' ? connectorSvg(obj) : shapeSvg(obj, opts));
+        const markup = obj.type === 'connector' ? connectorSvg(obj) : shapeSvg(obj, opts);
+        parts.push(faded(obj) && markup ? `<g opacity="0.12">${markup}</g>` : markup);
     }
     if (opts.showPorts) {
         for (const s of shapes) {
-            if (s.visible === false) continue;
+            if (s.visible === false || faded(s)) continue;
             parts.push(portsSvg(s, usageByShape.get(s) || new Set(), opts));
         }
     }

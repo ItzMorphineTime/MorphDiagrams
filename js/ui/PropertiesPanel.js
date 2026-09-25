@@ -17,7 +17,8 @@ const TYPE_ICONS = {
     rectangle: 'i-rect', circle: 'i-circle', diamond: 'i-diamond', hexagon: 'i-hexagon', cylinder: 'i-cylinder',
     parallelogram: 'i-parallelogram', text: 'i-text', image: 'i-image', server: 'i-server',
     network_switch: 'i-switch', video_matrix: 'i-matrix', led_processor: 'i-led', sync_generator: 'i-sync',
-    device: 'i-device', connector_anchor: 'i-anchor', connector: 'i-connector'
+    device: 'i-device', connector_anchor: 'i-anchor', connector: 'i-connector',
+    monitor: 'i-monitor', camera: 'i-camera', power_supply: 'i-power', led_distro: 'i-distro', kvm: 'i-kvm'
 };
 
 const hex = (value, fallback) => (/^#[0-9a-fA-F]{6}$/.test(value || '') ? value : fallback);
@@ -69,7 +70,14 @@ export class PropertiesPanel {
                 <button class="issue ${iss.level}" data-issue="${i}" title="Click to select">${icon('i-warning')}<span>${escapeHtml(iss.message)}</span></button>`).join('')}
                ${validation.issues.length > issues.length ? `<p class="hint">…and ${validation.issues.length - issues.length} more</p>` : ''}</div>`
             : `<div class="ok-line">${icon('i-check')}<span>No issues found</span></div>`;
-        return `
+        const filter = app.getFilterResult ? app.getFilterResult() : null;
+        const filterHtml = filter && filter.active ? `
+            <div class="prop-section filter-active">
+                <div class="prop-section-title">View filter <span class="badge">${filter.shapes} of ${shapes.length} shapes</span></div>
+                <p class="hint">${escapeHtml(app.describeFilter ? app.describeFilter() : 'Filter active')}</p>
+                <div class="btn-row"><button class="mini-btn wide" id="ov-edit-filter">Edit filter</button><button class="mini-btn wide" id="ov-clear-filter">Clear filter</button></div>
+            </div>` : '';
+        return `${filterHtml}
             <div class="prop-section">
                 <div class="prop-section-title">Overview</div>
                 <div class="stat-grid">
@@ -107,6 +115,8 @@ export class PropertiesPanel {
         on('ov-fit', () => app.zoomToFit());
         on('ov-select-all', () => app.selectAll());
         on('ov-settings', () => app.showSettings());
+        on('ov-edit-filter', () => app.openFilterMenu && app.openFilterMenu());
+        on('ov-clear-filter', () => app.clearFilter && app.clearFilter());
     }
 
     // ------------------------------------------------------------------

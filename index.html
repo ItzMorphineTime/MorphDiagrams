@@ -72,6 +72,13 @@
             <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></symbol>
             <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
             <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 3 2 20h20zM12 10v4M12 17h.01"/></symbol>
+            <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M12 16v4M8 20h8"/></symbol>
+            <symbol id="i-camera" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="12" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M8 7l1.5-3h5L16 7"/></symbol>
+            <symbol id="i-power" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="currentColor" stroke="none"/></symbol>
+            <symbol id="i-distro" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8l4 8M11 8l-4 8M14 8h2.5a4 4 0 0 1 0 8H14z"/></symbol>
+            <symbol id="i-kvm" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="10" rx="1.5"/><rect x="3" y="16" width="18" height="5" rx="1"/><path d="M9 13v3M15 13v3"/></symbol>
+            <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></symbol>
+            <symbol id="i-trace" viewBox="0 0 24 24"><path d="M2 12h5m10 0h5m-2-2 2 2-2 2"/><circle cx="12" cy="12" r="3.5"/></symbol>
         </defs>
     </svg>
 
@@ -100,6 +107,10 @@
                         <button id="export-svg-btn" role="menuitem">SVG vector</button>
                         <button id="export-pdf-btn" role="menuitem">PDF</button>
                     </div>
+                </div>
+                <div class="dropdown" id="filter-dropdown">
+                    <button class="text-btn" id="filter-btn" data-tip="Filter the view (F)" data-tip-desc="Highlight one signal type, one kind of device, or the path from the selected device." aria-haspopup="true"><svg class="icon"><use href="#i-filter"/></svg><span>Filter</span></button>
+                    <div class="dropdown-menu filter-menu" id="filter-menu"></div>
                 </div>
                 <span class="appbar-sep"></span>
                 <button class="text-btn" id="templates-btn" data-tip="Insert a template"><svg class="icon"><use href="#i-template"/></svg><span>Templates</span></button>
@@ -138,6 +149,11 @@
                     <button class="palette-btn system" data-tool="video_matrix" data-tip="Video matrix" data-tip-desc="Video / SDI router with multiple inputs and outputs." aria-label="Video matrix"><svg class="icon"><use href="#i-matrix"/></svg></button>
                     <button class="palette-btn system" data-tool="led_processor" data-tip="LED processor" data-tip-desc="LED wall processor: video and SDI inputs, video outputs to the wall." aria-label="LED processor"><svg class="icon"><use href="#i-led"/></svg></button>
                     <button class="palette-btn system" data-tool="sync_generator" data-tip="Sync generator" data-tip-desc="Reference / sync generator distributing SDI timing to other devices." aria-label="Sync generator"><svg class="icon"><use href="#i-sync"/></svg></button>
+                    <button class="palette-btn system" data-tool="monitor" data-tip="Monitor" data-tip-desc="Display with video and SDI inputs, a video loop-through output and a power input." aria-label="Monitor"><svg class="icon"><use href="#i-monitor"/></svg></button>
+                    <button class="palette-btn system" data-tool="camera" data-tip="Camera" data-tip-desc="Camera with SDI outputs, a genlock (SDI reference) input, network control and power." aria-label="Camera"><svg class="icon"><use href="#i-camera"/></svg></button>
+                    <button class="palette-btn system" data-tool="power_supply" data-tip="Power supply / PDU" data-tip-desc="One power input feeding several power outputs, plus an optional management network port." aria-label="Power supply"><svg class="icon"><use href="#i-power"/></svg></button>
+                    <button class="palette-btn system" data-tool="led_distro" data-tip="LED distro (XD)" data-tip-desc="LED distribution box: video / fibre data and power in, data and power fanned out to the LED panels." aria-label="LED distro"><svg class="icon"><use href="#i-distro"/></svg></button>
+                    <button class="palette-btn system" data-tool="kvm" data-tip="KVM" data-tip-desc="KVM switch / extender: video and USB from several computers in, one console out, optional network." aria-label="KVM"><svg class="icon"><use href="#i-kvm"/></svg></button>
                     <button class="palette-btn system" data-tool="connector_anchor" data-tip="Connector anchor" data-tip-desc="Junction point that accepts any connection type. Use it to split or route links." aria-label="Connector anchor"><svg class="icon"><use href="#i-anchor"/></svg></button>
                 </div>
             </aside>
@@ -180,6 +196,7 @@
         <footer class="statusbar" data-tip-side="top">
             <span id="status-hint" class="status-hint"></span>
             <span class="status-spacer"></span>
+            <button id="status-filter" class="status-chip filter" data-tip="View filter active — click to edit, × to clear" style="display: none;"></button>
             <button id="status-validation" class="status-chip" data-tip="Validation issues — click to review" style="display: none;"></button>
             <span id="status-selection" class="status-text"></span>
             <span id="status-coords" class="status-text mono">0, 0</span>
@@ -281,6 +298,8 @@
                         <dt>Right-click a link</dt><dd>Add a waypoint, remove one, straighten, reverse direction, edit label</dd>
                         <dt><kbd>Alt</kbd>+click waypoint</dt><dd>Remove that waypoint</dd>
                         <dt>Drag waypoint</dt><dd>Reshape a polyline; orange handles reshape bezier curves</dd>
+                        <dt>Right-click a device</dt><dd>Trace downstream (what it feeds) or upstream (what feeds it); everything else fades</dd>
+                        <dt><kbd>F</kbd></dt><dd>Filter view: highlight signal types (video, SDI, network, power, …) or device types</dd>
                     </dl>
                 </section>
                 <section>

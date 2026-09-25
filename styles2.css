@@ -310,7 +310,7 @@ code {
     display: block;
 }
 
-.dropdown-menu button {
+.dropdown-menu > button {
     display: block;
     width: 100%;
     text-align: left;
@@ -322,8 +322,127 @@ code {
     font-size: 13px;
 }
 
-.dropdown-menu button:hover {
+.dropdown-menu > button:hover {
     background: var(--panel-3);
+}
+
+/* Filter popover */
+.filter-menu {
+    min-width: 340px;
+    max-width: 400px;
+    padding: 12px;
+    cursor: default;
+}
+
+.filter-section {
+    margin-bottom: 12px;
+}
+
+.filter-section-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--border-2);
+    background: var(--panel-3);
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.chip:hover:not(:disabled) {
+    border-color: var(--accent);
+}
+
+.chip.active {
+    background: var(--accent-soft);
+    border-color: rgba(59, 130, 246, 0.6);
+    color: var(--accent);
+}
+
+.chip:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.chip .swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.chip .icon {
+    width: 14px;
+    height: 14px;
+}
+
+.filter-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.filter-radio {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+}
+
+.filter-radio label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.filter-radio input {
+    accent-color: var(--accent);
+}
+
+.status-chip.filter {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.status-chip .x {
+    margin-left: 6px;
+    opacity: 0.7;
+    font-weight: 700;
+}
+
+.status-chip .x:hover {
+    opacity: 1;
+}
+
+.text-btn.filter-on {
+    color: var(--accent);
+}
+
+.prop-section.filter-active {
+    background: rgba(59, 130, 246, 0.06);
 }
 
 .live-status {

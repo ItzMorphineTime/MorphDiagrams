@@ -78,14 +78,15 @@ also watches the file so any tool that rewrites it refreshes the browser.
 | Tool | Purpose |
 |---|---|
 | `list_shape_types` | Catalogue of shape types, default sizes and default port maps |
-| `list_connection_types` / `define_connection_type` | Signal types (video, sdi, network, usb, ... plus custom ones such as hdmi, dante, dmx) |
+| `list_connection_types` / `define_connection_type` | Signal types (video, sdi, network, usb, fibre, power, wifi, plus custom ones such as hdmi, dante, dmx) |
 | `new_diagram` / `open_diagram` / `save_diagram` | Document lifecycle (files are the editor's JSON format 2.1) |
 | `get_diagram` / `describe_diagram` / `find_objects` / `describe_object` | Inspect the current diagram and its ports |
-| `add_device` | Add a system object (`server`, `network_switch`, `video_matrix`, `led_processor`, `sync_generator`, `device`, `connector_anchor`) with a label and a port map |
+| `add_device` | Add a system object (`server`, `network_switch`, `video_matrix`, `led_processor`, `sync_generator`, `monitor`, `camera`, `power_supply`, `led_distro`, `kvm`, `device`, `connector_anchor`) with a label and a port map |
 | `add_shape` | Add basic shapes / text |
 | `update_object` / `set_port_count` / `move_objects` / `remove_object` | Edit objects |
 | `connect` / `connect_many` / `disconnect` / `update_connector` | Wire ports with validation (type match, direction, occupancy) |
 | `auto_layout` | Layered layout following the signal flow |
+| `trace_signal_path` | Everything reachable downstream / upstream of a device (optionally per connection type), as a tree |
 | `validate_diagram` | Dangling ports, incompatible/duplicate connections, overlaps, missing labels |
 | `render_svg` | Vector rendering (file or inline) |
 | `insert_template` / `group_objects` / `ungroup_objects` / `undo` | Convenience |

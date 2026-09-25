@@ -50,5 +50,6 @@ Renders objects to an SVG document string.
 | [options.showPortLabels] | <code>boolean</code> | <code>false</code> | Draw port names next to the dots. |
 | [options.showGenericAnchors] | <code>boolean</code> | <code>false</code> | Draw the side anchors of basic shapes. |
 | [options.bounds] | <code>Object</code> |  | Explicit view box (defaults to content bounds). |
+| [options.highlight] | <code>Object</code> |  | View filter: objects whose id is not   in `ids` are drawn faded (`dim`) or left out (`hide`). |
 
 

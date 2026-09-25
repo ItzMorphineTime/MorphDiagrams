@@ -37,6 +37,7 @@ ConnectionTypeRegistry.colorFor('hdmi'); // '#FF00AA'
             * [.ids()](#module_config/ConnectionTypes..ConnectionTypeRegistry.ids) ⇒ <code>Array.&lt;string&gt;</code>
             * [.colorFor(id, [fallback])](#module_config/ConnectionTypes..ConnectionTypeRegistry.colorFor) ⇒ <code>string</code>
             * [.setColor(id, color)](#module_config/ConnectionTypes..ConnectionTypeRegistry.setColor)
+            * [.lineStyleFor(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.lineStyleFor) ⇒ <code>&quot;solid&quot;</code> \| <code>&quot;dashed&quot;</code> \| <code>&quot;dotted&quot;</code>
             * [.isBidirectional(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.isBidirectional) ⇒ <code>boolean</code>
             * [.unregister(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.unregister) ⇒ <code>boolean</code>
             * [.reset()](#module_config/ConnectionTypes..ConnectionTypeRegistry.reset)
@@ -99,6 +100,7 @@ Registry of connection types.
     * [.ids()](#module_config/ConnectionTypes..ConnectionTypeRegistry.ids) ⇒ <code>Array.&lt;string&gt;</code>
     * [.colorFor(id, [fallback])](#module_config/ConnectionTypes..ConnectionTypeRegistry.colorFor) ⇒ <code>string</code>
     * [.setColor(id, color)](#module_config/ConnectionTypes..ConnectionTypeRegistry.setColor)
+    * [.lineStyleFor(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.lineStyleFor) ⇒ <code>&quot;solid&quot;</code> \| <code>&quot;dashed&quot;</code> \| <code>&quot;dotted&quot;</code>
     * [.isBidirectional(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.isBidirectional) ⇒ <code>boolean</code>
     * [.unregister(id)](#module_config/ConnectionTypes..ConnectionTypeRegistry.unregister) ⇒ <code>boolean</code>
     * [.reset()](#module_config/ConnectionTypes..ConnectionTypeRegistry.reset)
@@ -183,6 +185,17 @@ Changes the colour of an existing type (also updates `ConnectionColors`).
 | id | <code>string</code> | 
 | color | <code>string</code> | 
 
+<a name="module_config/ConnectionTypes..ConnectionTypeRegistry.lineStyleFor"></a>
+
+#### ConnectionTypeRegistry.lineStyleFor(id) ⇒ <code>&quot;solid&quot;</code> \| <code>&quot;dashed&quot;</code> \| <code>&quot;dotted&quot;</code>
+Default line style for connectors of a type (`solid` unless the type says otherwise).
+
+**Kind**: static method of [<code>ConnectionTypeRegistry</code>](#module_config/ConnectionTypes..ConnectionTypeRegistry)  
+
+| Param | Type |
+| --- | --- |
+| id | <code>string</code> \| <code>null</code> \| <code>undefined</code> | 
+
 <a name="module_config/ConnectionTypes..ConnectionTypeRegistry.isBidirectional"></a>
 
 #### ConnectionTypeRegistry.isBidirectional(id) ⇒ <code>boolean</code>
@@ -247,6 +260,7 @@ Registers every type found in a `connectionTypes` block from a diagram file.
 | color | <code>string</code> | Hex colour used for ports and connectors of this type. |
 | bidirectional | <code>boolean</code> | When true, ports of this type may connect input-to-input or output-to-output   (e.g. network links). When false, connections must run from an output to an input. |
 | [description] | <code>string</code> | Free-form description shown to users and agents. |
-| [builtin] | <code>boolean</code> | True for the four factory types. |
+| [lineStyle] | <code>&quot;solid&quot;</code> \| <code>&quot;dashed&quot;</code> \| <code>&quot;dotted&quot;</code> | Default line style for new connectors of this type. |
+| [builtin] | <code>boolean</code> | True for the factory types. |
 
 

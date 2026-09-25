@@ -453,8 +453,138 @@ export class Diagram {
         }
         conn.stroke = spec.stroke || (type ? ConnectionTypeRegistry.colorFor(type) : '#2c3e50');
         conn.strokeWidth = spec.strokeWidth || (type ? 3 : 2);
+        if (!spec.lineStyle) conn.lineStyle = ConnectionTypeRegistry.lineStyleFor(type);
         this.objects.push(conn);
         return conn;
+    }
+
+    /**
+     * Effective connection type of a connector: its own type, or the type of the typed port it touches.
+     * @param {Connector} conn
+     * @returns {string|null}
+     */
+    connectionTypeOf(conn) {
+        if (conn.connectionType) return conn.connectionType;
+        const s = conn.getStartAnchorInfo ? conn.getStartAnchorInfo() : null;
+        const e = conn.getEndAnchorInfo ? conn.getEndAnchorInfo() : null;
+        return (s && s.connectionType) || (e && e.connectionType) || null;
+    }
+
+    /**
+     * Signal flow of a connector derived from its port directions: `from` feeds `to`.
+     * Bidirectional types (and links between untyped anchors) are reported as `undirected`.
+     * @param {Connector} conn
+     * @returns {{from: Object, to: Object, undirected: boolean}}
+     */
+    flowOf(conn) {
+        const type = this.connectionTypeOf(conn);
+        const s = conn.getStartAnchorInfo ? conn.getStartAnchorInfo() : null;
+        const e = conn.getEndAnchorInfo ? conn.getEndAnchorInfo() : null;
+        const sp = s && s.portType;
+        const ep = e && e.portType;
+        let reversed = false;
+        if (sp === 'input' || ep === 'output') reversed = true;
+        const undirected = ConnectionTypeRegistry.isBidirectional(type) ||
+            ((!sp || sp === 'both') && (!ep || ep === 'both'));
+        return reversed
+            ? { from: conn.endObject, to: conn.startObject, undirected }
+            : { from: conn.startObject, to: conn.endObject, undirected };
+    }
+
+    /**
+     * Follows connectors from one or more shapes and returns everything reachable.
+     * @param {Array<Object|string>} fromRefs Start shapes (ids, labels or instances).
+     * @param {("downstream"|"upstream"|"both")} [direction='downstream']
+     * @param {Object} [options]
+     * @param {string[]} [options.connectionTypes] Only traverse connectors of these types.
+     * @param {number} [options.maxDepth=Infinity]
+     * @returns {{shapes: Array<{id:string, depth:number}>, connectors: string[]}} Shapes in breadth-first order (depth 0 = start).
+     */
+    tracePath(fromRefs, direction = 'downstream', options = {}) {
+        const types = options.connectionTypes && options.connectionTypes.length ? new Set(options.connectionTypes.map(t => ConnectionTypeRegistry.normalizeId(t))) : null;
+        const maxDepth = options.maxDepth === undefined ? Infinity : options.maxDepth;
+        const starts = (Array.isArray(fromRefs) ? fromRefs : [fromRefs]).map(r => this.resolve(r, { shapesOnly: true }));
+        const links = this.connectors.filter(c => c.startObject && c.endObject && (!types || types.has(this.connectionTypeOf(c) || '')));
+        const depthOf = new Map(starts.map(s => [s, 0]));
+        const order = [...starts];
+        const usedConnectors = new Set();
+        let frontier = [...starts];
+        let depth = 0;
+        while (frontier.length && depth < maxDepth) {
+            const next = [];
+            for (const shape of frontier) {
+                for (const c of links) {
+                    if (c.startObject !== shape && c.endObject !== shape) continue;
+                    const flow = this.flowOf(c);
+                    const other = c.startObject === shape ? c.endObject : c.startObject;
+                    let allowed;
+                    if (direction === 'both' || flow.undirected) allowed = true;
+                    else if (direction === 'downstream') allowed = flow.from === shape;
+                    else allowed = flow.to === shape;
+                    if (!allowed) continue;
+                    usedConnectors.add(c.id);
+                    if (!depthOf.has(other)) {
+                        depthOf.set(other, depth + 1);
+                        order.push(other);
+                        next.push(other);
+                    }
+                }
+            }
+            frontier = next;
+            depth += 1;
+        }
+        return {
+            shapes: order.map(s => ({ id: s.id, depth: depthOf.get(s) })),
+            connectors: [...usedConnectors]
+        };
+    }
+
+    /**
+     * Computes which objects a view filter keeps. Criteria combine with AND.
+     * @param {Object} [filter]
+     * @param {string[]} [filter.connectionTypes] Keep connectors of these types and the shapes that carry such ports or links.
+     * @param {string[]} [filter.shapeTypes] Keep only shapes of these types (and links between them).
+     * @param {{from: Array<Object|string>, direction: ("downstream"|"upstream"|"both"), maxDepth: number}} [filter.trace]
+     *   Keep only the signal path reachable from the given shapes.
+     * @returns {{active: boolean, ids: Set<string>, shapes: number, connectors: number}}
+     */
+    computeFilter(filter = {}) {
+        const types = filter.connectionTypes && filter.connectionTypes.length ? new Set(filter.connectionTypes.map(t => ConnectionTypeRegistry.normalizeId(t))) : null;
+        const shapeTypes = filter.shapeTypes && filter.shapeTypes.length ? new Set(filter.shapeTypes) : null;
+        const trace = filter.trace && filter.trace.from && (Array.isArray(filter.trace.from) ? filter.trace.from.length : true) ? filter.trace : null;
+        const active = !!(types || shapeTypes || trace);
+        if (!active) {
+            return { active: false, ids: new Set(this.objects.map(o => o.id)), shapes: this.shapes.length, connectors: this.connectors.length };
+        }
+
+        let keepShapes = new Set(this.shapes);
+        let keepConns = new Set(this.connectors.filter(c => c.startObject && c.endObject));
+
+        if (types) {
+            keepConns = new Set([...keepConns].filter(c => types.has(this.connectionTypeOf(c) || '')));
+            keepShapes = new Set([...keepShapes].filter(s =>
+                (s.ports && Object.keys(s.ports).some(t => types.has(t) && ((s.ports[t].input || 0) + (s.ports[t].output || 0)) > 0)) ||
+                [...keepConns].some(c => c.startObject === s || c.endObject === s)));
+        }
+        if (shapeTypes) {
+            keepShapes = new Set([...keepShapes].filter(s => shapeTypes.has(s.type)));
+        }
+        if (trace) {
+            let traced;
+            try {
+                traced = this.tracePath(trace.from, trace.direction || 'downstream', { connectionTypes: types ? [...types] : undefined, maxDepth: trace.maxDepth });
+            } catch {
+                traced = { shapes: [], connectors: [] };
+            }
+            const tracedShapes = new Set(traced.shapes.map(s => s.id));
+            const tracedConns = new Set(traced.connectors);
+            keepShapes = new Set([...keepShapes].filter(s => tracedShapes.has(s.id)));
+            keepConns = new Set([...keepConns].filter(c => tracedConns.has(c.id)));
+        }
+        keepConns = new Set([...keepConns].filter(c => keepShapes.has(c.startObject) && keepShapes.has(c.endObject)));
+
+        const ids = new Set([...keepShapes].map(s => s.id).concat([...keepConns].map(c => c.id)));
+        return { active: true, ids, shapes: keepShapes.size, connectors: keepConns.size };
     }
 
     /**

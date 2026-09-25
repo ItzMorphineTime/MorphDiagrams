@@ -75,6 +75,13 @@ test('MCP server: end-to-end diagram building over stdio', async (t) => {
     const validation = parse(await client.callTool({ name: 'validate_diagram', arguments: {} }));
     assert.equal(validation.valid, true, JSON.stringify(validation));
 
+    const trace = parse(await client.callTool({ name: 'trace_signal_path', arguments: { from: 'Media Server', direction: 'downstream', connectionTypes: ['video'] } }));
+    assert.deepEqual(trace.shapes.map(s => s.id), ['srv', 'led']);
+    assert.equal(trace.shapes[1].depth, 1);
+    assert.match(trace.summary, /→ LED Wall/);
+    const upstream = parse(await client.callTool({ name: 'trace_signal_path', arguments: { from: ['dsp'], direction: 'upstream' } }));
+    assert.deepEqual(upstream.shapes.map(s => s.id), ['dsp', 'srv']);
+
     const portCount = parse(await client.callTool({ name: 'set_port_count', arguments: { ref: 'led', portType: 'sdi', input: 2 } }));
     assert.ok(portCount.ports.includes('sdi_input_1'));
 

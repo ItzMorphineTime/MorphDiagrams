@@ -36,6 +36,11 @@
 * [LEDProcessor](api/shapes/LEDProcessor.md)
 * [NetworkSwitch](api/shapes/NetworkSwitch.md)
 * [SyncGenerator](api/shapes/SyncGenerator.md)
+* [Monitor](api/shapes/Monitor.md)
+* [Camera](api/shapes/Camera.md)
+* [PowerSupply](api/shapes/PowerSupply.md)
+* [LEDDistro](api/shapes/LEDDistro.md)
+* [KVM](api/shapes/KVM.md)
 * [ConnectorAnchor](api/shapes/ConnectorAnchor.md)
 
 ### Other

@@ -49,6 +49,10 @@ d.validate(); // { errors: [], warnings: [] }
             * [.getPortUsage(shape)](#module_core/Diagram.Diagram+getPortUsage) ⇒ <code>Map.&lt;string, Array.&lt;Connector&gt;&gt;</code>
             * [.listPorts(ref)](#module_core/Diagram.Diagram+listPorts) ⇒ <code>Array.&lt;{key:string, label:string, type: (string\|null), direction:string, x:number, y:number, connections:Array.&lt;{connectorId:string, otherObject:string, otherAnchor:string}&gt;}&gt;</code>
             * [.connect(spec)](#module_core/Diagram.Diagram+connect) ⇒ <code>Connector</code>
+            * [.connectionTypeOf(conn)](#module_core/Diagram.Diagram+connectionTypeOf) ⇒ <code>string</code> \| <code>null</code>
+            * [.flowOf(conn)](#module_core/Diagram.Diagram+flowOf) ⇒ <code>Object</code>
+            * [.tracePath(fromRefs, [direction], [options])](#module_core/Diagram.Diagram+tracePath) ⇒ <code>Object</code>
+            * [.computeFilter([filter])](#module_core/Diagram.Diagram+computeFilter) ⇒ <code>Object</code>
             * [.disconnect(spec)](#module_core/Diagram.Diagram+disconnect) ⇒ <code>Array.&lt;string&gt;</code>
             * [.group(refs)](#module_core/Diagram.Diagram+group) ⇒ <code>number</code>
             * [.ungroup(refs)](#module_core/Diagram.Diagram+ungroup)
@@ -101,6 +105,10 @@ Error raised for invalid diagram operations. `details` carries machine-readable 
         * [.getPortUsage(shape)](#module_core/Diagram.Diagram+getPortUsage) ⇒ <code>Map.&lt;string, Array.&lt;Connector&gt;&gt;</code>
         * [.listPorts(ref)](#module_core/Diagram.Diagram+listPorts) ⇒ <code>Array.&lt;{key:string, label:string, type: (string\|null), direction:string, x:number, y:number, connections:Array.&lt;{connectorId:string, otherObject:string, otherAnchor:string}&gt;}&gt;</code>
         * [.connect(spec)](#module_core/Diagram.Diagram+connect) ⇒ <code>Connector</code>
+        * [.connectionTypeOf(conn)](#module_core/Diagram.Diagram+connectionTypeOf) ⇒ <code>string</code> \| <code>null</code>
+        * [.flowOf(conn)](#module_core/Diagram.Diagram+flowOf) ⇒ <code>Object</code>
+        * [.tracePath(fromRefs, [direction], [options])](#module_core/Diagram.Diagram+tracePath) ⇒ <code>Object</code>
+        * [.computeFilter([filter])](#module_core/Diagram.Diagram+computeFilter) ⇒ <code>Object</code>
         * [.disconnect(spec)](#module_core/Diagram.Diagram+disconnect) ⇒ <code>Array.&lt;string&gt;</code>
         * [.group(refs)](#module_core/Diagram.Diagram+group) ⇒ <code>number</code>
         * [.ungroup(refs)](#module_core/Diagram.Diagram+ungroup)
@@ -323,6 +331,59 @@ Creates a validated connector between two shapes.
 | [spec.stroke] | <code>string</code> |  | Override colour. |
 | [spec.strokeWidth] | <code>number</code> |  |  |
 | [spec.allowOccupied] | <code>boolean</code> | <code>false</code> | Allow sharing an already connected port. |
+
+<a name="module_core/Diagram.Diagram+connectionTypeOf"></a>
+
+#### diagram.connectionTypeOf(conn) ⇒ <code>string</code> \| <code>null</code>
+Effective connection type of a connector: its own type, or the type of the typed port it touches.
+
+**Kind**: instance method of [<code>Diagram</code>](#module_core/Diagram.Diagram)  
+
+| Param | Type |
+| --- | --- |
+| conn | <code>Connector</code> | 
+
+<a name="module_core/Diagram.Diagram+flowOf"></a>
+
+#### diagram.flowOf(conn) ⇒ <code>Object</code>
+Signal flow of a connector derived from its port directions: `from` feeds `to`.
+Bidirectional types (and links between untyped anchors) are reported as `undirected`.
+
+**Kind**: instance method of [<code>Diagram</code>](#module_core/Diagram.Diagram)  
+
+| Param | Type |
+| --- | --- |
+| conn | <code>Connector</code> | 
+
+<a name="module_core/Diagram.Diagram+tracePath"></a>
+
+#### diagram.tracePath(fromRefs, [direction], [options]) ⇒ <code>Object</code>
+Follows connectors from one or more shapes and returns everything reachable.
+
+**Kind**: instance method of [<code>Diagram</code>](#module_core/Diagram.Diagram)  
+**Returns**: <code>Object</code> - Shapes in breadth-first order (depth 0 = start).  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| fromRefs | <code>Array.&lt;(Object\|string)&gt;</code> |  | Start shapes (ids, labels or instances). |
+| [direction] | <code>&quot;downstream&quot;</code> \| <code>&quot;upstream&quot;</code> \| <code>&quot;both&quot;</code> | <code>&#x27;downstream&#x27;</code> |  |
+| [options] | <code>Object</code> |  |  |
+| [options.connectionTypes] | <code>Array.&lt;string&gt;</code> |  | Only traverse connectors of these types. |
+| [options.maxDepth] | <code>number</code> | <code>Infinity</code> |  |
+
+<a name="module_core/Diagram.Diagram+computeFilter"></a>
+
+#### diagram.computeFilter([filter]) ⇒ <code>Object</code>
+Computes which objects a view filter keeps. Criteria combine with AND.
+
+**Kind**: instance method of [<code>Diagram</code>](#module_core/Diagram.Diagram)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| [filter] | <code>Object</code> |  |
+| [filter.connectionTypes] | <code>Array.&lt;string&gt;</code> | Keep connectors of these types and the shapes that carry such ports or links. |
+| [filter.shapeTypes] | <code>Array.&lt;string&gt;</code> | Keep only shapes of these types (and links between them). |
+| [filter.trace] | <code>Object</code> | Keep only the signal path reachable from the given shapes. |
 
 <a name="module_core/Diagram.Diagram+disconnect"></a>
 

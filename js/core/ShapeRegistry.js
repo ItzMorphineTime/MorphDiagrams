@@ -28,6 +28,11 @@ import { LEDProcessor } from '../shapes/LEDProcessor.js';
 import { SyncGenerator } from '../shapes/SyncGenerator.js';
 import { ConnectorAnchor } from '../shapes/ConnectorAnchor.js';
 import { Device } from '../shapes/Device.js';
+import { Monitor } from '../shapes/Monitor.js';
+import { Camera } from '../shapes/Camera.js';
+import { PowerSupply } from '../shapes/PowerSupply.js';
+import { LEDDistro } from '../shapes/LEDDistro.js';
+import { KVM } from '../shapes/KVM.js';
 
 /**
  * @typedef {Object} ShapeTypeDef
@@ -59,6 +64,11 @@ const DEFS = [
     { type: 'led_processor', name: 'LED Processor', category: 'system', cls: LEDProcessor, defaultSize: { width: 120, height: 100 }, description: 'LED wall processor with video/SDI inputs and video outputs.', hasPorts: true, alwaysShowPorts: true, defaultPorts: () => LEDProcessor.defaultPorts() },
     { type: 'sync_generator', name: 'Sync Generator', category: 'system', cls: SyncGenerator, defaultSize: { width: 100, height: 100 }, description: 'Hexagonal sync/reference generator with SDI ports.', hasPorts: true, alwaysShowPorts: true, defaultPorts: () => SyncGenerator.defaultPorts() },
     { type: 'device', name: 'Device', category: 'system', cls: Device, defaultSize: { width: 140, height: 90 }, description: 'Generic hardware device with a fully configurable port map. Use this for any equipment without a dedicated shape.', hasPorts: true, alwaysShowPorts: true, defaultPorts: () => Device.defaultPorts() },
+    { type: 'monitor', name: 'Monitor', category: 'system', cls: Monitor, defaultSize: { width: 120, height: 100 }, description: 'Display / monitor with video and SDI inputs, a video loop-through output and a power input.', hasPorts: true, alwaysShowPorts: true, defaultPorts: () => Monitor.defaultPorts() },
+    { type: 'camera', name: 'Camera', category: 'system', cls: Camera, defaultSize: { width: 120, height: 90 }, description: 'Camera with SDI outputs, a reference (genlock) SDI input, network control and power.', hasPorts: true, alwaysShowPorts: true, defaultPorts: () => Camera.defaultPorts() },
+    { type: 'power_supply', name: 'Power Supply', category: 'system', cls: PowerSupply, defaultSize: { width: 120, height: 140 }, description: 'Power supply / PDU: one power input feeding several power outputs, optional management network port.', hasPorts: true, alwaysShowPorts: true, defaultPorts: () => PowerSupply.defaultPorts() },
+    { type: 'led_distro', name: 'LED Distro (XD)', category: 'system', cls: LEDDistro, defaultSize: { width: 130, height: 150 }, description: 'LED distribution box (XD): video/fibre data and power in, data and power fanned out to LED panels.', hasPorts: true, alwaysShowPorts: true, defaultPorts: () => LEDDistro.defaultPorts() },
+    { type: 'kvm', name: 'KVM', category: 'system', cls: KVM, defaultSize: { width: 130, height: 110 }, description: 'KVM switch / extender: video and USB from several computers in, one console out, optional network.', hasPorts: true, alwaysShowPorts: true, defaultPorts: () => KVM.defaultPorts() },
     { type: 'connector_anchor', name: 'Connector Anchor', category: 'system', cls: ConnectorAnchor, defaultSize: { width: 16, height: 16 }, description: 'Universal junction point accepting any connection type (optionally pinned to one type).', fixedSize: true, alwaysShowPorts: true }
 ];
 
