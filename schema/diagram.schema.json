@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://itzmorphinetime.github.io/MorphDiagrams/schema/diagram.schema.json",
+  "title": "Morph Diagrams document",
+  "description": "Diagram file written by the Morph Diagrams editor and MCP server (format 2.1). Older 1.0/2.0 files are accepted by the loader.",
+  "type": "object",
+  "required": ["objects"],
+  "properties": {
+    "version": { "type": "string", "enum": ["1.0", "2.0", "2.1"] },
+    "objects": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "#/definitions/connector" },
+          { "$ref": "#/definitions/shape" }
+        ]
+      }
+    },
+    "connectionTypes": {
+      "type": "object",
+      "description": "Custom connection (signal) types used by this diagram, keyed by id.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "label": { "type": "string" },
+          "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+          "bidirectional": { "type": "boolean" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "created": { "type": "string" },
+        "modified": { "type": "string" },
+        "zoom": { "type": "number" },
+        "panX": { "type": "number" },
+        "panY": { "type": "number" },
+        "nextGroupId": { "type": "integer" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "definitions": {
+    "point": {
+      "type": "object",
+      "required": ["x", "y"],
+      "properties": { "x": { "type": "number" }, "y": { "type": "number" } }
+    },
+    "ports": {
+      "type": "object",
+      "description": "Port map keyed by connection type id. Anchor keys are derived as <type>_<input|output>_<index>.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "input": { "type": "integer", "minimum": 0, "maximum": 256 },
+          "output": { "type": "integer", "minimum": 0, "maximum": 256 }
+        }
+      }
+    },
+    "shape": {
+      "type": "object",
+      "required": ["id", "type", "x", "y", "width", "height"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["rectangle", "circle", "diamond", "hexagon", "cylinder", "parallelogram", "text", "image", "server", "network_switch", "video_matrix", "led_processor", "sync_generator", "device", "connector_anchor"]
+        },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "fill": { "type": "string" },
+        "stroke": { "type": "string" },
+        "strokeWidth": { "type": "number" },
+        "rotation": { "type": "number", "description": "radians" },
+        "shadow": { "type": "boolean" },
+        "zIndex": { "type": "number" },
+        "locked": { "type": "boolean" },
+        "visible": { "type": "boolean" },
+        "groupId": { "type": ["integer", "string", "null"] },
+        "label": { "type": "string" },
+        "labelPosition": { "type": "string", "enum": ["inside", "bottom", "below", "above"] },
+        "labelFontSize": { "type": "number" },
+        "description": { "type": "string" },
+        "ports": { "$ref": "#/definitions/ports" },
+        "cornerRadius": { "type": "number" },
+        "skew": { "type": "number" },
+        "text": { "type": "string" },
+        "fontSize": { "type": "number" },
+        "fontFamily": { "type": "string" },
+        "textAlign": { "type": "string", "enum": ["left", "center", "right"] },
+        "imageData": { "type": "string" },
+        "opacity": { "type": "number" },
+        "connectionType": { "type": ["string", "null"], "description": "connector_anchor: pinned connection type" }
+      },
+      "additionalProperties": true
+    },
+    "connector": {
+      "type": "object",
+      "required": ["id", "type", "startObject", "startAnchor", "endObject", "endAnchor"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "const": "connector" },
+        "startObject": { "type": "string", "description": "id of the source shape" },
+        "startAnchor": { "type": "string", "description": "anchor key on the source, e.g. video_output_0 or right" },
+        "endObject": { "type": "string" },
+        "endAnchor": { "type": "string" },
+        "connectionType": { "type": ["string", "null"] },
+        "style": { "type": "string", "enum": ["straight", "orthogonal", "bezier", "polyline"] },
+        "lineStyle": { "type": "string", "enum": ["solid", "dashed", "dotted"] },
+        "stroke": { "type": "string" },
+        "strokeWidth": { "type": "number" },
+        "arrowStart": { "type": "boolean" },
+        "arrowEnd": { "type": "boolean" },
+        "label": { "type": "string" },
+        "zIndex": { "type": "number" },
+        "visible": { "type": "boolean" },
+        "waypoints": { "type": "array", "items": { "$ref": "#/definitions/point" } },
+        "controlPoint1": { "oneOf": [{ "$ref": "#/definitions/point" }, { "type": "null" }] },
+        "controlPoint2": { "oneOf": [{ "$ref": "#/definitions/point" }, { "type": "null" }] }
+      },
+      "additionalProperties": true
+    }
+  }
+}

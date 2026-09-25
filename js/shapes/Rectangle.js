@@ -1,56 +1,71 @@
+/**
+ * @module shapes/Rectangle
+ * @description Rectangle with optional rounded corners.
+ * @see module:core/BaseShape
+ */
+
 import { BaseShape } from '../core/BaseShape.js';
 
 export class Rectangle extends BaseShape {
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {number} width
+     * @param {number} height
+     */
     constructor(x, y, width, height) {
         super(x, y, width, height);
         this.type = 'rectangle';
+        /** @type {number} Corner radius in pixels (0 = square corners) */
         this.cornerRadius = 0;
     }
 
+    /** @param {CanvasRenderingContext2D} ctx */
     draw(ctx) {
         if (!this.visible) return;
-
         ctx.save();
         this.applyRotation(ctx);
         this.applyShadow(ctx);
-
         ctx.fillStyle = this.fill;
         ctx.strokeStyle = this.stroke;
         ctx.lineWidth = this.strokeWidth;
 
+        const b = this.getBounds();
         if (this.cornerRadius > 0) {
-            this.drawRoundedRect(ctx);
+            this.drawRoundedRect(ctx, b);
         } else {
-            ctx.fillRect(this.x, this.y, this.width, this.height);
-            ctx.strokeRect(this.x, this.y, this.width, this.height);
+            ctx.fillRect(b.x, b.y, b.width, b.height);
+            ctx.strokeRect(b.x, b.y, b.width, b.height);
         }
 
         this.clearShadow(ctx);
+        this.drawLabel(ctx);
         ctx.restore();
     }
 
-    drawRoundedRect(ctx) {
-        const r = Math.min(this.cornerRadius, this.width / 2, this.height / 2);
-
+    /**
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {{x:number,y:number,width:number,height:number}} [b]
+     */
+    drawRoundedRect(ctx, b = this.getBounds()) {
+        const r = Math.min(this.cornerRadius, b.width / 2, b.height / 2);
         ctx.beginPath();
-        ctx.moveTo(this.x + r, this.y);
-        ctx.lineTo(this.x + this.width - r, this.y);
-        ctx.quadraticCurveTo(this.x + this.width, this.y, this.x + this.width, this.y + r);
-        ctx.lineTo(this.x + this.width, this.y + this.height - r);
-        ctx.quadraticCurveTo(this.x + this.width, this.y + this.height, this.x + this.width - r, this.y + this.height);
-        ctx.lineTo(this.x + r, this.y + this.height);
-        ctx.quadraticCurveTo(this.x, this.y + this.height, this.x, this.y + this.height - r);
-        ctx.lineTo(this.x, this.y + r);
-        ctx.quadraticCurveTo(this.x, this.y, this.x + r, this.y);
+        ctx.moveTo(b.x + r, b.y);
+        ctx.lineTo(b.x + b.width - r, b.y);
+        ctx.quadraticCurveTo(b.x + b.width, b.y, b.x + b.width, b.y + r);
+        ctx.lineTo(b.x + b.width, b.y + b.height - r);
+        ctx.quadraticCurveTo(b.x + b.width, b.y + b.height, b.x + b.width - r, b.y + b.height);
+        ctx.lineTo(b.x + r, b.y + b.height);
+        ctx.quadraticCurveTo(b.x, b.y + b.height, b.x, b.y + b.height - r);
+        ctx.lineTo(b.x, b.y + r);
+        ctx.quadraticCurveTo(b.x, b.y, b.x + r, b.y);
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
     }
 
+    /** @returns {Object} */
     toJSON() {
-        return {
-            ...super.toJSON(),
-            cornerRadius: this.cornerRadius
-        };
+        return { ...super.toJSON(), cornerRadius: this.cornerRadius };
     }
 }

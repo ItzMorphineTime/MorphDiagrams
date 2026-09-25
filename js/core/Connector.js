@@ -1,233 +1,308 @@
 /**
- * Connector class for drawing lines between shapes on the canvas.
- * Supports multiple connection styles (straight, orthogonal, bezier, polyline),
- * line styles (solid, dashed, dotted), and connection types for typed network diagrams.
- * @class Connector
+ * @module core/Connector
+ * @description Connector (edge) between two anchors of two shapes.
+ *
+ * Supports four path styles (`straight`, `orthogonal`, `bezier`, `polyline`), three line styles
+ * (`solid`, `dashed`, `dotted`), optional arrows at either end, a typed connection (video, sdi, ...)
+ * and a text label drawn at the middle of the path.
+ *
+ * @remarks
+ * - Endpoints are resolved lazily from the attached shapes' anchor points, so connectors follow shapes.
+ * - If a referenced port no longer exists (e.g. the port count was reduced) the connector falls back to
+ *   the shape centre and reports `isDangling()`; it is never silently hidden.
+ * - Orthogonal routing leaves each port along its outward normal ("stub") before turning, which keeps
+ *   links from crossing through the devices they connect.
+ *
+ * @example
+ * const link = new Connector(server, 'video_output_0', matrix, 'video_input_0', 'video');
+ * link.style = 'orthogonal';
+ * link.label = 'Program A';
+ *
+ * @see module:core/Ports
+ * @see module:core/BaseShape
  */
+
+/** Length of the straight stub leaving a port before an orthogonal connector turns. */
+export const ORTHOGONAL_STUB = 20;
+
 export class Connector {
     /**
-     * Creates a new Connector instance.
-     * @param {Object} startObject - The shape object where the connector starts
-     * @param {string} startAnchor - The anchor point key on the start object
-     * @param {Object} endObject - The shape object where the connector ends
-     * @param {string} endAnchor - The anchor point key on the end object
-     * @param {string|null} connectionType - Type of connection (video, sdi, network, usb) or null for generic
+     * @param {Object} startObject Shape the connector starts at.
+     * @param {string} startAnchor Anchor key on the start object.
+     * @param {Object|null} endObject Shape the connector ends at (null while being drawn).
+     * @param {string|null} endAnchor Anchor key on the end object.
+     * @param {string|null} [connectionType=null] Connection type id or null for untyped.
      */
     constructor(startObject, startAnchor, endObject, endAnchor, connectionType = null) {
-        /** @type {string} Unique identifier for the connector */
+        /** @type {string} */
         this.id = this.generateId();
-        /** @type {string} Type identifier */
+        /** @type {string} */
         this.type = 'connector';
-        /** @type {Object} Shape object where the connector starts */
+        /** @type {Object} */
         this.startObject = startObject;
-        /** @type {string} Anchor point key on the start object */
+        /** @type {string} */
         this.startAnchor = startAnchor || 'center';
-        /** @type {Object} Shape object where the connector ends */
+        /** @type {Object|null} */
         this.endObject = endObject;
-        /** @type {string} Anchor point key on the end object */
+        /** @type {string} */
         this.endAnchor = endAnchor || 'center';
-        /** @type {string} Stroke color in hex format */
+        /** @type {string} Stroke colour */
         this.stroke = '#2c3e50';
-        /** @type {number} Width of the line in pixels */
+        /** @type {number} */
         this.strokeWidth = 2;
-        /** @type {boolean} Whether to draw arrow at start point */
+        /** @type {boolean} */
         this.arrowStart = false;
-        /** @type {boolean} Whether to draw arrow at end point */
+        /** @type {boolean} */
         this.arrowEnd = true;
-        /** @type {string} Connection style: 'straight', 'orthogonal', 'bezier', or 'polyline' */
+        /** @type {("straight"|"orthogonal"|"bezier"|"polyline")} */
         this.style = 'straight';
-        /** @type {string} Line dash style: 'solid', 'dashed', or 'dotted' */
+        /** @type {("solid"|"dashed"|"dotted")} */
         this.lineStyle = 'solid';
-        /** @type {number} Z-index for rendering order (connectors default to -1, below shapes) */
+        /** @type {number} Connectors render below shapes by default */
         this.zIndex = -1;
-        /** @type {boolean} Whether the connector is visible */
+        /** @type {boolean} */
         this.visible = true;
-        /** @type {boolean} Whether the connector is currently selected */
+        /** @type {boolean} Transient selection flag (not serialised) */
         this.selected = false;
-        /** @type {string|null} Connection type for network objects (video, sdi, network, usb) */
+        /** @type {string|null} */
         this.connectionType = connectionType;
-        /** @type {Array<{x: number, y: number}>} Intermediate points for polyline connectors */
+        /** @type {Array<{x:number,y:number}>} Intermediate points for polyline connectors */
         this.waypoints = [];
-        /** @type {{x: number, y: number}|null} First control point for bezier connectors */
+        /** @type {{x:number,y:number}|null} */
         this.controlPoint1 = null;
-        /** @type {{x: number, y: number}|null} Second control point for bezier connectors */
+        /** @type {{x:number,y:number}|null} */
         this.controlPoint2 = null;
+        /** @type {string} Text label drawn at the middle of the connector */
+        this.label = '';
     }
 
     /**
-     * Generates a unique identifier for the connector.
-     * @returns {string} Unique ID combining timestamp and random string
+     * @returns {string}
      */
     generateId() {
-        return 'conn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        return 'conn_' + Date.now() + '_' + Math.random().toString(36).slice(2, 11);
     }
 
     /**
-     * Gets the starting point of the connector from the start object's anchor points.
-     * @returns {{x: number, y: number}|null} Start point coordinates or null if no start object
+     * Fallback anchor at a shape's centre, used when the referenced anchor key does not exist.
+     * @private
+     */
+    static fallbackAnchor(obj) {
+        if (!obj) return null;
+        let c = null;
+        if (typeof obj.getCenter === 'function') c = obj.getCenter();
+        else if (typeof obj.getBounds === 'function') {
+            const b = obj.getBounds();
+            c = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+        } else if (typeof obj.x === 'number') {
+            c = { x: obj.x, y: obj.y };
+        }
+        return c ? { x: c.x, y: c.y, normal: null, connectionType: null, portType: 'both', missing: true } : null;
+    }
+
+    /**
+     * Resolves the start anchor (position, normal, type info).
+     * @returns {AnchorPoint|null}
+     */
+    getStartAnchorInfo() {
+        if (!this.startObject) return null;
+        const anchors = this.startObject.getAnchorPoints ? this.startObject.getAnchorPoints() : {};
+        return anchors[this.startAnchor] || anchors.center || Connector.fallbackAnchor(this.startObject);
+    }
+
+    /**
+     * Resolves the end anchor. While a connector is being drawn (`endObject` null) the transient
+     * `endX`/`endY` fields are used.
+     * @returns {AnchorPoint|null}
+     */
+    getEndAnchorInfo() {
+        if (!this.endObject) {
+            if (typeof this.endX === 'number' && typeof this.endY === 'number') {
+                return { x: this.endX, y: this.endY, normal: null, connectionType: null, portType: 'both' };
+            }
+            return null;
+        }
+        const anchors = this.endObject.getAnchorPoints ? this.endObject.getAnchorPoints() : {};
+        return anchors[this.endAnchor] || anchors.center || Connector.fallbackAnchor(this.endObject);
+    }
+
+    /**
+     * @returns {{x:number,y:number}|null}
      */
     getStartPoint() {
-        if (!this.startObject) return null;
-        const anchors = this.startObject.getAnchorPoints();
-        return anchors[this.startAnchor] || anchors.center;
+        const a = this.getStartAnchorInfo();
+        return a ? { x: a.x, y: a.y } : null;
     }
 
     /**
-     * Gets the ending point of the connector from the end object's anchor points.
-     * @returns {{x: number, y: number}|null} End point coordinates or null if no end object
+     * @returns {{x:number,y:number}|null}
      */
     getEndPoint() {
-        if (!this.endObject) return null;
-        const anchors = this.endObject.getAnchorPoints();
-        return anchors[this.endAnchor] || anchors.center;
+        const a = this.getEndAnchorInfo();
+        return a ? { x: a.x, y: a.y } : null;
     }
 
     /**
-     * Checks if a point is near the connector line for hit detection.
-     * Delegates to specific methods based on connector style.
-     * @param {number} x - X-coordinate of the point to test
-     * @param {number} y - Y-coordinate of the point to test
-     * @param {number} [threshold=5] - Maximum distance in pixels to consider "near"
-     * @returns {boolean} True if point is within threshold distance of the connector
+     * True when one of the referenced anchor keys does not exist on its shape any more.
+     * @returns {boolean}
      */
-    containsPoint(x, y, threshold = 5) {
-        const start = this.getStartPoint();
-        const end = this.getEndPoint();
+    isDangling() {
+        const s = this.getStartAnchorInfo();
+        const e = this.endObject ? this.getEndAnchorInfo() : null;
+        return !!((s && s.missing) || (e && e.missing));
+    }
 
-        if (!start || !end) return false;
-
-        if (this.style === 'polyline' && this.waypoints.length > 0) {
-            return this.isNearPolyline(x, y, threshold);
-        } else if (this.style === 'bezier') {
-            return this.isNearBezier(x, y, threshold);
-        } else if (this.style === 'orthogonal') {
-            return this.isNearOrthogonal(x, y, threshold);
-        } else {
-            return this.isNearLine(start, end, x, y, threshold);
+    /**
+     * Ordered points of the connector path for straight, polyline and orthogonal styles.
+     * Bezier connectors return the sampled curve (see {@link Connector#getBezierSamples}).
+     * @returns {Array<{x:number,y:number}>} Empty when an endpoint is unresolved.
+     */
+    getPathPoints() {
+        const s = this.getStartAnchorInfo();
+        const e = this.getEndAnchorInfo();
+        if (!s || !e) return [];
+        const start = { x: s.x, y: s.y };
+        const end = { x: e.x, y: e.y };
+        switch (this.style) {
+            case 'polyline':
+                return [start, ...this.waypoints.map(w => ({ x: w.x, y: w.y })), end];
+            case 'orthogonal':
+                return Connector.orthogonalRoute(start, end, s.normal || null, e.normal || null);
+            case 'bezier':
+                return this.getBezierSamples();
+            default:
+                return [start, end];
         }
     }
 
     /**
-     * Checks if a point is near a straight line segment using perpendicular distance.
-     * @param {{x: number, y: number}} p1 - First endpoint of the line
-     * @param {{x: number, y: number}} p2 - Second endpoint of the line
-     * @param {number} x - X-coordinate of the point to test
-     * @param {number} y - Y-coordinate of the point to test
-     * @param {number} threshold - Maximum distance to consider "near"
-     * @returns {boolean} True if point is within threshold distance of the line segment
+     * Computes an orthogonal (right-angled) route between two points, leaving each endpoint along its
+     * outward normal first.
+     * @param {{x:number,y:number}} start
+     * @param {{x:number,y:number}} end
+     * @param {{x:number,y:number}|null} ns Outward unit normal at the start (null = free point).
+     * @param {{x:number,y:number}|null} ne Outward unit normal at the end (null = free point).
+     * @param {number} [stub=ORTHOGONAL_STUB]
+     * @returns {Array<{x:number,y:number}>}
      */
-    isNearLine(p1, p2, x, y, threshold) {
+    static orthogonalRoute(start, end, ns, ne, stub = ORTHOGONAL_STUB) {
+        const axisOf = n => (n ? (Math.abs(n.x) >= Math.abs(n.y) ? 'h' : 'v') : null);
+        const p1 = ns ? { x: start.x + ns.x * stub, y: start.y + ns.y * stub } : { ...start };
+        const p2 = ne ? { x: end.x + ne.x * stub, y: end.y + ne.y * stub } : { ...end };
+        const axisS = axisOf(ns);
+        const axisE = axisOf(ne);
         const dx = p2.x - p1.x;
         const dy = p2.y - p1.y;
-        const length = Math.sqrt(dx * dx + dy * dy);
-
-        if (length === 0) return Math.sqrt((x - p1.x) ** 2 + (y - p1.y) ** 2) <= threshold;
-
-        const t = Math.max(0, Math.min(1, ((x - p1.x) * dx + (y - p1.y) * dy) / (length * length)));
-        const projX = p1.x + t * dx;
-        const projY = p1.y + t * dy;
-
-        const distance = Math.sqrt((x - projX) ** 2 + (y - projY) ** 2);
-        return distance <= threshold;
-    }
-
-    /**
-     * Checks if a point is near a polyline connector by testing each segment.
-     * @param {number} x - X-coordinate of the point to test
-     * @param {number} y - Y-coordinate of the point to test
-     * @param {number} threshold - Maximum distance to consider "near"
-     * @returns {boolean} True if point is near any segment of the polyline
-     */
-    isNearPolyline(x, y, threshold) {
-        const start = this.getStartPoint();
-        const end = this.getEndPoint();
-
-        const points = [start, ...this.waypoints, end];
-
-        for (let i = 0; i < points.length - 1; i++) {
-            if (this.isNearLine(points[i], points[i + 1], x, y, threshold)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Checks if a point is near an orthogonal (right-angled) connector.
-     * Orthogonal connectors use 3 segments forming right angles.
-     * @param {number} x - X-coordinate of the point to test
-     * @param {number} y - Y-coordinate of the point to test
-     * @param {number} threshold - Maximum distance to consider "near"
-     * @returns {boolean} True if point is near the orthogonal path
-     */
-    isNearOrthogonal(x, y, threshold) {
-        const start = this.getStartPoint();
-        const end = this.getEndPoint();
-
-        const midX = (start.x + end.x) / 2;
-        const midY = (start.y + end.y) / 2;
-
-        let points;
-        if (Math.abs(end.x - start.x) > Math.abs(end.y - start.y)) {
-            points = [start, { x: midX, y: start.y }, { x: midX, y: end.y }, end];
+        const viaX = () => {
+            const midX = p1.x + dx / 2;
+            return [{ x: midX, y: p1.y }, { x: midX, y: p2.y }];
+        };
+        const viaY = () => {
+            const midY = p1.y + dy / 2;
+            return [{ x: p1.x, y: midY }, { x: p2.x, y: midY }];
+        };
+        let mids;
+        if (axisS === 'h' && axisE === 'h') {
+            const forwardS = ns.x * dx >= 0;
+            const forwardE = ne.x * -dx >= 0;
+            mids = (forwardS && forwardE) ? viaX() : viaY();
+        } else if (axisS === 'v' && axisE === 'v') {
+            const forwardS = ns.y * dy >= 0;
+            const forwardE = ne.y * -dy >= 0;
+            mids = (forwardS && forwardE) ? viaY() : viaX();
+        } else if (axisS === 'h' && axisE === 'v') {
+            mids = [{ x: p2.x, y: p1.y }];
+        } else if (axisS === 'v' && axisE === 'h') {
+            mids = [{ x: p1.x, y: p2.y }];
+        } else if (axisS === 'h') {
+            mids = [{ x: p2.x, y: p1.y }];
+        } else if (axisS === 'v') {
+            mids = [{ x: p1.x, y: p2.y }];
+        } else if (axisE === 'h') {
+            mids = [{ x: p1.x, y: p2.y }];
+        } else if (axisE === 'v') {
+            mids = [{ x: p2.x, y: p1.y }];
         } else {
-            points = [start, { x: start.x, y: midY }, { x: end.x, y: midY }, end];
+            mids = Math.abs(dx) > Math.abs(dy) ? viaX() : viaY();
         }
-
-        for (let i = 0; i < points.length - 1; i++) {
-            if (this.isNearLine(points[i], points[i + 1], x, y, threshold)) {
-                return true;
+        const raw = [start, p1, ...mids, p2, end];
+        const points = [];
+        for (const p of raw) {
+            const last = points[points.length - 1];
+            if (!last || Math.abs(last.x - p.x) > 0.01 || Math.abs(last.y - p.y) > 0.01) {
+                points.push({ x: p.x, y: p.y });
             }
         }
-
-        return false;
+        return points;
     }
 
     /**
-     * Checks if a point is near a bezier curve connector by sampling points along the curve.
-     * @param {number} x - X-coordinate of the point to test
-     * @param {number} y - Y-coordinate of the point to test
-     * @param {number} threshold - Maximum distance to consider "near"
-     * @returns {boolean} True if point is near the bezier curve
+     * Samples the bezier curve into a polyline.
+     * @param {number} [samples=24]
+     * @returns {Array<{x:number,y:number}>}
      */
-    isNearBezier(x, y, threshold) {
-        const start = this.getStartPoint();
-        const end = this.getEndPoint();
+    getBezierSamples(samples = 24) {
+        const pts = [];
+        for (let i = 0; i <= samples; i++) pts.push(this.getBezierPoint(i / samples));
+        return pts;
+    }
 
-        // Sample points along bezier curve
-        const samples = 20;
-        for (let i = 0; i < samples; i++) {
-            const t = i / samples;
-            const point = this.getBezierPoint(t);
-            const nextPoint = this.getBezierPoint((i + 1) / samples);
-
-            if (this.isNearLine(point, nextPoint, x, y, threshold)) {
-                return true;
-            }
+    /**
+     * Hit test: is the point within `threshold` of the path?
+     * @param {number} x
+     * @param {number} y
+     * @param {number} [threshold=5]
+     * @returns {boolean}
+     */
+    containsPoint(x, y, threshold = 5) {
+        const points = this.getPathPoints();
+        for (let i = 0; i < points.length - 1; i++) {
+            if (Connector.isNearSegment(points[i], points[i + 1], x, y, threshold)) return true;
         }
-
         return false;
     }
 
     /**
-     * Calculates a point on the bezier curve at parameter t using cubic bezier formula.
-     * @param {number} t - Parameter value between 0 and 1 (0=start, 1=end)
-     * @returns {{x: number, y: number}} Point coordinates on the bezier curve
+     * Distance test from a point to a segment.
+     * @param {{x:number,y:number}} p1
+     * @param {{x:number,y:number}} p2
+     * @param {number} x
+     * @param {number} y
+     * @param {number} threshold
+     * @returns {boolean}
+     */
+    static isNearSegment(p1, p2, x, y, threshold) {
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len2 = dx * dx + dy * dy;
+        if (len2 === 0) return Math.hypot(x - p1.x, y - p1.y) <= threshold;
+        const t = Math.max(0, Math.min(1, ((x - p1.x) * dx + (y - p1.y) * dy) / len2));
+        return Math.hypot(x - (p1.x + t * dx), y - (p1.y + t * dy)) <= threshold;
+    }
+
+    /**
+     * Kept for backwards compatibility.
+     * @deprecated Use {@link Connector.isNearSegment}.
+     */
+    isNearLine(p1, p2, x, y, threshold) {
+        return Connector.isNearSegment(p1, p2, x, y, threshold);
+    }
+
+    /**
+     * Point on the cubic bezier at parameter `t`.
+     * @param {number} t 0..1
+     * @returns {{x:number,y:number}}
      */
     getBezierPoint(t) {
         const start = this.getStartPoint();
         const end = this.getEndPoint();
-
         const cp1 = this.controlPoint1 || this.getDefaultControlPoint1();
         const cp2 = this.controlPoint2 || this.getDefaultControlPoint2();
-
         const mt = 1 - t;
         const mt2 = mt * mt;
         const mt3 = mt2 * mt;
         const t2 = t * t;
         const t3 = t2 * t;
-
         return {
             x: start.x * mt3 + 3 * cp1.x * mt2 * t + 3 * cp2.x * mt * t2 + end.x * t3,
             y: start.y * mt3 + 3 * cp1.y * mt2 * t + 3 * cp2.y * mt * t2 + end.y * t3
@@ -235,224 +310,143 @@ export class Connector {
     }
 
     /**
-     * Gets the default position for the first bezier control point.
-     * Positioned at 25% along the line with slight curve offset.
-     * @returns {{x: number, y: number}} Default first control point coordinates
+     * Default first control point (25% along, offset perpendicular).
+     * @returns {{x:number,y:number}}
      */
     getDefaultControlPoint1() {
         const start = this.getStartPoint();
         const end = this.getEndPoint();
         const dx = end.x - start.x;
         const dy = end.y - start.y;
-
-        return {
-            x: start.x + dx * 0.25,
-            y: start.y + dy * 0.25 - Math.abs(dx) * 0.2
-        };
+        return { x: start.x + dx * 0.25, y: start.y + dy * 0.25 - Math.abs(dx) * 0.2 };
     }
 
     /**
-     * Gets the default position for the second bezier control point.
-     * Positioned at 75% along the line with slight curve offset.
-     * @returns {{x: number, y: number}} Default second control point coordinates
+     * Default second control point (75% along, offset perpendicular).
+     * @returns {{x:number,y:number}}
      */
     getDefaultControlPoint2() {
         const start = this.getStartPoint();
         const end = this.getEndPoint();
         const dx = end.x - start.x;
         const dy = end.y - start.y;
+        return { x: start.x + dx * 0.75, y: start.y + dy * 0.75 + Math.abs(dx) * 0.2 };
+    }
 
+    /**
+     * Point halfway along the path (by length) plus the direction angle of that segment.
+     * @returns {{x:number,y:number,angle:number}|null}
+     */
+    getMidpoint() {
+        const points = this.getPathPoints();
+        if (points.length < 2) return null;
+        let total = 0;
+        const lengths = [];
+        for (let i = 0; i < points.length - 1; i++) {
+            const l = Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y);
+            lengths.push(l);
+            total += l;
+        }
+        let remaining = total / 2;
+        for (let i = 0; i < lengths.length; i++) {
+            if (remaining <= lengths[i] || i === lengths.length - 1) {
+                const t = lengths[i] === 0 ? 0 : remaining / lengths[i];
+                const a = points[i];
+                const b = points[i + 1];
+                return {
+                    x: a.x + (b.x - a.x) * t,
+                    y: a.y + (b.y - a.y) * t,
+                    angle: Math.atan2(b.y - a.y, b.x - a.x)
+                };
+            }
+            remaining -= lengths[i];
+        }
+        return null;
+    }
+
+    /**
+     * Arrow angles (radians) at both ends, pointing outwards along the path.
+     * @returns {{start:number, end:number}|null}
+     */
+    getArrowAngles() {
+        if (this.style === 'bezier') {
+            return { start: this.getBezierTangentAtStart(), end: this.getBezierTangentAtEnd() };
+        }
+        const points = this.getPathPoints();
+        if (points.length < 2) return null;
+        const first = points[0];
+        const second = points[1];
+        const last = points[points.length - 1];
+        const beforeLast = points[points.length - 2];
         return {
-            x: start.x + dx * 0.75,
-            y: start.y + dy * 0.75 + Math.abs(dx) * 0.2
+            start: Math.atan2(first.y - second.y, first.x - second.x),
+            end: Math.atan2(last.y - beforeLast.y, last.x - beforeLast.x)
         };
     }
 
     /**
-     * Draws the connector on the canvas.
-     * Applies appropriate styling, draws the connection line based on style,
-     * and draws arrows and control points as needed.
-     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+     * Draws the connector.
+     * @param {CanvasRenderingContext2D} ctx
      */
     draw(ctx) {
         if (!this.visible) return;
-
         const start = this.getStartPoint();
         const end = this.getEndPoint();
-
         if (!start || !end) return;
 
         ctx.save();
         ctx.strokeStyle = this.selected ? '#0066cc' : this.stroke;
         ctx.lineWidth = this.selected ? this.strokeWidth + 1 : this.strokeWidth;
         ctx.fillStyle = this.stroke;
+        ctx.lineJoin = 'round';
 
-        // Apply line style (solid, dashed, dotted)
         switch (this.lineStyle) {
-            case 'dashed':
-                ctx.setLineDash([10, 5]);
-                break;
-            case 'dotted':
-                ctx.setLineDash([2, 4]);
-                break;
-            default:
-                ctx.setLineDash([]);
+            case 'dashed': ctx.setLineDash([10, 5]); break;
+            case 'dotted': ctx.setLineDash([2, 4]); break;
+            default: ctx.setLineDash([]);
         }
 
-        // Draw based on style
-        switch (this.style) {
-            case 'polyline':
-                this.drawPolyline(ctx, start, end);
-                break;
-            case 'orthogonal':
-                this.drawOrthogonal(ctx, start, end);
-                break;
-            case 'bezier':
-                this.drawBezier(ctx, start, end);
-                break;
-            default:
-                this.drawStraight(ctx, start, end);
+        if (this.style === 'bezier') {
+            const cp1 = this.controlPoint1 || this.getDefaultControlPoint1();
+            const cp2 = this.controlPoint2 || this.getDefaultControlPoint2();
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, end.x, end.y);
+            ctx.stroke();
+        } else {
+            const points = this.getPathPoints();
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+            ctx.stroke();
         }
 
-        // Draw arrows
-        if (this.arrowStart) {
-            if (this.style === 'bezier') {
-                const tangent = this.getBezierTangentAtStart();
-                this.drawArrowWithAngle(ctx, start, tangent);
-            } else {
-                this.drawArrow(ctx, this.getArrowStartPoint(), start, true);
-            }
-        }
-        if (this.arrowEnd) {
-            if (this.style === 'bezier') {
-                const tangent = this.getBezierTangentAtEnd();
-                this.drawArrowWithAngle(ctx, end, tangent);
-            } else {
-                this.drawArrow(ctx, this.getArrowEndPoint(), end, false);
-            }
+        ctx.setLineDash([]);
+        const angles = this.getArrowAngles();
+        if (angles) {
+            if (this.arrowStart) this.drawArrowWithAngle(ctx, start, angles.start);
+            if (this.arrowEnd) this.drawArrowWithAngle(ctx, end, angles.end);
         }
 
-        // Draw waypoints if selected
-        if (this.selected && this.style === 'polyline') {
-            this.drawWaypoints(ctx);
-        }
+        if (this.selected && this.style === 'polyline') this.drawWaypoints(ctx);
+        if (this.selected && this.style === 'bezier') this.drawControlPoints(ctx);
 
-        // Draw control points if bezier and selected
-        if (this.selected && this.style === 'bezier') {
-            this.drawControlPoints(ctx);
-        }
-
+        this.drawLabel(ctx);
         ctx.restore();
     }
 
-    drawStraight(ctx, start, end) {
-        ctx.beginPath();
-        ctx.moveTo(start.x, start.y);
-        ctx.lineTo(end.x, end.y);
-        ctx.stroke();
-    }
-
-    drawPolyline(ctx, start, end) {
-        ctx.beginPath();
-        ctx.moveTo(start.x, start.y);
-
-        for (const waypoint of this.waypoints) {
-            ctx.lineTo(waypoint.x, waypoint.y);
-        }
-
-        ctx.lineTo(end.x, end.y);
-        ctx.stroke();
-    }
-
-    drawOrthogonal(ctx, start, end) {
-        const midX = (start.x + end.x) / 2;
-        const midY = (start.y + end.y) / 2;
-
-        ctx.beginPath();
-        ctx.moveTo(start.x, start.y);
-
-        if (Math.abs(end.x - start.x) > Math.abs(end.y - start.y)) {
-            ctx.lineTo(midX, start.y);
-            ctx.lineTo(midX, end.y);
-        } else {
-            ctx.lineTo(start.x, midY);
-            ctx.lineTo(end.x, midY);
-        }
-
-        ctx.lineTo(end.x, end.y);
-        ctx.stroke();
-    }
-
-    drawBezier(ctx, start, end) {
-        const cp1 = this.controlPoint1 || this.getDefaultControlPoint1();
-        const cp2 = this.controlPoint2 || this.getDefaultControlPoint2();
-
-        ctx.beginPath();
-        ctx.moveTo(start.x, start.y);
-        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, end.x, end.y);
-        ctx.stroke();
-    }
-
-    getArrowStartPoint() {
-        if (this.style === 'polyline' && this.waypoints.length > 0) {
-            return this.waypoints[0];
-        } else if (this.style === 'orthogonal') {
-            return this.getOrthogonalStartArrowPoint();
-        }
-        return this.getEndPoint();
-    }
-
-    getArrowEndPoint() {
-        if (this.style === 'polyline' && this.waypoints.length > 0) {
-            return this.waypoints[this.waypoints.length - 1];
-        } else if (this.style === 'orthogonal') {
-            return this.getOrthogonalEndArrowPoint();
-        }
-        return this.getStartPoint();
-    }
-
-    getOrthogonalStartArrowPoint() {
-        const start = this.getStartPoint();
-        const end = this.getEndPoint();
-        const midX = (start.x + end.x) / 2;
-        const midY = (start.y + end.y) / 2;
-
-        // Return the second point in the orthogonal path
-        if (Math.abs(end.x - start.x) > Math.abs(end.y - start.y)) {
-            return { x: midX, y: start.y };
-        } else {
-            return { x: start.x, y: midY };
-        }
-    }
-
-    getOrthogonalEndArrowPoint() {
-        const start = this.getStartPoint();
-        const end = this.getEndPoint();
-        const midX = (start.x + end.x) / 2;
-        const midY = (start.y + end.y) / 2;
-
-        // Return the second-to-last point in the orthogonal path
-        if (Math.abs(end.x - start.x) > Math.abs(end.y - start.y)) {
-            return { x: midX, y: end.y };
-        } else {
-            return { x: end.x, y: midY };
-        }
-    }
-
-    drawArrow(ctx, from, to, atStart) {
-        const angle = Math.atan2(to.y - from.y, to.x - from.x);
-        this.drawArrowWithAngle(ctx, to, angle);
-    }
-
+    /**
+     * Draws a filled arrow head at `point` pointing in direction `angle`.
+     * @param {CanvasRenderingContext2D} ctx
+     * @param {{x:number,y:number}} point
+     * @param {number} angle Radians.
+     */
     drawArrowWithAngle(ctx, point, angle) {
-        // Scale arrow size with stroke width
         const scale = Math.max(1, this.strokeWidth / 2);
         const arrowLength = 12 * scale;
         const arrowWidth = 6 * scale;
-
         ctx.save();
-        ctx.fillStyle = this.stroke;
-
+        ctx.fillStyle = this.selected ? '#0066cc' : this.stroke;
         ctx.beginPath();
         ctx.moveTo(point.x, point.y);
         ctx.lineTo(
@@ -465,31 +459,37 @@ export class Connector {
         );
         ctx.closePath();
         ctx.fill();
-
         ctx.restore();
     }
 
+    /**
+     * Tangent angle at the start (pointing away from the curve).
+     * @returns {number}
+     */
     getBezierTangentAtStart() {
         const start = this.getStartPoint();
         const cp1 = this.controlPoint1 || this.getDefaultControlPoint1();
-
-        // Tangent at t=0 is the direction from first control point to start (reversed for arrow pointing back)
         return Math.atan2(start.y - cp1.y, start.x - cp1.x);
     }
 
+    /**
+     * Tangent angle at the end.
+     * @returns {number}
+     */
     getBezierTangentAtEnd() {
         const end = this.getEndPoint();
         const cp2 = this.controlPoint2 || this.getDefaultControlPoint2();
-
-        // Tangent at t=1 is the direction from second control point to end
         return Math.atan2(end.y - cp2.y, end.x - cp2.x);
     }
 
+    /**
+     * Draws polyline waypoint handles.
+     * @param {CanvasRenderingContext2D} ctx
+     */
     drawWaypoints(ctx) {
         ctx.fillStyle = '#0066cc';
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2;
-
         for (const waypoint of this.waypoints) {
             ctx.beginPath();
             ctx.arc(waypoint.x, waypoint.y, 5, 0, Math.PI * 2);
@@ -498,49 +498,89 @@ export class Connector {
         }
     }
 
+    /**
+     * Draws bezier control point handles and guide lines.
+     * @param {CanvasRenderingContext2D} ctx
+     */
     drawControlPoints(ctx) {
         const cp1 = this.controlPoint1 || this.getDefaultControlPoint1();
         const cp2 = this.controlPoint2 || this.getDefaultControlPoint2();
         const start = this.getStartPoint();
         const end = this.getEndPoint();
 
-        // Draw control lines
         ctx.strokeStyle = '#aaaaaa';
         ctx.lineWidth = 1;
         ctx.setLineDash([5, 5]);
-
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(cp1.x, cp1.y);
         ctx.stroke();
-
         ctx.beginPath();
         ctx.moveTo(end.x, end.y);
         ctx.lineTo(cp2.x, cp2.y);
         ctx.stroke();
-
         ctx.setLineDash([]);
 
-        // Draw control points
         ctx.fillStyle = '#ff9900';
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2;
-
-        ctx.beginPath();
-        ctx.arc(cp1.x, cp1.y, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(cp2.x, cp2.y, 5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
+        for (const cp of [cp1, cp2]) {
+            ctx.beginPath();
+            ctx.arc(cp.x, cp.y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
     }
 
     /**
-     * Serializes the connector to a JSON-compatible object for saving.
-     * Stores object IDs instead of object references for proper serialization.
-     * @returns {Object} JSON representation of the connector with all properties
+     * Layout of the label box at the middle of the path.
+     * @param {function(string): number} [measure] Text width measurer for the label font.
+     * @returns {{x:number,y:number,width:number,height:number,text:string,fontSize:number}|null}
+     */
+    getLabelLayout(measure) {
+        const text = (this.label || '').trim();
+        if (!text) return null;
+        const mid = this.getMidpoint();
+        if (!mid) return null;
+        const fontSize = 11;
+        const width = (measure ? measure(text) : text.length * fontSize * 0.58) + 8;
+        const height = fontSize + 6;
+        return { x: mid.x, y: mid.y, width, height, text, fontSize };
+    }
+
+    /**
+     * Draws the label with a light background so it stays readable over the line.
+     * @param {CanvasRenderingContext2D} ctx
+     */
+    drawLabel(ctx) {
+        const font = '11px Arial';
+        const layout = this.getLabelLayout(t => {
+            ctx.font = font;
+            return ctx.measureText(t).width;
+        });
+        if (!layout) return;
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.font = font;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(255,255,255,0.92)';
+        ctx.strokeStyle = this.stroke;
+        ctx.lineWidth = 1;
+        const x = layout.x - layout.width / 2;
+        const y = layout.y - layout.height / 2;
+        ctx.beginPath();
+        ctx.rect(x, y, layout.width, layout.height);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#2c3e50';
+        ctx.fillText(layout.text, layout.x, layout.y + 0.5);
+        ctx.restore();
+    }
+
+    /**
+     * Serialises the connector, storing object ids instead of references.
+     * @returns {Object}
      */
     toJSON() {
         return {
@@ -559,9 +599,10 @@ export class Connector {
             zIndex: this.zIndex,
             visible: this.visible,
             connectionType: this.connectionType,
-            waypoints: this.waypoints,
-            controlPoint1: this.controlPoint1,
-            controlPoint2: this.controlPoint2
+            waypoints: this.waypoints.map(w => ({ x: w.x, y: w.y })),
+            controlPoint1: this.controlPoint1 ? { ...this.controlPoint1 } : null,
+            controlPoint2: this.controlPoint2 ? { ...this.controlPoint2 } : null,
+            label: this.label
         };
     }
 }

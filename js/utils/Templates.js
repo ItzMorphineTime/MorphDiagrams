@@ -13,6 +13,7 @@ import { VideoMatrix } from '../shapes/VideoMatrix.js';
 import { SyncGenerator } from '../shapes/SyncGenerator.js';
 import { LEDProcessor } from '../shapes/LEDProcessor.js';
 import { NetworkSwitch } from '../shapes/NetworkSwitch.js';
+import { ConnectionTypeRegistry } from '../config/ConnectionTypes.js';
 
 /**
  * Provides static methods for creating pre-configured diagram templates.
@@ -195,6 +196,7 @@ export class Templates {
 
         // Create Sync Generator with ports: SDI[2,4] - Left, top
         const syncGen = new SyncGenerator(230, 50, 100, 100);
+        syncGen.label = 'Sync Gen';
         syncGen.ports = {
             sdi: { input: 2, output: 4 }
         };
@@ -202,6 +204,7 @@ export class Templates {
 
         // Create Network Switch with ports: Network[6,6] - Left, bottom
         const networkSwitch = new NetworkSwitch(230, 350, 100, 100);
+        networkSwitch.label = 'Switch';
         networkSwitch.ports = {
             network: { input: 6, output: 6 }
         };
@@ -209,6 +212,7 @@ export class Templates {
 
         // Create Server with ports: Video[0,4], SDI[1,0], Network[2,0], USB[4,0] - Center left
         const server = new Server(500, 200, 120, 180);
+        server.label = 'Media Server';
         server.ports = {
             video: { input: 0, output: 4 },
             sdi: { input: 1, output: 0 },
@@ -219,6 +223,7 @@ export class Templates {
 
         // Create Video Matrix with ports: Video[4,4], SDI[1,4] - Center right
         const videoMatrix = new VideoMatrix(950, 200, 120, 180);
+        videoMatrix.label = 'Video Matrix';
         videoMatrix.ports = {
             video: { input: 4, output: 4 },
             sdi: { input: 1, output: 4 }
@@ -227,18 +232,18 @@ export class Templates {
 
         // Create LED Processor with ports: Video[4,1], SDI[1,0] - Far right
         const ledProcessor = new LEDProcessor(1250, 50, 120, 100);
+        ledProcessor.label = 'LED Processor';
         ledProcessor.ports = {
             video: { input: 4, output: 1 },
             sdi: { input: 1, output: 0 }
         };
         objects.push(ledProcessor);
 
-        // Import ConnectionColors
         const ConnectionColors = {
-            video: '#FFD700',
-            sdi: '#FF4500',
-            network: '#00CED1',
-            usb: '#9370DB'
+            video: ConnectionTypeRegistry.colorFor('video'),
+            sdi: ConnectionTypeRegistry.colorFor('sdi'),
+            network: ConnectionTypeRegistry.colorFor('network'),
+            usb: ConnectionTypeRegistry.colorFor('usb')
         };
 
         // Connect Sync Generator SDI outputs to Server, Video Matrix, and LED Processor SDI inputs

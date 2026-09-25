@@ -1,115 +1,47 @@
-import { BaseShape } from '../core/BaseShape.js';
-import { ConnectionTypes, ObjectColors } from '../config/ConnectionTypes.js';
-
 /**
- * LEDProcessor shape representing an LED video processing device.
- * Handles video and SDI inputs for LED wall output.
- * Renders as a capsule (rounded rectangle) shape.
- * @class LEDProcessor
- * @extends BaseShape
+ * @module shapes/LEDProcessor
+ * @description LED wall processor system object (video + SDI inputs, video outputs). Renders as a rectangle
+ * with three LED dots.
+ *
+ * @see module:core/SystemObject
  */
-export class LEDProcessor extends BaseShape {
+
+import { SystemObject } from '../core/SystemObject.js';
+import { ObjectColors } from '../config/ConnectionTypes.js';
+
+export class LEDProcessor extends SystemObject {
     /**
-     * Creates a new LEDProcessor instance.
-     * @param {number} x - X-coordinate of top-left corner
-     * @param {number} y - Y-coordinate of top-left corner
-     * @param {number} width - Width in pixels
-     * @param {number} height - Height in pixels
+     * @param {number} x
+     * @param {number} y
+     * @param {number} width
+     * @param {number} height
      */
     constructor(x, y, width, height) {
-        super(x, y, width, height);
-        this.type = 'led_processor';
-        this.fill = ObjectColors.LED_PROCESSOR;
+        super(x, y, width, height, {
+            type: 'led_processor',
+            fill: ObjectColors.LED_PROCESSOR,
+            ports: LEDProcessor.defaultPorts()
+        });
+    }
 
-        /** @type {Object<string, {input: number, output: number}>} Port configuration */
-        this.ports = {
+    /** @returns {PortConfig} */
+    static defaultPorts() {
+        return {
             video: { input: 2, output: 4 },
             sdi: { input: 1, output: 0 }
         };
     }
 
     /**
-     * Gets anchor points for connections based on port configuration.
-     * @returns {Object<string, {x: number, y: number, connectionType: string, portType: string}>}
+     * Draws the LED dots.
+     * @param {CanvasRenderingContext2D} ctx
      */
-    getAnchorPoints() {
-        const anchors = {};
-        const leftPorts = [];
-        const rightPorts = [];
-
-        // Collect all input ports (left side)
-        for (let type in this.ports) {
-            const inputCount = this.ports[type].input;
-            for (let i = 0; i < inputCount; i++) {
-                leftPorts.push({ type, direction: 'input', index: i });
-            }
-        }
-
-        // Collect all output ports (right side)
-        for (let type in this.ports) {
-            const outputCount = this.ports[type].output;
-            for (let i = 0; i < outputCount; i++) {
-                rightPorts.push({ type, direction: 'output', index: i });
-            }
-        }
-
-        // Calculate positions for left side ports (inputs)
-        const leftSpacing = this.height / (leftPorts.length + 1);
-        leftPorts.forEach((port, idx) => {
-            const y = this.y + leftSpacing * (idx + 1);
-            const key = `${port.type}_${port.direction}_${port.index}`;
-            const anchor = { x: this.x, y, connectionType: port.type, portType: 'input' };
-
-            // Rotate if shape is rotated
-            if (this.rotation && this.rotation !== 0) {
-                const rotated = this.rotatePoint(anchor.x, anchor.y);
-                anchor.x = rotated.x;
-                anchor.y = rotated.y;
-            }
-
-            anchors[key] = anchor;
-        });
-
-        // Calculate positions for right side ports (outputs)
-        const rightSpacing = this.height / (rightPorts.length + 1);
-        rightPorts.forEach((port, idx) => {
-            const y = this.y + rightSpacing * (idx + 1);
-            const key = `${port.type}_${port.direction}_${port.index}`;
-            const anchor = { x: this.x + this.width, y, connectionType: port.type, portType: 'output' };
-
-            // Rotate if shape is rotated
-            if (this.rotation && this.rotation !== 0) {
-                const rotated = this.rotatePoint(anchor.x, anchor.y);
-                anchor.x = rotated.x;
-                anchor.y = rotated.y;
-            }
-
-            anchors[key] = anchor;
-        });
-
-        return anchors;
-    }
-
-    draw(ctx) {
-        if (!this.visible) return;
-
-        ctx.save();
-        this.applyRotation(ctx);
-        this.applyShadow(ctx);
-
-        ctx.fillStyle = this.fill;
-        ctx.strokeStyle = this.stroke;
-        ctx.lineWidth = this.strokeWidth;
-
-        // Draw main body
-        ctx.fillRect(this.x, this.y, this.width, this.height);
-        ctx.strokeRect(this.x, this.y, this.width, this.height);
-
-        // Draw LED pattern indicator
-        const ledSize = Math.min(this.width, this.height) * 0.1;
+    drawIcon(ctx) {
+        const b = this.getBounds();
+        const ledSize = Math.min(b.width, b.height) * 0.1;
         const ledSpacing = ledSize * 1.5;
-        const startX = this.x + this.width / 2 - ledSpacing;
-        const centerY = this.y + this.height / 2;
+        const startX = b.x + b.width / 2 - ledSpacing;
+        const centerY = b.y + b.height / 2;
 
         ctx.fillStyle = '#FF6B6B';
         for (let i = 0; i < 3; i++) {
@@ -117,15 +49,5 @@ export class LEDProcessor extends BaseShape {
             ctx.arc(startX + i * ledSpacing, centerY, ledSize / 2, 0, Math.PI * 2);
             ctx.fill();
         }
-
-        this.clearShadow(ctx);
-        ctx.restore();
-    }
-
-    toJSON() {
-        return {
-            ...super.toJSON(),
-            ports: this.ports
-        };
     }
 }

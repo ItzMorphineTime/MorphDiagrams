@@ -2,6 +2,7 @@ import { Rectangle } from '../shapes/Rectangle.js';
 import { Circle } from '../shapes/Circle.js';
 import { Cylinder } from '../shapes/Cylinder.js';
 import { TextShape } from '../shapes/TextShape.js';
+import { Diamond } from '../shapes/Diamond.js';
 
 export class IconLibrary {
     static createServerIcon(x, y) {
@@ -123,8 +124,7 @@ export class IconLibrary {
     }
 
     static createDecisionIcon(x, y) {
-        // Note: Diamond needs to be imported dynamically or at module level
-        const diamond = new Rectangle(x, y, 100, 80);
+        const diamond = new Diamond(x, y, 100, 80);
         diamond.fill = '#f39c12';
         diamond.stroke = '#e67e22';
 

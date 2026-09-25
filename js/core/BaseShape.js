@@ -1,177 +1,229 @@
 /**
- * Base class for all drawable shapes in the canvas.
- * Provides common properties and methods for shape management, rendering, and interaction.
- * All specific shape classes (Rectangle, Server, NetworkSwitch, etc.) extend this base class.
- * @class BaseShape
+ * @module core/BaseShape
+ * @description Base class for all drawable shapes. Provides geometry (bounds, rotation, hit testing),
+ * generic anchor points, label rendering and JSON serialisation. Every concrete shape
+ * (Rectangle, Server, Device, ...) extends this class.
+ *
+ * @remarks
+ * - Coordinates are canvas ("world") coordinates; `x`/`y` is the unrotated top-left corner.
+ * - `rotation` is in radians and is applied around the shape centre.
+ * - Shapes never touch the DOM, so this module also runs headless in Node (MCP server, tests).
+ *
+ * @example
+ * const rect = new Rectangle(10, 10, 120, 60);
+ * rect.label = 'Ingest';
+ * rect.containsPoint(20, 20); // true
+ *
+ * @see module:core/Connector
+ * @see module:core/SystemObject
  */
+
+import { contrastColor } from '../utils/Color.js';
+import { sideNormal } from './Ports.js';
+
+/**
+ * @typedef {Object} AnchorPoint
+ * @property {number} x
+ * @property {number} y
+ * @property {string} [side] `top` | `right` | `bottom` | `left` (absent for centre / free anchors).
+ * @property {{x:number,y:number}|null} [normal] Unit vector pointing away from the shape (rotated).
+ * @property {string|null} [connectionType] Connection type for typed ports, null for wildcard anchors.
+ * @property {("input"|"output"|"both")} [portType]
+ * @property {string} [label] Human readable port name.
+ */
+
 export class BaseShape {
     /**
-     * Creates a new BaseShape instance.
-     * @param {number} x - The x-coordinate of the shape's top-left corner
-     * @param {number} y - The y-coordinate of the shape's top-left corner
-     * @param {number} width - The width of the shape in pixels
-     * @param {number} height - The height of the shape in pixels
+     * @param {number} x Top-left x.
+     * @param {number} y Top-left y.
+     * @param {number} width Width in pixels.
+     * @param {number} height Height in pixels.
      */
     constructor(x, y, width, height) {
-        /** @type {string} Unique identifier for the shape */
+        /** @type {string} Unique identifier */
         this.id = this.generateId();
-        /** @type {string} Type identifier for the shape (overridden by subclasses) */
+        /** @type {string} Type identifier (overridden by subclasses) */
         this.type = 'base';
-        /** @type {number} X-coordinate of the shape's top-left corner */
+        /** @type {number} */
         this.x = x;
-        /** @type {number} Y-coordinate of the shape's top-left corner */
+        /** @type {number} */
         this.y = y;
-        /** @type {number} Width of the shape in pixels */
+        /** @type {number} */
         this.width = width;
-        /** @type {number} Height of the shape in pixels */
+        /** @type {number} */
         this.height = height;
-        /** @type {string} Fill color in hex format */
+        /** @type {string} Fill colour */
         this.fill = '#3498db';
-        /** @type {string} Stroke color in hex format */
+        /** @type {string} Stroke colour */
         this.stroke = '#2c3e50';
-        /** @type {number} Width of the stroke in pixels */
+        /** @type {number} Stroke width in pixels */
         this.strokeWidth = 2;
-        /** @type {number} Rotation angle in radians */
+        /** @type {number} Rotation in radians */
         this.rotation = 0;
-        /** @type {boolean} Whether shadow rendering is enabled */
+        /** @type {boolean} */
         this.shadow = false;
-        /** @type {number} Shadow blur radius in pixels */
+        /** @type {number} */
         this.shadowBlur = 10;
-        /** @type {string} Shadow color in rgba format */
+        /** @type {string} */
         this.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        /** @type {number} Shadow horizontal offset in pixels */
+        /** @type {number} */
         this.shadowOffsetX = 3;
-        /** @type {number} Shadow vertical offset in pixels */
+        /** @type {number} */
         this.shadowOffsetY = 3;
-        /** @type {number} Z-index for rendering order (higher values render on top) */
+        /** @type {number} Render order (higher on top) */
         this.zIndex = 0;
-        /** @type {boolean} Whether the shape is locked from editing */
+        /** @type {boolean} Locked shapes cannot be moved or resized */
         this.locked = false;
-        /** @type {boolean} Whether the shape is visible on canvas */
+        /** @type {boolean} */
         this.visible = true;
-        /** @type {string|null} Group identifier for grouped shapes */
+        /** @type {(number|string|null)} Group identifier shared by grouped shapes */
         this.groupId = null;
+        /** @type {string} Display label (device name, node title, ...). Empty string = no label. */
+        this.label = '';
+        /** @type {("inside"|"bottom"|"below"|"above")} Where the label is drawn relative to the shape. */
+        this.labelPosition = 'inside';
+        /** @type {number} Label font size in pixels */
+        this.labelFontSize = 12;
+        /** @type {string} Free-form notes (IP address, model number, ...). Not rendered. */
+        this.description = '';
     }
 
     /**
-     * Generates a unique identifier for the shape.
-     * @returns {string} Unique ID combining timestamp and random string
+     * Generates a unique identifier.
+     * @returns {string}
      */
     generateId() {
-        return 'shape_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        return 'shape_' + Date.now() + '_' + Math.random().toString(36).slice(2, 11);
     }
 
     /**
-     * Gets the bounding box of the shape for hit detection.
-     * @returns {{x: number, y: number, width: number, height: number}} Bounding box coordinates and dimensions
+     * Axis-aligned bounds of the unrotated shape. Negative sizes (while dragging) are normalised.
+     * @returns {{x:number, y:number, width:number, height:number}}
      */
     getBounds() {
         return {
-            x: this.x,
-            y: this.y,
-            width: this.width,
-            height: this.height
+            x: Math.min(this.x, this.x + this.width),
+            y: Math.min(this.y, this.y + this.height),
+            width: Math.abs(this.width),
+            height: Math.abs(this.height)
         };
     }
 
     /**
-     * Checks if a point is inside the shape's bounds.
-     * @param {number} x - X-coordinate of the point to test
-     * @param {number} y - Y-coordinate of the point to test
-     * @returns {boolean} True if point is inside shape bounds
+     * Centre point of the shape.
+     * @returns {{x:number, y:number}}
+     */
+    getCenter() {
+        return { x: this.x + this.width / 2, y: this.y + this.height / 2 };
+    }
+
+    /**
+     * Converts a world point into the shape's unrotated local frame (inverse rotation about the centre).
+     * @param {number} x
+     * @param {number} y
+     * @returns {{x:number, y:number}}
+     */
+    toLocalPoint(x, y) {
+        if (!this.rotation) return { x, y };
+        const c = this.getCenter();
+        const cos = Math.cos(-this.rotation);
+        const sin = Math.sin(-this.rotation);
+        const tx = x - c.x;
+        const ty = y - c.y;
+        return { x: tx * cos - ty * sin + c.x, y: tx * sin + ty * cos + c.y };
+    }
+
+    /**
+     * Hit test against the (rotation-aware) bounding box. Subclasses refine this for their geometry.
+     * @param {number} x
+     * @param {number} y
+     * @returns {boolean}
      */
     containsPoint(x, y) {
-        const bounds = this.getBounds();
-        return x >= bounds.x && x <= bounds.x + bounds.width &&
-               y >= bounds.y && y <= bounds.y + bounds.height;
+        const p = this.toLocalPoint(x, y);
+        const b = this.getBounds();
+        return p.x >= b.x && p.x <= b.x + b.width && p.y >= b.y && p.y <= b.y + b.height;
     }
 
     /**
-     * Rotates a point around the shape's center based on the shape's rotation.
-     * Uses standard 2D rotation matrix transformation.
-     * @param {number} x - X-coordinate of the point to rotate
-     * @param {number} y - Y-coordinate of the point to rotate
-     * @returns {{x: number, y: number}} Rotated point coordinates
+     * Rotates a point around the shape's centre by the shape's rotation.
+     * @param {number} x
+     * @param {number} y
+     * @returns {{x:number, y:number}}
      */
     rotatePoint(x, y) {
-        if (!this.rotation || this.rotation === 0) {
-            return { x, y };
-        }
-
-        const cx = this.x + this.width / 2;
-        const cy = this.y + this.height / 2;
-
-        // Translate point to origin
-        const tx = x - cx;
-        const ty = y - cy;
-
-        // Rotate using 2D rotation matrix
+        if (!this.rotation) return { x, y };
+        const c = this.getCenter();
+        const tx = x - c.x;
+        const ty = y - c.y;
         const cos = Math.cos(this.rotation);
         const sin = Math.sin(this.rotation);
-        const rx = tx * cos - ty * sin;
-        const ry = tx * sin + ty * cos;
-
-        // Translate back
-        return {
-            x: rx + cx,
-            y: ry + cy
-        };
+        return { x: tx * cos - ty * sin + c.x, y: tx * sin + ty * cos + c.y };
     }
 
     /**
-     * Gets the four corners of the shape's bounding box after rotation is applied.
-     * @returns {Array<{x: number, y: number}>} Array of four corner points
+     * Rotates a direction vector by the shape's rotation.
+     * @param {{x:number,y:number}|null} v
+     * @returns {{x:number,y:number}|null}
+     */
+    rotateVector(v) {
+        if (!v) return null;
+        if (!this.rotation) return { x: v.x, y: v.y };
+        const cos = Math.cos(this.rotation);
+        const sin = Math.sin(this.rotation);
+        return { x: v.x * cos - v.y * sin, y: v.x * sin + v.y * cos };
+    }
+
+    /**
+     * The four corners of the bounding box after rotation.
+     * @returns {Array<{x:number, y:number}>}
      */
     getRotatedBounds() {
+        const b = this.getBounds();
         const corners = [
-            { x: this.x, y: this.y },
-            { x: this.x + this.width, y: this.y },
-            { x: this.x + this.width, y: this.y + this.height },
-            { x: this.x, y: this.y + this.height }
+            { x: b.x, y: b.y },
+            { x: b.x + b.width, y: b.y },
+            { x: b.x + b.width, y: b.y + b.height },
+            { x: b.x, y: b.y + b.height }
         ];
-
-        if (this.rotation && this.rotation !== 0) {
-            return corners.map(corner => this.rotatePoint(corner.x, corner.y));
-        }
-
-        return corners;
+        return this.rotation ? corners.map(c => this.rotatePoint(c.x, c.y)) : corners;
     }
 
     /**
-     * Gets anchor points for connecting lines to this shape.
-     * Returns points at top, right, bottom, left edges and center.
-     * Anchor points are automatically rotated if the shape is rotated.
-     * Subclasses override this to provide port-specific anchor points.
-     * @returns {Object<string, {x: number, y: number}>} Dictionary of anchor points keyed by position name
+     * Generic anchor points (`top`, `right`, `bottom`, `left`, `center`) for connectors.
+     * Subclasses with ports override this.
+     * @returns {Object<string, AnchorPoint>}
      */
     getAnchorPoints() {
-        const cx = this.x + this.width / 2;
-        const cy = this.y + this.height / 2;
-
-        const anchors = {
-            top: { x: cx, y: this.y },
-            right: { x: this.x + this.width, y: cy },
-            bottom: { x: cx, y: this.y + this.height },
-            left: { x: this.x, y: cy },
+        const b = this.getBounds();
+        const cx = b.x + b.width / 2;
+        const cy = b.y + b.height / 2;
+        const raw = {
+            top: { x: cx, y: b.y, side: 'top' },
+            right: { x: b.x + b.width, y: cy, side: 'right' },
+            bottom: { x: cx, y: b.y + b.height, side: 'bottom' },
+            left: { x: b.x, y: cy, side: 'left' },
             center: { x: cx, y: cy }
         };
-
-        // Rotate anchor points if shape is rotated
-        if (this.rotation && this.rotation !== 0) {
-            Object.keys(anchors).forEach(key => {
-                const rotated = this.rotatePoint(anchors[key].x, anchors[key].y);
-                anchors[key] = rotated;
-            });
+        const anchors = {};
+        for (const [key, a] of Object.entries(raw)) {
+            const p = this.rotatePoint(a.x, a.y);
+            anchors[key] = {
+                x: p.x,
+                y: p.y,
+                side: a.side,
+                normal: this.rotateVector(sideNormal(a.side)),
+                connectionType: null,
+                portType: 'both'
+            };
         }
-
         return anchors;
     }
 
     /**
-     * Moves the shape by a delta amount in x and y directions.
-     * Movement is prevented if the shape is locked.
-     * @param {number} dx - Change in x position
-     * @param {number} dy - Change in y position
+     * Moves the shape unless it is locked.
+     * @param {number} dx
+     * @param {number} dy
      */
     move(dx, dy) {
         if (!this.locked) {
@@ -181,10 +233,9 @@ export class BaseShape {
     }
 
     /**
-     * Resizes the shape to new dimensions.
-     * Resizing is prevented if the shape is locked.
-     * @param {number} width - New width in pixels
-     * @param {number} height - New height in pixels
+     * Resizes the shape unless it is locked.
+     * @param {number} width
+     * @param {number} height
      */
     resize(width, height) {
         if (!this.locked) {
@@ -194,23 +245,21 @@ export class BaseShape {
     }
 
     /**
-     * Applies rotation transformation to the canvas context.
-     * Rotates around the shape's center point.
-     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+     * Applies the shape's rotation to a canvas context (rotates about the centre).
+     * @param {CanvasRenderingContext2D} ctx
      */
     applyRotation(ctx) {
-        if (this.rotation && this.rotation !== 0) {
-            const cx = this.x + this.width / 2;
-            const cy = this.y + this.height / 2;
-            ctx.translate(cx, cy);
+        if (this.rotation) {
+            const c = this.getCenter();
+            ctx.translate(c.x, c.y);
             ctx.rotate(this.rotation);
-            ctx.translate(-cx, -cy);
+            ctx.translate(-c.x, -c.y);
         }
     }
 
     /**
-     * Applies shadow effects to the canvas context if shadow is enabled.
-     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+     * Enables the drop shadow on a canvas context when `shadow` is set.
+     * @param {CanvasRenderingContext2D} ctx
      */
     applyShadow(ctx) {
         if (this.shadow) {
@@ -222,8 +271,8 @@ export class BaseShape {
     }
 
     /**
-     * Clears shadow effects from the canvas context.
-     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+     * Disables the drop shadow.
+     * @param {CanvasRenderingContext2D} ctx
      */
     clearShadow(ctx) {
         ctx.shadowBlur = 0;
@@ -233,29 +282,99 @@ export class BaseShape {
     }
 
     /**
-     * Draws the shape on the canvas. Must be overridden by subclasses.
+     * Draws the shape. Must be implemented by subclasses.
      * @abstract
-     * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
-     * @throws {Error} If not implemented by subclass
+     * @param {CanvasRenderingContext2D} ctx
+     * @throws {Error} Always, unless overridden.
      */
     draw(ctx) {
         throw new Error('draw() must be implemented by subclass');
     }
 
     /**
-     * Creates a deep copy of the shape with a new unique ID.
-     * @returns {BaseShape} Cloned shape instance
+     * Computes where and how the label should be drawn. Shared by the canvas renderer and the SVG exporter.
+     * @param {function(string, string): number} [measure] Text measurer `(text, cssFont) => width`; when omitted an
+     *   approximation is used.
+     * @returns {{lines:string[], x:number, y:number, fontSize:number, lineHeight:number, color:string, position:string}|null}
+     *   `y` is the vertical centre of the text block. Null when there is no label.
+     */
+    getLabelLayout(measure) {
+        const text = (this.label || '').trim();
+        if (!text) return null;
+        const lines = text.split('\n');
+        const b = this.getBounds();
+        const position = this.labelPosition || 'inside';
+        let fontSize = this.labelFontSize || 12;
+        const measureFn = measure || ((t, font) => {
+            const size = parseFloat(font) || fontSize;
+            return t.length * size * 0.58;
+        });
+        const insideLike = position === 'inside' || position === 'bottom';
+        if (insideLike) {
+            const maxWidth = Math.max(16, b.width - 8);
+            const widest = Math.max(...lines.map(l => measureFn(l, `${fontSize}px Arial`)));
+            if (widest > maxWidth) {
+                fontSize = Math.max(8, Math.floor(fontSize * maxWidth / widest));
+            }
+        }
+        const lineHeight = fontSize * 1.2;
+        const blockHeight = lineHeight * lines.length;
+        const cx = b.x + b.width / 2;
+        let y;
+        switch (position) {
+            case 'bottom':
+                y = b.y + b.height - blockHeight / 2 - 4;
+                break;
+            case 'below':
+                y = b.y + b.height + 4 + blockHeight / 2;
+                break;
+            case 'above':
+                y = b.y - 4 - blockHeight / 2;
+                break;
+            default:
+                y = b.y + b.height / 2;
+        }
+        const color = insideLike ? contrastColor(this.fill) : '#2c3e50';
+        return { lines, x: cx, y, fontSize, lineHeight, color, position };
+    }
+
+    /**
+     * Draws the label (if any). Call inside the rotated context, after the body has been drawn.
+     * @param {CanvasRenderingContext2D} ctx
+     */
+    drawLabel(ctx) {
+        const layout = this.getLabelLayout((t, font) => {
+            ctx.font = font;
+            return ctx.measureText(t).width;
+        });
+        if (!layout) return;
+        ctx.save();
+        this.clearShadow(ctx);
+        ctx.font = `${layout.fontSize}px Arial`;
+        ctx.fillStyle = layout.color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const n = layout.lines.length;
+        layout.lines.forEach((line, i) => {
+            ctx.fillText(line, layout.x, layout.y + (i - (n - 1) / 2) * layout.lineHeight);
+        });
+        ctx.restore();
+    }
+
+    /**
+     * Deep copy with a fresh id.
+     * @returns {BaseShape}
      */
     clone() {
         const cloned = Object.create(Object.getPrototypeOf(this));
-        Object.assign(cloned, JSON.parse(JSON.stringify(this)));
+        Object.assign(cloned, JSON.parse(JSON.stringify(this.toJSON())));
         cloned.id = this.generateId();
         return cloned;
     }
 
     /**
-     * Serializes the shape to a JSON-compatible object for saving.
-     * @returns {Object} JSON representation of the shape
+     * Serialises the shape.
+     * @returns {Object}
      */
     toJSON() {
         return {
@@ -277,15 +396,18 @@ export class BaseShape {
             zIndex: this.zIndex,
             locked: this.locked,
             visible: this.visible,
-            groupId: this.groupId
+            groupId: this.groupId,
+            label: this.label,
+            labelPosition: this.labelPosition,
+            labelFontSize: this.labelFontSize,
+            description: this.description
         };
     }
 
     /**
-     * Restores a shape from a JSON object.
-     * @static
-     * @param {Object} data - JSON data containing shape properties
-     * @returns {BaseShape} Restored shape instance
+     * Restores a shape of this class from JSON.
+     * @param {Object} data
+     * @returns {BaseShape}
      */
     static fromJSON(data) {
         const shape = new this(data.x, data.y, data.width, data.height);
