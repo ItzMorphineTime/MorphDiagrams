@@ -86,7 +86,7 @@ also watches the file so any tool that rewrites it refreshes the browser.
 | `update_object` / `set_port_count` / `move_objects` / `remove_object` | Edit objects |
 | `connect` / `connect_many` / `disconnect` / `update_connector` | Wire ports with validation (type match, direction, occupancy) |
 | `auto_layout` | Layered layout following the signal flow |
-| `trace_signal_path` | Everything reachable downstream / upstream of a device (optionally per connection type), as a tree |
+| `trace_signal_path` | Everything reachable downstream / upstream of a device (optionally per connection type), as a tree; network-like links reach their neighbour but are not transited unless `bidirectional: "full"` |
 | `validate_diagram` | Dangling ports, incompatible/duplicate connections, overlaps, missing labels |
 | `render_svg` | Vector rendering (file or inline) |
 | `insert_template` / `group_objects` / `ungroup_objects` / `undo` | Convenience |

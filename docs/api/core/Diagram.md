@@ -370,6 +370,7 @@ Follows connectors from one or more shapes and returns everything reachable.
 | [options] | <code>Object</code> |  |  |
 | [options.connectionTypes] | <code>Array.&lt;string&gt;</code> |  | Only traverse connectors of these types. |
 | [options.maxDepth] | <code>number</code> | <code>Infinity</code> |  |
+| [options.bidirectional] | <code>&quot;hop&quot;</code> \| <code>&quot;full&quot;</code> \| <code>&quot;none&quot;</code> | <code>&#x27;hop&#x27;</code> | How undirected links (network, fibre, Wi-Fi, untyped)   are followed: `hop` reaches the neighbour but does not continue through it (a switch does not leak the trace   into the whole network), `full` traverses them like any other link, `none` ignores them. |
 
 <a name="module_core/Diagram.Diagram+computeFilter"></a>
 
@@ -383,7 +384,7 @@ Computes which objects a view filter keeps. Criteria combine with AND.
 | [filter] | <code>Object</code> |  |
 | [filter.connectionTypes] | <code>Array.&lt;string&gt;</code> | Keep connectors of these types and the shapes that carry such ports or links. |
 | [filter.shapeTypes] | <code>Array.&lt;string&gt;</code> | Keep only shapes of these types (and links between them). |
-| [filter.trace] | <code>Object</code> | Keep only the signal path reachable from the given shapes. |
+| [filter.trace] | <code>Object</code> | Keep only the signal path reachable from the given shapes (see [Diagram#tracePath](Diagram#tracePath) for `bidirectional`). |
 
 <a name="module_core/Diagram.Diagram+disconnect"></a>
 

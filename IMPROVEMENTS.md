@@ -162,8 +162,9 @@ Effort: **S** (< 1 day), **M** (1–3 days), **L** (more than 3 days).
   editor and `Diagram.connect()`; it is embedded in the file's `connectionTypes` block when non-default.
 - **Signal path tracing** in the model (`Diagram.tracePath`, `flowOf`, `connectionTypeOf`): follows the
   real port directions (a link drawn from an input to an output still flows output → input), treats
-  bidirectional types as undirected, can be restricted to connection types and a hop limit. Exposed to
-  agents as the `trace_signal_path` MCP tool.
+  bidirectional types as undirected but does not transit through them by default (a switch is reached,
+  the rest of the network is not — `bidirectional: "full"` opts in), can be restricted to connection
+  types and a hop limit. Exposed to agents as the `trace_signal_path` MCP tool.
 - **View filter** (`Diagram.computeFilter` + `Filter` popover, `F`): highlight one or more signal types,
   device types and/or the path downstream / upstream / both from the selected devices; everything else is
   dimmed or hidden (hidden objects are not hit-testable). Status-bar chip with a one-click clear, `Esc`

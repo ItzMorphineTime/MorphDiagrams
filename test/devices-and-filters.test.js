@@ -91,6 +91,28 @@ test('tracePath follows signal direction and treats network links as undirected'
     assert.equal(both.shapes.length, 7, 'everything except the text note is connected');
 });
 
+test('tracePath does not transit through network switches unless asked', () => {
+    const d = new Diagram();
+    d.createShape('camera', { id: 'cam', label: 'Cam' });
+    d.createShape('network_switch', { id: 'sw', label: 'Switch' });
+    d.createShape('server', { id: 'srv', label: 'Server', ports: { network: { input: 1, output: 0 }, video: { input: 0, output: 1 } } });
+    d.createShape('monitor', { id: 'mon', label: 'Monitor' });
+    d.connect({ from: 'sw', to: 'cam', connectionType: 'network' });
+    d.connect({ from: 'sw', to: 'srv', connectionType: 'network' });
+    d.connect({ from: 'srv', to: 'mon', fromPort: 'video' });
+
+    const hop = d.tracePath(['cam'], 'downstream');
+    assert.deepEqual(hop.shapes.map(s => s.id), ['cam', 'sw'], 'the switch is reached but not transited');
+    const full = d.tracePath(['cam'], 'downstream', { bidirectional: 'full' });
+    assert.deepEqual(full.shapes.map(s => s.id), ['cam', 'sw', 'srv', 'mon']);
+    const none = d.tracePath(['cam'], 'downstream', { bidirectional: 'none' });
+    assert.deepEqual(none.shapes.map(s => s.id), ['cam']);
+    const fromSwitch = d.tracePath(['sw'], 'both');
+    assert.deepEqual(fromSwitch.shapes.map(s => s.id).sort(), ['cam', 'srv', 'sw'], 'a switch still lists its neighbours');
+    const filtered = d.computeFilter({ trace: { from: ['cam'], direction: 'downstream', bidirectional: 'full' } });
+    assert.equal(filtered.shapes, 4);
+});
+
 test('computeFilter narrows by connection type, shape type and trace', () => {
     const d = rig();
     const none = d.computeFilter({});

@@ -501,16 +501,17 @@ server.registerTool('auto_layout', {
 
 server.registerTool('trace_signal_path', {
     title: 'Trace signal path',
-    description: 'Follows the connections from one or more devices and returns every device reachable downstream (what this feeds), upstream (what feeds it) or both, with the connectors used. Optionally restrict to connection types (e.g. ["sdi","video"]). Bidirectional types such as network are followed in both directions.',
+    description: 'Follows the connections from one or more devices and returns every device reachable downstream (what this feeds), upstream (what feeds it) or both, with the connectors used. Optionally restrict to connection types (e.g. ["sdi","video"]). Bidirectional links (network, fibre, wifi) reach their neighbour but are not transited by default, so a switch does not leak the trace into the whole network; set bidirectional="full" to follow networks end to end or "none" to ignore them.',
     inputSchema: {
         from: z.union([refSchema, z.array(refSchema).min(1)]).describe('start object(s): id or unique label'),
         direction: z.enum(['downstream', 'upstream', 'both']).optional().describe('default downstream'),
         connectionTypes: z.array(z.string()).optional().describe('only follow these connection types'),
-        maxDepth: z.number().int().min(1).optional().describe('limit the number of hops')
+        maxDepth: z.number().int().min(1).optional().describe('limit the number of hops'),
+        bidirectional: z.enum(['hop', 'full', 'none']).optional().describe('how network-like links are followed (default hop)')
     },
     annotations: { readOnlyHint: true }
-}, tool(({ from, direction, connectionTypes, maxDepth }) => {
-    const result = state.diagram.tracePath(from, direction || 'downstream', { connectionTypes, maxDepth });
+}, tool(({ from, direction, connectionTypes, maxDepth, bidirectional }) => {
+    const result = state.diagram.tracePath(from, direction || 'downstream', { connectionTypes, maxDepth, bidirectional });
     const shapes = result.shapes.map(s => ({ ...shapeSummary(state.diagram.getById(s.id)), depth: s.depth }));
     const connectors = result.connectors.map(id => shapeSummary(state.diagram.getById(id)));
     const lines = shapes.map(s => `${'  '.repeat(s.depth)}${s.depth ? '→ ' : ''}${s.label || s.id} [${s.type}]`);

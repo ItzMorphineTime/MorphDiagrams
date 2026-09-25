@@ -498,11 +498,15 @@ export class Diagram {
      * @param {Object} [options]
      * @param {string[]} [options.connectionTypes] Only traverse connectors of these types.
      * @param {number} [options.maxDepth=Infinity]
+     * @param {("hop"|"full"|"none")} [options.bidirectional='hop'] How undirected links (network, fibre, Wi-Fi, untyped)
+     *   are followed: `hop` reaches the neighbour but does not continue through it (a switch does not leak the trace
+     *   into the whole network), `full` traverses them like any other link, `none` ignores them.
      * @returns {{shapes: Array<{id:string, depth:number}>, connectors: string[]}} Shapes in breadth-first order (depth 0 = start).
      */
     tracePath(fromRefs, direction = 'downstream', options = {}) {
         const types = options.connectionTypes && options.connectionTypes.length ? new Set(options.connectionTypes.map(t => ConnectionTypeRegistry.normalizeId(t))) : null;
         const maxDepth = options.maxDepth === undefined ? Infinity : options.maxDepth;
+        const bidi = ['hop', 'full', 'none'].includes(options.bidirectional) ? options.bidirectional : 'hop';
         const starts = (Array.isArray(fromRefs) ? fromRefs : [fromRefs]).map(r => this.resolve(r, { shapesOnly: true }));
         const links = this.connectors.filter(c => c.startObject && c.endObject && (!types || types.has(this.connectionTypeOf(c) || '')));
         const depthOf = new Map(starts.map(s => [s, 0]));
@@ -518,7 +522,8 @@ export class Diagram {
                     const flow = this.flowOf(c);
                     const other = c.startObject === shape ? c.endObject : c.startObject;
                     let allowed;
-                    if (direction === 'both' || flow.undirected) allowed = true;
+                    if (flow.undirected) allowed = bidi !== 'none';
+                    else if (direction === 'both') allowed = true;
                     else if (direction === 'downstream') allowed = flow.from === shape;
                     else allowed = flow.to === shape;
                     if (!allowed) continue;
@@ -526,7 +531,7 @@ export class Diagram {
                     if (!depthOf.has(other)) {
                         depthOf.set(other, depth + 1);
                         order.push(other);
-                        next.push(other);
+                        if (!flow.undirected || bidi === 'full') next.push(other);
                     }
                 }
             }
@@ -544,8 +549,8 @@ export class Diagram {
      * @param {Object} [filter]
      * @param {string[]} [filter.connectionTypes] Keep connectors of these types and the shapes that carry such ports or links.
      * @param {string[]} [filter.shapeTypes] Keep only shapes of these types (and links between them).
-     * @param {{from: Array<Object|string>, direction: ("downstream"|"upstream"|"both"), maxDepth: number}} [filter.trace]
-     *   Keep only the signal path reachable from the given shapes.
+     * @param {{from: Array<Object|string>, direction: ("downstream"|"upstream"|"both"), maxDepth: number, bidirectional: string}} [filter.trace]
+     *   Keep only the signal path reachable from the given shapes (see {@link Diagram#tracePath} for `bidirectional`).
      * @returns {{active: boolean, ids: Set<string>, shapes: number, connectors: number}}
      */
     computeFilter(filter = {}) {
@@ -572,7 +577,11 @@ export class Diagram {
         if (trace) {
             let traced;
             try {
-                traced = this.tracePath(trace.from, trace.direction || 'downstream', { connectionTypes: types ? [...types] : undefined, maxDepth: trace.maxDepth });
+                traced = this.tracePath(trace.from, trace.direction || 'downstream', {
+                    connectionTypes: types ? [...types] : undefined,
+                    maxDepth: trace.maxDepth,
+                    bidirectional: trace.bidirectional
+                });
             } catch {
                 traced = { shapes: [], connectors: [] };
             }
