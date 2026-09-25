@@ -103,6 +103,15 @@
                         <line x1="10" y1="10" x2="11.5" y2="10" stroke="currentColor" stroke-width="1"/>
                     </svg>
                 </button>
+                <button class="tool-btn" data-tool="device" title="Generic Device (E) - configurable ports">
+                    <svg width="20" height="20" viewBox="0 0 20 20">
+                        <rect x="3" y="5" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="3" cy="8" r="1.5" fill="currentColor"/>
+                        <circle cx="3" cy="12" r="1.5" fill="currentColor"/>
+                        <circle cx="17" cy="8" r="1.5" fill="currentColor"/>
+                        <circle cx="17" cy="12" r="1.5" fill="currentColor"/>
+                    </svg>
+                </button>
             </div>
 
             <!-- Connector Tools -->
@@ -147,6 +156,12 @@
                 <button class="tool-btn" id="align-left" title="Align Left">⫷</button>
                 <button class="tool-btn" id="align-center" title="Align Center">⫿</button>
                 <button class="tool-btn" id="align-right" title="Align Right">⫸</button>
+                <button class="tool-btn" id="align-top" title="Align Top">⤒</button>
+                <button class="tool-btn" id="align-middle" title="Align Middle">↕</button>
+                <button class="tool-btn" id="align-bottom" title="Align Bottom">⤓</button>
+                <button class="tool-btn" id="distribute-h" title="Distribute Horizontally">⇹</button>
+                <button class="tool-btn" id="distribute-v" title="Distribute Vertically">⇳</button>
+                <button class="tool-btn" id="auto-layout-btn" title="Auto layout (arrange along signal flow)">⌗</button>
             </div>
 
             <!-- View Controls -->
@@ -163,22 +178,30 @@
                     <input type="checkbox" id="shadow-toggle">
                     <span>Shadows</span>
                 </label>
+                <label title="Show port names on every device">
+                    <input type="checkbox" id="port-labels-toggle">
+                    <span>Port labels</span>
+                </label>
             </div>
 
             <div class="toolbar-section">
-                <button class="tool-btn" id="zoom-out">-</button>
+                <button class="tool-btn" id="zoom-out" title="Zoom out (Ctrl+-)">-</button>
                 <span id="zoom-level">100%</span>
-                <button class="tool-btn" id="zoom-in">+</button>
+                <button class="tool-btn" id="zoom-in" title="Zoom in (Ctrl++)">+</button>
+                <button class="tool-btn" id="zoom-fit" title="Zoom to fit">⛶</button>
             </div>
 
             <!-- File Operations -->
             <div class="toolbar-section">
+                <input type="text" id="diagram-name" class="name-input" placeholder="Untitled diagram" title="Diagram name (used as file name)">
+                <span id="live-status" class="live-status" style="display: none;"></span>
                 <button class="action-btn" id="templates-btn">Templates</button>
                 <button class="action-btn" id="icons-btn">Icons</button>
                 <button class="action-btn" id="image-btn">Image</button>
-                <button class="action-btn" id="save-btn">Save</button>
-                <button class="action-btn" id="load-btn">Load</button>
+                <button class="action-btn" id="save-btn" title="Save JSON (Ctrl+S)">Save</button>
+                <button class="action-btn" id="load-btn" title="Load JSON (Ctrl+O)">Load</button>
                 <button class="action-btn" id="export-png-btn">PNG</button>
+                <button class="action-btn" id="export-svg-btn" title="Export vector SVG">SVG</button>
                 <button class="action-btn" id="export-pdf-btn">PDF</button>
                 <button class="action-btn" id="new-btn">New</button>
                 <button class="action-btn" id="settings-btn">⚙️ Settings</button>
@@ -226,55 +249,19 @@
             <div class="modal-content">
                 <span class="close">&times;</span>
                 <h2>Settings</h2>
-                <div class="settings-content" style="justify-items: flex-end;">
-                    <h3 style="margin-top: 0;">Connection Type Colors</h3>
-                    <div class="setting-group">
-                        <label>Video Connections</label>
-                        <input type="color" id="color-video" value="#FFD700">
-                        <span class="color-preview" id="preview-video"></span>
-                    </div>
-                    <div class="setting-group">
-                        <label>SDI Connections</label>
-                        <input type="color" id="color-sdi" value="#FF4500">
-                        <span class="color-preview" id="preview-sdi"></span>
-                    </div>
-                    <div class="setting-group">
-                        <label>Network Connections</label>
-                        <input type="color" id="color-network" value="#00CED1">
-                        <span class="color-preview" id="preview-network"></span>
-                    </div>
-                    <div class="setting-group">
-                        <label>USB Connections</label>
-                        <input type="color" id="color-usb" value="#9370DB">
-                        <span class="color-preview" id="preview-usb"></span>
+                <div class="settings-content">
+                    <h3 style="margin-top: 0;">Connection Types</h3>
+                    <div id="connection-colors"></div>
+                    <div class="setting-group new-type-row">
+                        <input type="text" id="new-type-id" placeholder="id (e.g. hdmi)">
+                        <input type="text" id="new-type-label" placeholder="Label">
+                        <input type="color" id="new-type-color" value="#E91E63">
+                        <label title="Ports of this type may connect in any direction"><input type="checkbox" id="new-type-bidirectional"> bidirectional</label>
+                        <button id="add-connection-type-btn" class="action-btn">+ Add type</button>
                     </div>
 
                     <h3 style="margin-top: 20px;">System Object Colors</h3>
-                    <div class="setting-group">
-                        <label>Server</label>
-                        <input type="color" id="color-server" value="#2C3E50">
-                        <span class="color-preview" id="preview-server"></span>
-                    </div>
-                    <div class="setting-group">
-                        <label>Network Switch</label>
-                        <input type="color" id="color-network-switch" value="#27AE60">
-                        <span class="color-preview" id="preview-network-switch"></span>
-                    </div>
-                    <div class="setting-group">
-                        <label>Video Matrix</label>
-                        <input type="color" id="color-video-matrix" value="#E74C3C">
-                        <span class="color-preview" id="preview-video-matrix"></span>
-                    </div>
-                    <div class="setting-group">
-                        <label>LED Processor</label>
-                        <input type="color" id="color-led-processor" value="#F39C12">
-                        <span class="color-preview" id="preview-led-processor"></span>
-                    </div>
-                    <div class="setting-group">
-                        <label>Sync Generator</label>
-                        <input type="color" id="color-sync-generator" value="#8E44AD">
-                        <span class="color-preview" id="preview-sync-generator"></span>
-                    </div>
+                    <div id="object-colors"></div>
 
                     <div class="setting-actions">
                         <button id="reset-colors-btn" class="action-btn">Reset to Defaults</button>
