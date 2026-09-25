@@ -14,6 +14,7 @@ import { SyncGenerator } from '../shapes/SyncGenerator.js';
 import { LEDProcessor } from '../shapes/LEDProcessor.js';
 import { NetworkSwitch } from '../shapes/NetworkSwitch.js';
 import { ConnectionTypeRegistry } from '../config/ConnectionTypes.js';
+import { Diagram } from '../core/Diagram.js';
 
 /**
  * Provides static methods for creating pre-configured diagram templates.
@@ -301,13 +302,151 @@ export class Templates {
         return { name: 'System Diagram', objects };
     }
 
+    /**
+     * Extra-large virtual production LED volume: 10 render servers (2 outputs each) and a video matrix
+     * feeding 4 LED processors, 4 LED distros and 4 wall sections; 4 control machines on 2 KVMs;
+     * a core switch with 4 separated VLANs (render, tracking, control/management, media & camera);
+     * 10 tracking cameras and a tracking server; a show camera with genlock; 2 comfort monitors;
+     * 4 PDUs. Everything is wired through typed ports so the signal path can be traced.
+     * @static
+     * @returns {{name: string, objects: Array}}
+     */
+    static createVirtualProductionVolume() {
+        const d = new Diagram();
+        const add = (type, props) => d.createShape(type, props);
+        const link = (from, to, connectionType, extra = {}) => d.connect({ from, to, connectionType, ...extra });
+        const netIn = n => ({ network: { input: n, output: 0 } });
+
+        // --- Column A: sync, show camera, tracking cameras ------------------------------------
+        const sync = add('sync_generator', { id: 'vp_sync', label: 'Sync Generator', x: 60, y: 60, width: 140, height: 320,
+            ports: { sdi: { input: 0, output: 16 } }, description: 'Tri-level sync / genlock reference for servers, camera, matrix and LED processors' });
+        const showCam = add('camera', { id: 'vp_show_cam', label: 'Show Camera (Cine)', x: 60, y: 420, width: 130, height: 90,
+            ports: { sdi: { input: 1, output: 2 }, network: { input: 1, output: 0 }, power: { input: 1, output: 0 } },
+            description: 'Genlocked cinema camera; SDI program feed to the matrix, tracking data via the tracking system' });
+        const trackingCams = [];
+        for (let i = 1; i <= 10; i++) {
+            trackingCams.push(add('camera', { id: `vp_track_cam_${i}`, label: `Tracking Cam ${i}`, x: 60, y: 560 + (i - 1) * 80, width: 120, height: 60,
+                ports: netIn(1), description: 'PoE optical tracking camera' }));
+        }
+
+        // --- Column B: render servers, control machines, tracking server, PDU A ----------------
+        const servers = [];
+        for (let i = 1; i <= 10; i++) {
+            servers.push(add('server', { id: `vp_render_${i}`, label: `Render ${i}`, x: 400, y: 60 + (i - 1) * 100, width: 130, height: 80,
+                ports: { video: { input: 0, output: 2 }, sdi: { input: 1, output: 0 }, network: { input: 2, output: 0 }, power: { input: 1, output: 0 } },
+                description: 'Render node: 2 genlocked video outputs, render + management VLANs' }));
+        }
+        const controls = [];
+        for (let i = 1; i <= 4; i++) {
+            controls.push(add('device', { id: `vp_control_${i}`, label: `Control ${i}`, x: 400, y: 1100 + (i - 1) * 100, width: 130, height: 80,
+                ports: { video: { input: 0, output: 1 }, usb: { input: 1, output: 0 }, network: { input: 2, output: 0 }, power: { input: 1, output: 0 } },
+                description: 'Operator / brain-bar workstation reached through the KVM' }));
+        }
+        const trackingServer = add('server', { id: 'vp_tracking_server', label: 'Tracking Server', x: 400, y: 1540, width: 130, height: 80,
+            ports: { network: { input: 2, output: 0 }, power: { input: 1, output: 0 } },
+            description: 'Solves camera tracking and publishes it to the render nodes' });
+
+        // --- Column C: core switch + 4 VLAN switches ------------------------------------------
+        const switchPorts = (outputs) => ({ network: { input: 2, output: outputs }, fibre: { input: 1, output: 0 }, power: { input: 1, output: 0 } });
+        const core = add('network_switch', { id: 'vp_core', label: 'Core Switch', x: 740, y: 60, width: 160, height: 220,
+            ports: { fibre: { input: 0, output: 4 }, power: { input: 1, output: 0 } }, description: 'Fibre trunks to the four VLAN switches' });
+        const vlanRender = add('network_switch', { id: 'vp_vlan10', label: 'VLAN 10 · Render', x: 740, y: 320, width: 170, height: 320,
+            ports: switchPorts(12), description: 'Render traffic (servers, tracking data in)' });
+        const vlanControl = add('network_switch', { id: 'vp_vlan30', label: 'VLAN 30 · Control & Mgmt', x: 740, y: 680, width: 170, height: 420,
+            ports: switchPorts(28), description: 'Out-of-band management and control' });
+        const vlanTracking = add('network_switch', { id: 'vp_vlan20', label: 'VLAN 20 · Tracking', x: 740, y: 1140, width: 170, height: 260,
+            ports: switchPorts(12), description: 'PoE tracking cameras and tracking server' });
+        const vlanMedia = add('network_switch', { id: 'vp_vlan40', label: 'VLAN 40 · Media & Camera', x: 740, y: 1440, width: 170, height: 200,
+            ports: switchPorts(8), description: 'Show camera control, comfort monitors, operator media' });
+
+        // --- Column D: video matrix, KVMs ---------------------------------------------------
+        const matrix = add('video_matrix', { id: 'vp_matrix', label: 'Video Matrix', x: 1100, y: 60, width: 170, height: 480,
+            ports: { video: { input: 20, output: 12 }, sdi: { input: 2, output: 2 }, network: { input: 1, output: 0 }, power: { input: 1, output: 0 } },
+            description: '20 render inputs → LED processors and comfort monitors' });
+        const kvmA = add('kvm', { id: 'vp_kvm_a', label: 'KVM A (Brain Bar)', x: 1100, y: 1100, width: 150, height: 120,
+            ports: { video: { input: 2, output: 1 }, usb: { input: 1, output: 2 }, network: { input: 1, output: 0 }, power: { input: 1, output: 0 } } });
+        const kvmB = add('kvm', { id: 'vp_kvm_b', label: 'KVM B (Operators)', x: 1100, y: 1260, width: 150, height: 120,
+            ports: { video: { input: 2, output: 1 }, usb: { input: 1, output: 2 }, network: { input: 1, output: 0 }, power: { input: 1, output: 0 } } });
+
+        // --- Column E: LED processors, comfort monitors ---------------------------------------
+        const processors = [];
+        for (let i = 1; i <= 4; i++) {
+            processors.push(add('led_processor', { id: `vp_proc_${i}`, label: `LED Processor ${i}`, x: 1440, y: 60 + (i - 1) * 140, width: 150, height: 110,
+                ports: { video: { input: 2, output: 4 }, sdi: { input: 1, output: 0 }, network: { input: 1, output: 0 }, power: { input: 1, output: 0 } } }));
+        }
+        const monitors = [];
+        for (let i = 1; i <= 2; i++) {
+            monitors.push(add('monitor', { id: `vp_monitor_${i}`, label: `Comfort Monitor ${i}`, x: 1440, y: 720 + (i - 1) * 140, width: 140, height: 100,
+                ports: { video: { input: 1, output: 0 }, sdi: { input: 1, output: 0 }, network: { input: 1, output: 0 }, power: { input: 1, output: 0 } },
+                description: 'Program / camera return for director and talent' }));
+        }
+
+        // --- Columns F/G: LED distros and wall sections --------------------------------------
+        const wallNames = ['LED Wall · Main', 'LED Wall · Ceiling', 'Wild Wall · SL', 'Wild Wall · SR'];
+        const distros = [];
+        const walls = [];
+        for (let i = 1; i <= 4; i++) {
+            distros.push(add('led_distro', { id: `vp_distro_${i}`, label: `LED Distro ${i} (XD)`, x: 1780, y: 60 + (i - 1) * 170, width: 140, height: 150,
+                ports: { video: { input: 2, output: 4 }, power: { input: 1, output: 4 } } }));
+            walls.push(add('device', { id: `vp_wall_${i}`, label: wallNames[i - 1], x: 2120, y: 60 + (i - 1) * 170, width: 170, height: 150,
+                fill: '#1B2631', ports: { video: { input: 2, output: 0 }, power: { input: 2, output: 0 } }, description: 'LED panel section (data + power from the distro)' }));
+        }
+
+        // --- Power row ---------------------------------------------------------------------
+        const pduPorts = n => ({ power: { input: 1, output: n }, network: { input: 1, output: 0 } });
+        const pduA = add('power_supply', { id: 'vp_pdu_a', label: 'PDU A (Render 1–5)', x: 400, y: 1740, width: 130, height: 170, ports: pduPorts(8) });
+        const pduB = add('power_supply', { id: 'vp_pdu_b', label: 'PDU B (Render 6–10)', x: 740, y: 1740, width: 130, height: 170, ports: pduPorts(8) });
+        const pduC = add('power_supply', { id: 'vp_pdu_c', label: 'PDU C (Network & Processing)', x: 1100, y: 1740, width: 130, height: 170, ports: pduPorts(12) });
+        const pduD = add('power_supply', { id: 'vp_pdu_d', label: 'PDU D (Display & Camera)', x: 1440, y: 1740, width: 130, height: 170, ports: pduPorts(8) });
+
+        // --- Genlock ---------------------------------------------------------------------
+        servers.forEach(s => link(sync, s, 'sdi'));
+        link(sync, showCam, 'sdi', { label: 'Genlock' });
+        link(sync, matrix, 'sdi');
+        processors.forEach(p => link(sync, p, 'sdi'));
+
+        // --- Video path ------------------------------------------------------------------
+        servers.forEach(s => { link(s, matrix, 'video'); link(s, matrix, 'video'); });
+        processors.forEach(p => { link(matrix, p, 'video'); link(matrix, p, 'video'); });
+        monitors.forEach(m => link(matrix, m, 'video'));
+        link(showCam, matrix, 'sdi', { label: 'Program' });
+        monitors.forEach(m => link(matrix, m, 'sdi', { label: 'Cam return' }));
+        processors.forEach((p, i) => { link(p, distros[i], 'video'); link(p, distros[i], 'video'); });
+        distros.forEach((x, i) => { link(x, walls[i], 'video'); link(x, walls[i], 'video'); link(x, walls[i], 'power'); link(x, walls[i], 'power'); });
+
+        // --- Networks --------------------------------------------------------------------
+        [vlanRender, vlanControl, vlanTracking, vlanMedia].forEach(sw => link(core, sw, 'fibre', { label: 'Trunk' }));
+        servers.forEach(s => { link(vlanRender, s, 'network'); link(vlanControl, s, 'network'); });
+        link(vlanRender, trackingServer, 'network');
+        link(vlanTracking, trackingServer, 'network');
+        trackingCams.forEach(c => link(vlanTracking, c, 'network'));
+        controls.forEach(c => { link(vlanControl, c, 'network'); link(vlanMedia, c, 'network'); });
+        [kvmA, kvmB, matrix, ...processors, pduA, pduB, pduC, pduD].forEach(dev => link(vlanControl, dev, 'network'));
+        link(vlanMedia, showCam, 'network');
+        monitors.forEach(m => link(vlanMedia, m, 'network'));
+
+        // --- KVM -------------------------------------------------------------------------
+        [[kvmA, [controls[0], controls[1]]], [kvmB, [controls[2], controls[3]]]].forEach(([kvm, machines]) => {
+            machines.forEach(m => { link(m, kvm, 'video'); link(kvm, m, 'usb'); });
+        });
+
+        // --- Power -----------------------------------------------------------------------
+        [...servers.slice(0, 5), controls[0], controls[1]].forEach(dev => link(pduA, dev, 'power'));
+        [...servers.slice(5), controls[2], controls[3]].forEach(dev => link(pduB, dev, 'power'));
+        [core, vlanRender, vlanControl, vlanTracking, vlanMedia, matrix, ...processors, kvmA, kvmB].forEach(dev => link(pduC, dev, 'power'));
+        [...distros, ...monitors, showCam, trackingServer].forEach(dev => link(pduD, dev, 'power'));
+
+        return { name: 'XL Virtual Production LED Volume', objects: d.objects };
+    }
+
     static getAllTemplates() {
         return [
             { id: 'flowchart', name: 'Basic Flowchart', create: this.createBasicFlowchart },
             { id: 'three-tier', name: '3-Tier Architecture', create: this.createThreeTierArchitecture },
             { id: 'network', name: 'Network Diagram', create: this.createNetworkDiagram },
             { id: 'org-chart', name: 'Organization Chart', create: this.createOrgChart },
-            { id: 'system-diagram', name: 'System Diagram', create: this.createSystemDiagram }
+            { id: 'system-diagram', name: 'System Diagram', create: this.createSystemDiagram },
+            { id: 'vp-volume', name: 'XL Virtual Production LED Volume', create: this.createVirtualProductionVolume }
         ];
     }
 }

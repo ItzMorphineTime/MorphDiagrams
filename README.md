@@ -47,6 +47,12 @@ No installation required. Works in any modern browser.
 - **Sync Generator** - Timing signal generator
   - SDI distribution
   - Hexagonal design
+- **Device** - Generic hardware with a fully configurable port map
+- **Monitor** - Video/SDI inputs, loop-through output, power input
+- **Camera** - SDI outputs, genlock input, network control, power
+- **Power Supply** - One power input feeding several power outputs (PDU)
+- **LED Distro (XD)** - Data (video/fibre) and power fanned out to LED panels
+- **KVM** - Video/USB from several computers in, one console out
 - **Connector Anchor** - Universal connection point
   - Accepts any connection type
   - Acts as waypoint or junction
@@ -69,6 +75,10 @@ No installation required. Works in any modern browser.
 - **SDI** - Orange Red (#FF4500) connections
 - **Network** - Dark Turquoise (#00CED1) connections
 - **USB** - Medium Purple (#9370DB) connections
+- **Fibre** - Magenta (#D81B60), bidirectional
+- **Power** - Deep Red (#B71C1C), supply output → device input
+- **Wi-Fi** - Green (#43A047), bidirectional, drawn dashed
+- **Custom types** - Add your own (HDMI, Dante, DMX, ...) in Settings; they are stored in the diagram file
 - **Generic** - Default for standard shapes
 
 #### Advanced Features
@@ -132,10 +142,16 @@ Pre-configured diagrams:
 - **Basic Flowchart** - Start, process, decision, end nodes
 - **Organizational Chart** - Hierarchical structure
 - **Network Diagram** - Server and switch topology
-- **System Diagram** (NEW!) - Complete system with typed connections
+- **System Diagram** - Complete system with typed connections
   - Server, Video Matrix, LED Processor
   - Sync Generator, Network Switch
   - 8 pre-connected signal paths
+- **XL Virtual Production LED Volume** - A full stage in one click
+  - 10 genlocked render servers (2 outputs each) into a 20×12 video matrix
+  - 4 LED processors → 4 LED distros (XD) → 4 wall sections (data + power)
+  - Core switch with 4 separated VLANs (render, tracking, control/management, media & camera)
+  - 4 control machines on 2 KVMs, 10 PoE tracking cameras + tracking server, show camera with genlock
+  - 2 comfort monitors, 4 PDUs; ~190 typed links, ready for tracing and filtering
 
 ### 💾 File Operations
 
@@ -256,6 +272,12 @@ Right-click for quick actions:
 1. **Right-click** the link → **Add waypoint here** (straight/orthogonal/bezier links become editable polylines without changing shape)
 2. Drag waypoints (they snap to the grid); **Alt+click** a waypoint or use *Remove waypoint* to delete it
 3. *Straighten*, switch the path style, *Reverse direction* or edit the label from the same menu
+
+#### Reading a busy diagram (view filter)
+1. Press **F** or click **Filter** in the app bar
+2. Pick one or more **signal types** (video, SDI, network, fibre, power, Wi-Fi, ...) or **device types**
+3. Or right-click a device → **Trace downstream** / **Trace upstream** to highlight its signal path
+4. Everything else is dimmed (or hidden); **Esc** clears the filter. SVG export respects the filter.
 
 #### Bezier Curves
 1. Create any connector

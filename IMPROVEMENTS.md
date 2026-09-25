@@ -153,6 +153,28 @@ Effort: **S** (< 1 day), **M** (1–3 days), **L** (more than 3 days).
   context menu with icons, "Add device here" / "Add text here" on the canvas menu, `Shift+1` zoom to fit.
 - `Diagram.validate()` now also returns structured `issues` with the ids of the objects involved.
 
+### Device library, connection types and view filtering (third iteration)
+
+- **New system objects**: `monitor`, `camera`, `power_supply` (PDU), `led_distro` (XD) and `kvm`, each with
+  sensible default ports, a canvas icon and an SVG icon (`js/shapes/*.js`, registered in `ShapeRegistry`).
+- **New built-in connection types**: `fibre` (bidirectional), `power` (supply output → device input) and
+  `wifi` (bidirectional, drawn dashed). Types may now declare a default `lineStyle`, applied by both the
+  editor and `Diagram.connect()`; it is embedded in the file's `connectionTypes` block when non-default.
+- **Signal path tracing** in the model (`Diagram.tracePath`, `flowOf`, `connectionTypeOf`): follows the
+  real port directions (a link drawn from an input to an output still flows output → input), treats
+  bidirectional types as undirected, can be restricted to connection types and a hop limit. Exposed to
+  agents as the `trace_signal_path` MCP tool.
+- **View filter** (`Diagram.computeFilter` + `Filter` popover, `F`): highlight one or more signal types,
+  device types and/or the path downstream / upstream / both from the selected devices; everything else is
+  dimmed or hidden (hidden objects are not hit-testable). Status-bar chip with a one-click clear, `Esc`
+  clears, context-menu shortcuts (*Trace downstream / upstream*, *Show only … links*), the overview panel
+  shows the active filter, and SVG export respects the filter (`highlight` option of `SvgExporter`).
+
+- **XL Virtual Production LED Volume template** (`Templates.createVirtualProductionVolume`): built on the
+  headless model with automatic port assignment — 10 render servers, video matrix, 4 LED processors, 4 LED
+  distros and wall sections, core switch + 4 VLANs, 4 control machines on 2 KVMs, 10 tracking cameras and a
+  tracking server, show camera with genlock, 2 comfort monitors, 4 PDUs (≈190 validated links).
+
 ### Behaviour changes to be aware of
 
 - Orthogonal connectors now leave ports with a straight 20 px stub, so existing files render slightly
