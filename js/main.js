@@ -1,13 +1,12 @@
 /**
  * @module main
  * @description Browser entry point: the `CanvasApp` editor. Handles the canvas, mouse/keyboard input,
- * selection and transforms, the properties panel, templates, file operations and live sync with the
- * MCP server. All diagram semantics (objects, ports, connections, validation, layout, serialisation)
- * live in the headless {@link module:core/Diagram} model so the editor, the MCP server and the tests
- * share one implementation.
+ * selection and transforms, inline editing, the tool palette / status bar, templates, file operations,
+ * autosave and live sync with the MCP server. Diagram semantics (objects, ports, connections,
+ * validation, layout, serialisation) live in the headless {@link module:core/Diagram} model.
  *
  * @see module:core/Diagram
- * @see module:core/ShapeRegistry
+ * @see module:ui/PropertiesPanel
  */
 
 import { Connector } from './core/Connector.js';
@@ -16,11 +15,16 @@ import { ShapeRegistry } from './core/ShapeRegistry.js';
 import { serializeObjects, deserializeObjects, createDocument, parseDocument } from './core/Serialization.js';
 import { diagramToSvg } from './core/SvgExporter.js';
 import { expectedCounterpartPortType, portLabel } from './core/Ports.js';
+import { computeSmartGuides } from './core/SmartGuides.js';
 import { ContextMenu } from './ui/ContextMenu.js';
 import { LiveSync } from './ui/LiveSync.js';
+import { PropertiesPanel } from './ui/PropertiesPanel.js';
+import { showToast, confirmDialog } from './ui/Dialogs.js';
+import { installTooltips } from './ui/Tooltip.js';
 import { IconLibrary } from './utils/IconLibrary.js';
 import { Templates } from './utils/Templates.js';
 import { contrastColor } from './utils/Color.js';
+import { escapeHtml, newId, downloadBlob, debounce } from './utils/Dom.js';
 import {
     ConnectionTypeRegistry, ObjectColors, DEFAULT_OBJECT_COLORS, DEFAULT_CONNECTION_COLORS
 } from './config/ConnectionTypes.js';
@@ -35,32 +39,15 @@ const OBJECT_COLOR_KEYS = {
     device: 'DEVICE'
 };
 
-/**
- * Escapes text for safe interpolation into innerHTML.
- * @param {*} value
- * @returns {string}
- */
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
+const AUTOSAVE_KEY = 'morph:autosave';
 
-function newId(prefix) {
-    return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
-}
-
-function downloadBlob(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+const TOOL_HINTS = {
+    select: 'Drag to move · Shift+click adds to the selection · Double-click renames · Right-click for actions',
+    connector: 'Press on a port and release on a compatible port of another object · Esc cancels',
+    polyline: 'Click a port to start, click to add corners, click a port to finish · Esc cancels',
+    text: 'Click on the canvas to place a text block',
+    shape: 'Click to place at the default size, or drag to size it'
+};
 
 /**
  * Main application class that manages the canvas-based diagramming tool.
@@ -72,6 +59,7 @@ class CanvasApp {
         this.canvas = document.getElementById('canvas');
         /** @type {CanvasRenderingContext2D} */
         this.ctx = this.canvas.getContext('2d');
+        this.container = document.getElementById('canvas-container');
 
         /** @type {Diagram} Headless document model (objects live in `diagram.objects`) */
         this.diagram = new Diagram();
@@ -81,11 +69,20 @@ class CanvasApp {
         this.currentTool = 'select';
         /** @type {Array} Serialised objects for paste operations */
         this.clipboard = [];
+        /** @type {string} Path style for new connectors */
+        this.defaultConnectorStyle = 'orthogonal';
+
+        this.dpr = 1;
+        this.viewWidth = 0;
+        this.viewHeight = 0;
 
         this.isDrawing = false;
         this.isDragging = false;
         this.dragMoved = false;
         this.dragStart = null;
+        this.dragOrigin = null;
+        this.dragPrimary = null;
+        this.activeGuides = [];
         this.tempObject = null;
 
         this.isResizing = false;
@@ -105,6 +102,8 @@ class CanvasApp {
         this.connectorStart = null;
         this.isDrawingPolyline = false;
         this.polylineWaypoints = [];
+
+        this.hoverObject = null;
 
         this.gridSize = 20;
         this.showGrid = true;
@@ -128,15 +127,24 @@ class CanvasApp {
         /** @type {LiveSync|null} Live connection to the MCP server / bridge (when served by it) */
         this.liveSync = null;
         this.applyingRemote = false;
+        this.inlineTarget = null;
 
         this.contextMenu = new ContextMenu(this.canvas);
+        this.propertiesPanel = new PropertiesPanel(this);
+        this.tooltips = installTooltips();
+        this.scheduleAutosave = debounce(() => this.autosave(), 800);
 
         this.resizeCanvas();
         this.setupEventListeners();
-        this.render();
+        this.setTool('select');
+        this.updatePropertiesPanel();
         this.saveState();
 
-        window.addEventListener('resize', () => this.resizeCanvas());
+        if (typeof ResizeObserver !== 'undefined') {
+            new ResizeObserver(() => this.resizeCanvas()).observe(this.container);
+        } else {
+            window.addEventListener('resize', () => this.resizeCanvas());
+        }
         this.initLiveSync();
     }
 
@@ -159,9 +167,16 @@ class CanvasApp {
     }
 
     resizeCanvas() {
-        const container = this.canvas.parentElement;
-        this.canvas.width = container.clientWidth;
-        this.canvas.height = container.clientHeight;
+        const w = this.container.clientWidth;
+        const h = this.container.clientHeight;
+        if (!w || !h) return;
+        this.dpr = window.devicePixelRatio || 1;
+        this.viewWidth = w;
+        this.viewHeight = h;
+        this.canvas.width = Math.round(w * this.dpr);
+        this.canvas.height = Math.round(h * this.dpr);
+        this.canvas.style.width = `${w}px`;
+        this.canvas.style.height = `${h}px`;
         this.render();
     }
 
@@ -181,7 +196,11 @@ class CanvasApp {
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
-        this.canvas.addEventListener('mouseleave', (e) => { if (this.isDragging || this.isDrawing || this.isResizing || this.isRotating) this.handleMouseUp(e); });
+        this.canvas.addEventListener('mouseleave', (e) => {
+            this.hidePortTooltip();
+            if (this.isDragging || this.isDrawing || this.isResizing || this.isRotating) this.handleMouseUp(e);
+        });
+        this.canvas.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
         this.canvas.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
         this.canvas.addEventListener('contextmenu', (e) => this.handleContextMenu(e));
 
@@ -190,25 +209,6 @@ class CanvasApp {
 
         on('undo-btn', 'click', () => this.undo());
         on('redo-btn', 'click', () => this.redo());
-        on('delete-btn', 'click', () => this.deleteSelected());
-        on('copy-btn', 'click', () => this.copy());
-        on('group-btn', 'click', () => this.groupSelected());
-        on('ungroup-btn', 'click', () => this.ungroupSelected());
-
-        on('bring-front-btn', 'click', () => this.bringToFront());
-        on('bring-forward-btn', 'click', () => this.bringForward());
-        on('send-backward-btn', 'click', () => this.sendBackward());
-        on('send-back-btn', 'click', () => this.sendToBack());
-
-        on('align-left', 'click', () => this.align('left'));
-        on('align-center', 'click', () => this.align('center'));
-        on('align-right', 'click', () => this.align('right'));
-        on('align-top', 'click', () => this.align('top'));
-        on('align-middle', 'click', () => this.align('middle'));
-        on('align-bottom', 'click', () => this.align('bottom'));
-        on('distribute-h', 'click', () => this.distribute('horizontal'));
-        on('distribute-v', 'click', () => this.distribute('vertical'));
-        on('auto-layout-btn', 'click', () => this.autoLayout());
 
         on('grid-toggle', 'change', (e) => { this.showGrid = e.target.checked; this.render(); });
         on('snap-toggle', 'change', (e) => { this.snapToGrid = e.target.checked; });
@@ -218,32 +218,43 @@ class CanvasApp {
             this.render();
         });
         on('port-labels-toggle', 'change', (e) => { this.showPortLabels = e.target.checked; this.render(); });
+        on('connector-style', 'change', (e) => { this.defaultConnectorStyle = e.target.value; });
+        on('status-validation', 'click', () => { this.selectedObjects = []; this.updatePropertiesPanel(); this.render(); });
 
-        on('zoom-in', 'click', () => this.setZoom(this.zoom + 0.1));
-        on('zoom-out', 'click', () => this.setZoom(this.zoom - 0.1));
+        on('zoom-in', 'click', () => this.zoomAt(this.viewWidth / 2, this.viewHeight / 2, this.zoom * 1.2));
+        on('zoom-out', 'click', () => this.zoomAt(this.viewWidth / 2, this.viewHeight / 2, this.zoom / 1.2));
         on('zoom-fit', 'click', () => this.zoomToFit());
-
-        on('connector-style', 'change', (e) => {
-            this.selectedObjects.forEach(obj => { if (obj.type === 'connector') obj.style = e.target.value; });
-            this.render();
-        });
+        on('zoom-level', 'click', () => this.setZoom(1));
 
         on('diagram-name', 'input', (e) => {
             this.diagram.metadata.name = e.target.value.trim();
             if (this.liveSync) this.liveSync.push();
+            this.scheduleAutosave();
         });
 
-        on('save-btn', 'click', () => this.save());
-        on('load-btn', 'click', () => this.load());
-        on('export-png-btn', 'click', () => this.exportPNG());
-        on('export-svg-btn', 'click', () => this.exportSVG());
-        on('export-pdf-btn', 'click', () => this.exportPDF());
         on('new-btn', 'click', () => this.new());
+        on('load-btn', 'click', () => this.load());
+        on('save-btn', 'click', () => this.save());
+        on('export-png-btn', 'click', () => { this.closeDropdowns(); this.exportPNG(); });
+        on('export-svg-btn', 'click', () => { this.closeDropdowns(); this.exportSVG(); });
+        on('export-pdf-btn', 'click', () => { this.closeDropdowns(); this.exportPDF(); });
+        on('export-btn', 'click', (e) => {
+            e.stopPropagation();
+            e.currentTarget.parentElement.classList.toggle('open');
+        });
+        document.addEventListener('click', () => this.closeDropdowns());
 
         on('templates-btn', 'click', () => this.showTemplates());
+        on('hint-template-btn', 'click', () => this.showTemplates());
+        on('hint-open-btn', 'click', () => this.load());
         on('icons-btn', 'click', () => this.showIcons());
         on('image-btn', 'click', () => this.addImage());
         on('settings-btn', 'click', () => this.showSettings());
+        on('help-btn', 'click', () => this.toggleHelp());
+        on('toggle-panel-btn', 'click', () => {
+            document.querySelector('.app').classList.toggle('panel-collapsed');
+            requestAnimationFrame(() => this.resizeCanvas());
+        });
         on('live-status', 'click', () => { if (this.liveSync) this.liveSync.pull(); });
 
         on('file-input', 'change', (e) => this.handleFileLoad(e));
@@ -259,16 +270,77 @@ class CanvasApp {
         on('reset-colors-btn', 'click', () => this.resetColors());
         on('apply-colors-btn', 'click', () => this.applyColors());
         on('add-connection-type-btn', 'click', () => this.addConnectionType());
+
+        const editor = document.getElementById('inline-editor');
+        if (editor) {
+            editor.addEventListener('keydown', (e) => {
+                e.stopPropagation();
+                if (e.key === 'Escape') { e.preventDefault(); this.cancelInlineEdit(); }
+                else if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.commitInlineEdit(); }
+            });
+            editor.addEventListener('blur', () => this.commitInlineEdit());
+            editor.addEventListener('input', () => this.autosizeInlineEditor());
+        }
+    }
+
+    closeDropdowns() {
+        document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
     }
 
     setTool(tool) {
         if (this.isDrawingPolyline && tool !== 'polyline') this.cancelPolyline();
         this.currentTool = tool;
-        document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
-        const btn = document.querySelector(`[data-tool="${tool}"]`);
-        if (btn) btn.classList.add('active');
+        document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
         this.canvas.style.cursor = tool === 'select' ? 'default' : 'crosshair';
+        this.updateStatusHint();
         this.render();
+    }
+
+    // ------------------------------------------------------------------
+    // Status bar / chrome
+    // ------------------------------------------------------------------
+    updateStatusHint(text) {
+        const el = document.getElementById('status-hint');
+        if (!el) return;
+        if (text) { el.textContent = text; return; }
+        if (this.isDrawingPolyline) { el.textContent = 'Click to add a corner · click a compatible port to finish · Esc cancels'; return; }
+        el.textContent = TOOL_HINTS[this.currentTool] || TOOL_HINTS.shape;
+    }
+
+    updateStatusSelection() {
+        const el = document.getElementById('status-selection');
+        if (!el) return;
+        const n = this.selectedObjects.length;
+        el.textContent = n ? `${n} selected` : '';
+    }
+
+    updateStatusCoords(pos) {
+        const el = document.getElementById('status-coords');
+        if (el) el.textContent = `${Math.round(pos.x)}, ${Math.round(pos.y)}`;
+    }
+
+    updateValidationChip() {
+        const el = document.getElementById('status-validation');
+        if (!el) return;
+        const { errors, warnings } = this.diagram.validate();
+        if (!errors.length && !warnings.length) { el.style.display = 'none'; return; }
+        el.style.display = 'inline-block';
+        el.className = `status-chip ${errors.length ? 'error' : ''}`;
+        const parts = [];
+        if (errors.length) parts.push(`${errors.length} error${errors.length === 1 ? '' : 's'}`);
+        if (warnings.length) parts.push(`${warnings.length} warning${warnings.length === 1 ? '' : 's'}`);
+        el.textContent = parts.join(' · ');
+    }
+
+    updateEmptyState() {
+        const el = document.getElementById('canvas-hint');
+        if (el) el.style.display = this.objects.length === 0 ? 'flex' : 'none';
+    }
+
+    toggleHelp() {
+        const modal = document.getElementById('help-modal');
+        if (!modal) return;
+        modal.style.display = modal.style.display === 'none' || !modal.style.display ? 'block' : 'none';
     }
 
     /**
@@ -291,10 +363,15 @@ class CanvasApp {
         return { x, y };
     }
 
+    toScreen(x, y) {
+        return { x: x * this.zoom + this.panX, y: y * this.zoom + this.panY };
+    }
+
     // ------------------------------------------------------------------
     // Mouse handling
     // ------------------------------------------------------------------
     handleMouseDown(e) {
+        this.commitInlineEdit();
         if (e.button === 1 || (e.button === 0 && this.spacePressed)) {
             e.preventDefault();
             this.isPanning = true;
@@ -323,6 +400,12 @@ class CanvasApp {
     handleSelectMouseDown(pos, e) {
         const waypoint = this.findWaypointAtPoint(pos.x, pos.y);
         if (waypoint) {
+            if (e.altKey) {
+                waypoint.connector.waypoints.splice(waypoint.index, 1);
+                this.saveState();
+                this.updatePropertiesPanel();
+                return;
+            }
             this.isDraggingWaypoint = true;
             this.waypointConnector = waypoint.connector;
             this.waypointIndex = waypoint.index;
@@ -373,15 +456,78 @@ class CanvasApp {
                     toSelect.forEach(obj => { if (!this.selectedObjects.includes(obj)) this.selectedObjects.push(obj); });
                 }
             }
-            this.isDragging = true;
-            this.dragMoved = false;
-            this.dragStart = pos;
+            this.startDrag(pos, clicked);
         } else {
             if (!e.shiftKey) this.selectedObjects = [];
             this.isDrawing = true;
             this.tempObject = { type: 'selection', x: pos.x, y: pos.y, width: 0, height: 0 };
         }
         this.updatePropertiesPanel();
+    }
+
+    /**
+     * Objects that move with the current selection (selected shapes plus their group members).
+     * @returns {Array}
+     */
+    getMovingObjects() {
+        const moving = new Set();
+        this.selectedObjects.forEach(obj => {
+            if (obj.type === 'connector') return;
+            moving.add(obj);
+            if (obj.groupId) this.getGroupMembers(obj.groupId).forEach(m => { if (m.type !== 'connector') moving.add(m); });
+        });
+        return [...moving].filter(o => !o.locked);
+    }
+
+    startDrag(pos, primary) {
+        this.isDragging = true;
+        this.dragMoved = false;
+        this.dragStart = pos;
+        this.dragOrigin = new Map();
+        this.getMovingObjects().forEach(obj => this.dragOrigin.set(obj, { x: obj.x, y: obj.y }));
+        this.dragPrimary = primary && primary.type !== 'connector' && !primary.locked ? primary : null;
+        this.activeGuides = [];
+    }
+
+    handleDragMove(pos) {
+        if (!this.dragOrigin || this.dragOrigin.size === 0) return;
+        let dx = pos.x - this.dragStart.x;
+        let dy = pos.y - this.dragStart.y;
+        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) this.dragMoved = true;
+
+        if (this.snapToGrid && this.dragPrimary && this.dragOrigin.has(this.dragPrimary)) {
+            const o = this.dragOrigin.get(this.dragPrimary);
+            dx = Math.round((o.x + dx) / this.gridSize) * this.gridSize - o.x;
+            dy = Math.round((o.y + dy) / this.gridSize) * this.gridSize - o.y;
+        }
+
+        // Smart guides against the shapes that are not moving.
+        const moving = [...this.dragOrigin.keys()];
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const obj of moving) {
+            const o = this.dragOrigin.get(obj);
+            const b = obj.getBounds();
+            const bx = o.x + dx + (b.x - obj.x);
+            const by = o.y + dy + (b.y - obj.y);
+            minX = Math.min(minX, bx);
+            minY = Math.min(minY, by);
+            maxX = Math.max(maxX, bx + b.width);
+            maxY = Math.max(maxY, by + b.height);
+        }
+        const movingBounds = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+        const others = this.objects
+            .filter(o => o.type !== 'connector' && o.visible !== false && !this.dragOrigin.has(o))
+            .map(o => o.getBounds());
+        const guides = computeSmartGuides(movingBounds, others, { threshold: 6 / this.zoom });
+        dx += guides.dx;
+        dy += guides.dy;
+        this.activeGuides = guides.guides;
+
+        for (const obj of moving) {
+            const o = this.dragOrigin.get(obj);
+            obj.x = o.x + dx;
+            obj.y = o.y + dy;
+        }
     }
 
     handleShapeMouseDown(pos) {
@@ -398,11 +544,12 @@ class CanvasApp {
         this.isDrawing = true;
         const connectionType = anchor.connectionType || null;
         this.tempObject = new Connector(anchor.object, anchor.side, null, null, connectionType);
-        this.tempObject.style = document.getElementById('connector-style').value || 'straight';
+        this.tempObject.style = this.defaultConnectorStyle;
         this.tempObject.endX = pos.x;
         this.tempObject.endY = pos.y;
         this.applyConnectionType(this.tempObject, connectionType);
         this.showAnchorIndicator(anchor);
+        this.updateStatusHint('Release on a highlighted compatible port · Esc cancels');
     }
 
     /**
@@ -418,11 +565,6 @@ class CanvasApp {
         }
     }
 
-    /**
-     * Finds the anchor under the cursor that may complete the connector being drawn.
-     * @param {{x:number,y:number}} pos
-     * @returns {Object|null}
-     */
     findCompatibleEndAnchor(pos) {
         const requiredConnectionType = this.connectorStart.connectionType || null;
         const requiredPortType = expectedCounterpartPortType(this.connectorStart);
@@ -430,10 +572,6 @@ class CanvasApp {
         return anchor && anchor.object !== this.connectorStart.object ? anchor : null;
     }
 
-    /**
-     * Finalises a connector: adopts the typed end's connection type when the start was untyped.
-     * @param {Connector} conn
-     */
     finalizeConnector(conn) {
         if (!conn.connectionType) {
             const endInfo = conn.getEndAnchorInfo();
@@ -456,6 +594,7 @@ class CanvasApp {
             this.tempObject.endY = pos.y;
             this.applyConnectionType(this.tempObject, anchor.connectionType || null);
             this.showAnchorIndicator(anchor);
+            this.updateStatusHint();
             return;
         }
 
@@ -481,6 +620,7 @@ class CanvasApp {
         this.polylineWaypoints = [];
         this.tempObject = null;
         this.hideAnchorIndicator();
+        this.updateStatusHint();
     }
 
     handleMouseMove(e) {
@@ -492,10 +632,12 @@ class CanvasApp {
         }
 
         const pos = this.getMousePos(e);
+        this.updateStatusCoords(pos);
 
         if ((this.currentTool === 'connector' || this.currentTool === 'polyline') && !this.isDrawing && !this.isDrawingPolyline) {
             const anchor = this.findNearestAnchor(pos.x, pos.y);
-            if (anchor) this.showAnchorIndicator(anchor); else this.hideAnchorIndicator();
+            if (anchor) { this.showAnchorIndicator(anchor); this.showPortTooltip(anchor); }
+            else { this.hideAnchorIndicator(); this.hidePortTooltip(); }
         }
 
         if (this.isDraggingWaypoint) {
@@ -519,24 +661,10 @@ class CanvasApp {
             }
             this.render();
         } else if (this.isDragging && this.selectedObjects.length > 0) {
-            const dx = pos.x - this.dragStart.x;
-            const dy = pos.y - this.dragStart.y;
-            if (dx !== 0 || dy !== 0) this.dragMoved = true;
-
-            const objectsToMove = new Set();
-            this.selectedObjects.forEach(obj => {
-                if (obj.type === 'connector') return;
-                objectsToMove.add(obj);
-                if (obj.groupId) {
-                    this.getGroupMembers(obj.groupId).forEach(member => { if (member.type !== 'connector') objectsToMove.add(member); });
-                }
-            });
-            objectsToMove.forEach(obj => { if (obj.move) obj.move(dx, dy); });
-
-            this.dragStart = pos;
+            this.handleDragMove(pos);
             this.render();
         } else if (this.currentTool === 'select') {
-            this.updateHoverCursor(pos);
+            this.updateHover(pos);
         } else if (this.isDrawingPolyline && this.tempObject) {
             const anchor = this.findCompatibleEndAnchor(pos);
             if (anchor) {
@@ -553,28 +681,63 @@ class CanvasApp {
         }
     }
 
-    updateHoverCursor(pos) {
+    /**
+     * Hover feedback in select mode: cursor, hovered object outline and port tooltips.
+     * @param {{x:number,y:number}} pos
+     */
+    updateHover(pos) {
         const waypoint = this.findWaypointAtPoint(pos.x, pos.y);
         const controlPoint = this.findControlPointAtPoint(pos.x, pos.y);
+        let cursor = 'default';
+        let hovered = null;
         if (waypoint || controlPoint) {
-            this.canvas.style.cursor = 'pointer';
-            return;
-        }
-        const handle = this.findHandleAtPoint(pos.x, pos.y);
-        if (handle) {
-            if (handle.type === 'rotate') {
-                this.canvas.style.cursor = 'crosshair';
+            cursor = 'pointer';
+        } else {
+            const handle = this.findHandleAtPoint(pos.x, pos.y);
+            if (handle) {
+                const cursors = { nw: 'nw-resize', n: 'n-resize', ne: 'ne-resize', e: 'e-resize', se: 'se-resize', s: 's-resize', sw: 'sw-resize', w: 'w-resize' };
+                cursor = handle.type === 'rotate' ? 'crosshair' : (cursors[handle.handle] || 'default');
             } else {
-                const cursors = {
-                    nw: 'nw-resize', n: 'n-resize', ne: 'ne-resize', e: 'e-resize',
-                    se: 'se-resize', s: 's-resize', sw: 'sw-resize', w: 'w-resize'
-                };
-                this.canvas.style.cursor = cursors[handle.handle] || 'default';
+                hovered = this.findObjectAtPoint(pos.x, pos.y);
+                cursor = hovered ? 'move' : 'default';
             }
-            return;
         }
-        const hovered = this.findObjectAtPoint(pos.x, pos.y);
-        this.canvas.style.cursor = hovered ? 'move' : 'default';
+        this.canvas.style.cursor = cursor;
+
+        const anchor = this.findNearestAnchor(pos.x, pos.y, 10);
+        const typedAnchor = anchor && anchor.connectionType ? anchor : null;
+        if (typedAnchor) this.showPortTooltip(typedAnchor); else this.hidePortTooltip();
+
+        if (hovered !== this.hoverObject) {
+            this.hoverObject = hovered;
+            this.render();
+        }
+    }
+
+    showPortTooltip(anchor) {
+        const el = document.getElementById('port-tooltip');
+        if (!el) return;
+        const key = `${anchor.object.id}|${anchor.side}`;
+        const used = this.getUsedPortKeys().has(key);
+        const conn = used ? this.objects.find(c => c.type === 'connector' &&
+            ((c.startObject === anchor.object && c.startAnchor === anchor.side) || (c.endObject === anchor.object && c.endAnchor === anchor.side))) : null;
+        let other = '';
+        if (conn) {
+            const o = conn.startObject === anchor.object ? conn.endObject : conn.startObject;
+            const oAnchor = conn.startObject === anchor.object ? conn.endAnchor : conn.startAnchor;
+            other = o ? ` → ${o.label || ShapeRegistry.displayName(o.type)} · ${portLabel(oAnchor)}` : '';
+        }
+        const label = anchor.position.label || portLabel(anchor.side);
+        el.innerHTML = `<b>${escapeHtml(label)}</b> <span class="muted">${used ? escapeHtml(other) : '· free'}</span>`;
+        const s = this.toScreen(anchor.position.x, anchor.position.y);
+        el.style.left = `${s.x}px`;
+        el.style.top = `${s.y}px`;
+        el.style.display = 'block';
+    }
+
+    hidePortTooltip() {
+        const el = document.getElementById('port-tooltip');
+        if (el) el.style.display = 'none';
     }
 
     updateTempConnector(pos) {
@@ -583,11 +746,13 @@ class CanvasApp {
             this.tempObject.endObject = anchor.object;
             this.tempObject.endAnchor = anchor.side;
             this.showAnchorIndicator(anchor);
+            this.showPortTooltip(anchor);
         } else {
             this.tempObject.endObject = null;
             this.tempObject.endX = pos.x;
             this.tempObject.endY = pos.y;
             this.hideAnchorIndicator();
+            this.hidePortTooltip();
         }
     }
 
@@ -603,16 +768,18 @@ class CanvasApp {
                 if (this.tempObject.endObject && this.tempObject.startObject !== this.tempObject.endObject) {
                     this.finalizeConnector(this.tempObject);
                     this.objects.push(this.tempObject);
+                    this.selectedObjects = [this.tempObject];
+                    this.updatePropertiesPanel();
                     this.saveState();
                 }
+                this.updateStatusHint();
             } else if (this.tempObject.type === 'selection') {
-                this.selectInBox(this.tempObject);
+                this.selectInBox(this.tempObject, !!(e && e.altKey));
             } else {
                 const shape = this.tempObject;
                 delete shape.fixedSize;
                 const tiny = Math.abs(shape.width) <= 5 && Math.abs(shape.height) <= 5;
                 if (tiny) {
-                    // A simple click places the shape at its default size.
                     const def = ShapeRegistry.get(shape.type);
                     if (def && !def.fixedSize) {
                         shape.width = def.defaultSize.width;
@@ -624,6 +791,7 @@ class CanvasApp {
                 this.selectedObjects = [shape];
                 this.updatePropertiesPanel();
                 this.saveState();
+                if (shape.type !== 'connector_anchor' && !(e && e.shiftKey)) this.setTool('select');
             }
             if (this.currentTool !== 'polyline') {
                 this.tempObject = null;
@@ -644,6 +812,9 @@ class CanvasApp {
         this.isDrawing = false;
         this.isDragging = false;
         this.dragMoved = false;
+        this.dragOrigin = null;
+        this.dragPrimary = null;
+        this.activeGuides = [];
         this.isResizing = false;
         this.isRotating = false;
         this.resizeHandle = null;
@@ -661,18 +832,37 @@ class CanvasApp {
         this.render();
     }
 
-    selectInBox(box) {
+    handleDoubleClick(e) {
+        if (this.currentTool !== 'select') return;
+        const pos = this.getMousePos(e);
+        const obj = this.findObjectAtPoint(pos.x, pos.y);
+        if (!obj) return;
+        this.selectedObjects = [obj];
+        this.updatePropertiesPanel();
+        this.render();
+        this.startInlineEdit(obj);
+    }
+
+    /**
+     * Selects shapes inside (or, with `intersect`, touching) a marquee box.
+     * @param {{x:number,y:number,width:number,height:number}} box
+     * @param {boolean} [intersect=false]
+     */
+    selectInBox(box, intersect = false) {
         const minX = Math.min(box.x, box.x + box.width);
         const maxX = Math.max(box.x, box.x + box.width);
         const minY = Math.min(box.y, box.y + box.height);
         const maxY = Math.max(box.y, box.y + box.height);
-
-        this.selectedObjects = this.objects.filter(obj => {
-            if (obj.type === 'connector') return false;
-            const bounds = obj.getBounds();
-            return bounds.x >= minX && bounds.x + bounds.width <= maxX &&
-                bounds.y >= minY && bounds.y + bounds.height <= maxY;
+        const hits = this.objects.filter(obj => {
+            if (obj.type === 'connector' || obj.visible === false) return false;
+            const b = obj.getBounds();
+            if (intersect) return b.x < maxX && b.x + b.width > minX && b.y < maxY && b.y + b.height > minY;
+            return b.x >= minX && b.x + b.width <= maxX && b.y >= minY && b.y + b.height <= maxY;
         });
+        const groups = new Set(hits.map(h => h.groupId).filter(g => g !== null && g !== undefined));
+        const withGroups = new Set(hits);
+        groups.forEach(g => this.getGroupMembers(g).forEach(m => { if (m.type !== 'connector') withGroups.add(m); }));
+        this.selectedObjects = [...withGroups];
         this.updatePropertiesPanel();
     }
 
@@ -690,8 +880,12 @@ class CanvasApp {
     handleResize(pos) {
         if (!this.selectedObjects.length || !this.resizeHandle || !this.initialBounds) return;
         const obj = this.selectedObjects[0];
-        const dx = pos.x - this.dragStart.x;
-        const dy = pos.y - this.dragStart.y;
+        let dx = pos.x - this.dragStart.x;
+        let dy = pos.y - this.dragStart.y;
+        if (this.snapToGrid) {
+            dx = Math.round(dx / this.gridSize) * this.gridSize;
+            dy = Math.round(dy / this.gridSize) * this.gridSize;
+        }
         const bounds = { ...this.initialBounds };
 
         switch (this.resizeHandle) {
@@ -715,12 +909,20 @@ class CanvasApp {
         const obj = this.selectedObjects[0];
         const angle = Math.atan2(pos.y - this.rotateCenter.y, pos.x - this.rotateCenter.x);
         const startAngle = Math.atan2(this.dragStart.y - this.rotateCenter.y, this.dragStart.x - this.rotateCenter.x);
-        obj.rotation = this.initialRotation + (angle - startAngle);
+        let rotation = this.initialRotation + (angle - startAngle);
+        if (this.snapToGrid) {
+            const step = Math.PI / 12; // 15 degrees
+            rotation = Math.round(rotation / step) * step;
+        }
+        obj.rotation = rotation;
     }
 
     handleWaypointDrag(pos) {
         if (!this.waypointConnector || this.waypointIndex < 0) return;
-        this.waypointConnector.waypoints[this.waypointIndex] = { x: pos.x, y: pos.y };
+        const p = this.snapToGrid
+            ? { x: Math.round(pos.x / this.gridSize) * this.gridSize, y: Math.round(pos.y / this.gridSize) * this.gridSize }
+            : { x: pos.x, y: pos.y };
+        this.waypointConnector.waypoints[this.waypointIndex] = p;
     }
 
     handleControlPointDrag(pos) {
@@ -729,10 +931,6 @@ class CanvasApp {
         else if (this.controlPointType === 'cp2') this.controlPointConnector.controlPoint2 = { x: pos.x, y: pos.y };
     }
 
-    /**
-     * Zooms around the cursor so the point under the mouse stays put.
-     * @param {WheelEvent} e
-     */
     handleWheel(e) {
         e.preventDefault();
         const rect = this.canvas.getBoundingClientRect();
@@ -742,14 +940,8 @@ class CanvasApp {
         this.zoomAt(mx, my, this.zoom * factor);
     }
 
-    /**
-     * Sets the zoom keeping the screen point (sx, sy) fixed.
-     * @param {number} sx
-     * @param {number} sy
-     * @param {number} newZoom
-     */
     zoomAt(sx, sy, newZoom) {
-        const clamped = Math.max(0.1, Math.min(3, newZoom));
+        const clamped = Math.max(0.1, Math.min(4, newZoom));
         const worldX = (sx - this.panX) / this.zoom;
         const worldY = (sy - this.panY) / this.zoom;
         this.zoom = clamped;
@@ -759,56 +951,213 @@ class CanvasApp {
         this.render();
     }
 
+    // ------------------------------------------------------------------
+    // Context menu
+    // ------------------------------------------------------------------
     handleContextMenu(e) {
         e.preventDefault();
+        this.commitInlineEdit();
         const pos = this.getMousePos(e);
-        const obj = this.findObjectAtPoint(pos.x, pos.y);
+        const waypointHit = this.findWaypointAtPoint(pos.x, pos.y, true);
+        const obj = waypointHit ? waypointHit.connector : this.findObjectAtPoint(pos.x, pos.y);
         if (obj && !this.selectedObjects.includes(obj)) {
             this.selectedObjects = obj.groupId ? this.getGroupMembers(obj.groupId) : [obj];
             this.updatePropertiesPanel();
             this.render();
         }
+        this.contextMenu.show(e.clientX, e.clientY, this.buildContextMenu(obj, pos, waypointHit));
+    }
 
-        this.contextMenu.show(e.clientX, e.clientY, obj, {
-            hasClipboard: this.clipboard.length > 0,
-            onCopy: () => this.copy(),
-            onCut: () => { this.copy(); this.deleteSelected(); },
-            onPaste: () => this.paste(),
-            onDuplicate: () => this.duplicate(),
-            onDelete: () => this.deleteSelected(),
-            onBringToFront: () => this.bringToFront(),
-            onBringForward: () => this.bringForward(),
-            onSendBackward: () => this.sendBackward(),
-            onSendToBack: () => this.sendToBack(),
-            onToggleLock: (target) => { target.locked = !target.locked; this.saveState(); this.render(); },
-            onSelectAll: () => this.selectAll(),
-            onAddImage: () => this.addImage(),
-            onInsertIcon: () => this.showIcons(),
-            onInsertTemplate: () => this.showTemplates(),
-            onChangeConnectorStyle: (target) => {
-                const styles = ['straight', 'orthogonal', 'bezier', 'polyline'];
-                const current = target.style || 'straight';
-                target.style = styles[(styles.indexOf(current) + 1) % styles.length];
-                this.render();
-                this.saveState();
-                this.updatePropertiesPanel();
-            },
-            onToggleArrows: (target) => {
-                if (!target.arrowStart && !target.arrowEnd) {
-                    target.arrowEnd = true;
-                } else if (!target.arrowStart && target.arrowEnd) {
-                    target.arrowStart = true;
-                } else if (target.arrowStart && target.arrowEnd) {
-                    target.arrowStart = false;
-                    target.arrowEnd = false;
-                } else {
-                    target.arrowEnd = true;
-                }
-                this.render();
-                this.saveState();
-                this.updatePropertiesPanel();
+    /**
+     * Builds the context menu for a target.
+     * @param {Object|null} obj
+     * @param {{x:number,y:number}} pos World position of the click.
+     * @param {{connector:Connector,index:number}|null} waypointHit
+     * @returns {Array}
+     */
+    buildContextMenu(obj, pos, waypointHit) {
+        const items = [];
+        const commit = () => { this.saveState(); this.updatePropertiesPanel(); this.render(); };
+
+        if (!obj) {
+            items.push(
+                { label: 'Paste', shortcut: 'Ctrl+V', icon: 'i-paste', disabled: !this.clipboard.length, action: () => this.pasteAt(pos) },
+                { label: 'Select all', shortcut: 'Ctrl+A', icon: 'i-select-all', action: () => this.selectAll() },
+                { separator: true },
+                { label: 'Add device here', shortcut: 'E', icon: 'i-device', action: () => this.placeShapeAt('device', pos) },
+                { label: 'Add text here', shortcut: 'T', icon: 'i-text', action: () => this.placeShapeAt('text', pos) },
+                { label: 'Insert template…', icon: 'i-template', action: () => this.showTemplates() },
+                { label: 'Insert icon…', icon: 'i-icons', action: () => this.showIcons() },
+                { label: 'Add image…', icon: 'i-image', action: () => this.addImage() },
+                { separator: true },
+                { label: 'Auto layout', icon: 'i-layout', disabled: !this.objects.length, action: () => this.autoLayout() },
+                { label: 'Zoom to fit', shortcut: 'Shift+1', icon: 'i-fit', disabled: !this.objects.length, action: () => this.zoomToFit() }
+            );
+            return items;
+        }
+
+        if (obj.type === 'connector') {
+            if (waypointHit) {
+                items.push({ label: 'Remove waypoint', icon: 'i-waypoint-remove', shortcut: 'Alt+click', action: () => {
+                    obj.waypoints.splice(waypointHit.index, 1);
+                    commit();
+                } });
             }
-        });
+            items.push({ label: 'Add waypoint here', icon: 'i-waypoint', action: () => {
+                obj.insertWaypoint(pos.x, pos.y);
+                this.selectedObjects = [obj];
+                commit();
+            } });
+            items.push({ label: 'Straighten (remove waypoints)', icon: 'i-straighten', disabled: !obj.waypoints.length, action: () => {
+                obj.waypoints = [];
+                commit();
+            } });
+            items.push({ separator: true });
+            for (const style of ['orthogonal', 'straight', 'bezier']) {
+                items.push({ label: `${style[0].toUpperCase() + style.slice(1)} path`, checked: obj.style === style, action: () => {
+                    obj.style = style;
+                    obj.waypoints = [];
+                    commit();
+                } });
+            }
+            items.push({ separator: true });
+            items.push({ label: 'Reverse direction', icon: 'i-reverse', action: () => { obj.reverse(); commit(); } });
+            items.push({ label: obj.arrowEnd || obj.arrowStart ? 'Hide arrows' : 'Show arrow', action: () => {
+                const show = !(obj.arrowEnd || obj.arrowStart);
+                obj.arrowEnd = show;
+                obj.arrowStart = false;
+                commit();
+            } });
+            items.push({ label: 'Edit label…', shortcut: 'F2', icon: 'i-label', action: () => this.startInlineEdit(obj) });
+            items.push({ separator: true });
+            items.push({ label: 'Delete', shortcut: 'Del', icon: 'i-trash', danger: true, action: () => this.deleteSelected() });
+            return items;
+        }
+
+        const shapes = this.selectedObjects.filter(o => o.type !== 'connector');
+        const grouped = shapes.some(s => s.groupId !== null && s.groupId !== undefined);
+        items.push(
+            { label: obj.type === 'text' ? 'Edit text…' : 'Rename…', shortcut: 'F2', icon: 'i-edit', action: () => this.startInlineEdit(obj) },
+            { label: 'Duplicate', shortcut: 'Ctrl+D', icon: 'i-duplicate', action: () => this.duplicate() },
+            { label: 'Copy', shortcut: 'Ctrl+C', icon: 'i-copy', action: () => this.copy() },
+            { label: 'Cut', shortcut: 'Ctrl+X', action: () => { this.copy(); this.deleteSelected(); } },
+            { separator: true },
+            { label: 'Bring to front', shortcut: 'Shift+]', icon: 'i-front', action: () => this.bringToFront() },
+            { label: 'Send to back', shortcut: 'Shift+[', icon: 'i-back', action: () => this.sendToBack() },
+            { separator: true }
+        );
+        if (shapes.length >= 2) items.push({ label: 'Group', shortcut: 'Ctrl+G', icon: 'i-group', action: () => this.groupSelected() });
+        if (grouped) items.push({ label: 'Ungroup', shortcut: 'Ctrl+Shift+G', icon: 'i-ungroup', action: () => this.ungroupSelected() });
+        if (obj.ports) {
+            items.push({ label: 'Select connected objects', icon: 'i-select-all', action: () => this.selectConnected(obj) });
+        }
+        items.push({ label: obj.locked ? 'Unlock' : 'Lock', icon: 'i-lock', action: () => {
+            shapes.forEach(s => { s.locked = !obj.locked; });
+            commit();
+        } });
+        items.push({ separator: true });
+        items.push({ label: 'Delete', shortcut: 'Del', icon: 'i-trash', danger: true, action: () => this.deleteSelected() });
+        return items;
+    }
+
+    selectConnected(obj) {
+        const set = new Set([obj]);
+        for (const c of this.diagram.connectors) {
+            if (c.startObject === obj && c.endObject) set.add(c.endObject);
+            if (c.endObject === obj && c.startObject) set.add(c.startObject);
+        }
+        this.selectedObjects = [...set];
+        this.updatePropertiesPanel();
+        this.render();
+    }
+
+    placeShapeAt(type, pos) {
+        const shape = this.createShape(type, pos.x, pos.y, undefined, undefined);
+        if (this.snapToGrid) {
+            shape.x = Math.round(shape.x / this.gridSize) * this.gridSize;
+            shape.y = Math.round(shape.y / this.gridSize) * this.gridSize;
+        }
+        this.objects.push(shape);
+        this.selectedObjects = [shape];
+        this.updatePropertiesPanel();
+        this.saveState();
+        this.render();
+        if (type === 'text' || type === 'device') this.startInlineEdit(shape);
+    }
+
+    // ------------------------------------------------------------------
+    // Inline editing
+    // ------------------------------------------------------------------
+    startInlineEdit(obj) {
+        const editor = document.getElementById('inline-editor');
+        if (!editor || !obj) return;
+        this.commitInlineEdit();
+        this.inlineTarget = obj;
+        let value;
+        let screen;
+        let width;
+        if (obj.type === 'connector') {
+            value = obj.label || '';
+            const mid = obj.getMidpoint();
+            if (!mid) return;
+            screen = this.toScreen(mid.x, mid.y);
+            width = 160;
+        } else if (obj.type === 'text') {
+            value = obj.text || '';
+            const b = obj.getBounds();
+            screen = this.toScreen(b.x + b.width / 2, b.y + b.height / 2);
+            width = Math.max(140, b.width * this.zoom + 12);
+        } else {
+            value = obj.label || '';
+            const b = obj.getBounds();
+            screen = this.toScreen(b.x + b.width / 2, b.y + b.height / 2);
+            width = Math.max(150, Math.min(360, b.width * this.zoom + 12));
+        }
+        editor.value = value;
+        editor.style.display = 'block';
+        editor.style.width = `${width}px`;
+        editor.style.left = `${screen.x - width / 2}px`;
+        editor.style.fontSize = `${Math.max(12, Math.min(22, (obj.type === 'text' ? obj.fontSize : 14) * this.zoom))}px`;
+        this.autosizeInlineEditor();
+        editor.style.top = `${screen.y - editor.offsetHeight / 2}px`;
+        editor.placeholder = obj.type === 'connector' ? 'Label' : obj.type === 'text' ? 'Text' : 'Name';
+        editor.focus();
+        editor.select();
+    }
+
+    autosizeInlineEditor() {
+        const editor = document.getElementById('inline-editor');
+        if (!editor) return;
+        editor.style.height = 'auto';
+        editor.style.height = `${Math.max(28, editor.scrollHeight)}px`;
+    }
+
+    commitInlineEdit() {
+        const editor = document.getElementById('inline-editor');
+        const obj = this.inlineTarget;
+        if (!editor || !obj || editor.style.display === 'none') return;
+        const value = editor.value;
+        this.inlineTarget = null;
+        editor.style.display = 'none';
+        let changed = false;
+        if (obj.type === 'text') {
+            const next = value.trim() ? value : 'Text';
+            changed = next !== obj.text;
+            obj.text = next;
+        } else {
+            const next = value.replace(/\n/g, ' ').trim();
+            changed = next !== (obj.label || '');
+            obj.label = next;
+        }
+        if (changed) this.saveState();
+        this.updatePropertiesPanel();
+        this.render();
+    }
+
+    cancelInlineEdit() {
+        const editor = document.getElementById('inline-editor');
+        this.inlineTarget = null;
+        if (editor) editor.style.display = 'none';
     }
 
     // ------------------------------------------------------------------
@@ -816,6 +1165,11 @@ class CanvasApp {
     // ------------------------------------------------------------------
     handleKeyDown(e) {
         if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable) return;
+        const anyModalOpen = [...document.querySelectorAll('.modal')].some(m => m.style.display === 'block');
+        if (anyModalOpen) {
+            if (e.key === 'Escape') document.querySelectorAll('.modal').forEach(m => { m.style.display = 'none'; });
+            return;
+        }
 
         if (e.key === ' ' && !this.spacePressed) {
             e.preventDefault();
@@ -827,7 +1181,7 @@ class CanvasApp {
         if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
             e.preventDefault();
             const dir = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key];
-            const movable = this.selectedObjects.filter(o => o.type !== 'connector' && !o.locked);
+            const movable = this.getMovingObjects();
             if (movable.length) {
                 const step = e.shiftKey ? this.gridSize : 1;
                 movable.forEach(o => { o.x += dir[0] * step; o.y += dir[1] * step; });
@@ -853,6 +1207,12 @@ class CanvasApp {
         if (e.key === 'Escape') {
             if (this.isDrawingPolyline) {
                 this.cancelPolyline();
+            } else if (this.isDrawing && this.tempObject && this.tempObject.type === 'connector') {
+                this.isDrawing = false;
+                this.tempObject = null;
+                this.connectorStart = null;
+                this.hideAnchorIndicator();
+                this.updateStatusHint();
             } else if (this.selectedObjects.length) {
                 this.selectedObjects = [];
                 this.updatePropertiesPanel();
@@ -860,6 +1220,18 @@ class CanvasApp {
                 this.setTool('select');
             }
             this.render();
+            return;
+        }
+
+        if ((e.key === 'F2' || e.key === 'Enter') && this.selectedObjects.length === 1) {
+            e.preventDefault();
+            this.startInlineEdit(this.selectedObjects[0]);
+            return;
+        }
+
+        if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+            e.preventDefault();
+            this.toggleHelp();
             return;
         }
 
@@ -876,8 +1248,8 @@ class CanvasApp {
                 case 's': e.preventDefault(); this.save(); break;
                 case 'o': e.preventDefault(); this.load(); break;
                 case '=':
-                case '+': e.preventDefault(); this.setZoom(this.zoom + 0.1); break;
-                case '-': e.preventDefault(); this.setZoom(this.zoom - 0.1); break;
+                case '+': e.preventDefault(); this.zoomAt(this.viewWidth / 2, this.viewHeight / 2, this.zoom * 1.2); break;
+                case '-': e.preventDefault(); this.zoomAt(this.viewWidth / 2, this.viewHeight / 2, this.zoom / 1.2); break;
                 case '0': e.preventDefault(); this.setZoom(1); break;
             }
             return;
@@ -887,6 +1259,7 @@ class CanvasApp {
             switch (e.key) {
                 case ']': e.preventDefault(); this.bringToFront(); break;
                 case '[': e.preventDefault(); this.sendToBack(); break;
+                case '!': e.preventDefault(); this.zoomToFit(); break;
             }
             return;
         }
@@ -935,6 +1308,9 @@ class CanvasApp {
         this.selectedObjects = [textShape];
         this.updatePropertiesPanel();
         this.saveState();
+        this.setTool('select');
+        this.render();
+        this.startInlineEdit(textShape);
     }
 
     findObjectAtPoint(x, y) {
@@ -949,15 +1325,6 @@ class CanvasApp {
         return null;
     }
 
-    /**
-     * Finds the closest anchor to a world point within a screen-space threshold.
-     * @param {number} x
-     * @param {number} y
-     * @param {number} [threshold=15] Threshold in screen pixels.
-     * @param {string|null} [requiredConnectionType]
-     * @param {string|null} [requiredPortType]
-     * @returns {{object:Object, side:string, position:Object, connectionType:(string|null), portType:string}|null}
-     */
     findNearestAnchor(x, y, threshold = 15, requiredConnectionType = null, requiredPortType = null) {
         let nearest = null;
         let minDist = threshold / this.zoom;
@@ -982,10 +1349,10 @@ class CanvasApp {
     showAnchorIndicator(anchor) {
         const indicator = document.getElementById('anchor-indicator');
         if (!indicator) return;
-        indicator.style.left = (anchor.position.x * this.zoom + this.panX) + 'px';
-        indicator.style.top = (anchor.position.y * this.zoom + this.panY) + 'px';
+        const s = this.toScreen(anchor.position.x, anchor.position.y);
+        indicator.style.left = `${s.x}px`;
+        indicator.style.top = `${s.y}px`;
         indicator.style.display = 'block';
-        indicator.title = anchor.position.label || anchor.side;
     }
 
     hideAnchorIndicator() {
@@ -1008,30 +1375,42 @@ class CanvasApp {
             return true;
         });
         this.selectedObjects = [];
+        this.hoverObject = null;
         this.updatePropertiesPanel();
         this.saveState();
         this.render();
     }
 
-    /**
-     * Copies the selection plus every connector whose both ends are selected.
-     */
     copy() {
         if (this.selectedObjects.length === 0) return;
         const shapes = this.selectedObjects.filter(o => o.type !== 'connector');
         const ids = new Set(shapes.map(o => o.id));
         const connectors = this.objects.filter(o => o.type === 'connector' && o.startObject && o.endObject &&
             ids.has(o.startObject.id) && ids.has(o.endObject.id));
-        const explicit = this.selectedObjects.filter(o => o.type === 'connector' && !connectors.includes(o));
-        this.clipboard = serializeObjects([...shapes, ...connectors, ...explicit.filter(c => ids.has(c.startObject?.id) && ids.has(c.endObject?.id))]);
+        this.clipboard = serializeObjects([...shapes, ...connectors]);
+        if (shapes.length) showToast(`Copied ${shapes.length} object${shapes.length === 1 ? '' : 's'}${connectors.length ? ` and ${connectors.length} link${connectors.length === 1 ? '' : 's'}` : ''}`, { timeout: 1500 });
+    }
+
+    paste() {
+        this.pasteAt(null);
     }
 
     /**
-     * Pastes the clipboard with fresh ids and fresh group ids, offset by 20px.
+     * Pastes the clipboard with fresh ids and group ids.
+     * @param {{x:number,y:number}|null} at World position for the top-left of the pasted content (null = offset by 20px).
      */
-    paste() {
+    pasteAt(at) {
         if (this.clipboard.length === 0) return;
         const data = JSON.parse(JSON.stringify(this.clipboard));
+        const shapesData = data.filter(d => d.type !== 'connector');
+        let offsetX = 20;
+        let offsetY = 20;
+        if (at && shapesData.length) {
+            const minX = Math.min(...shapesData.map(d => d.x));
+            const minY = Math.min(...shapesData.map(d => d.y));
+            offsetX = at.x - minX;
+            offsetY = at.y - minY;
+        }
         const idMap = {};
         data.forEach(item => { if (item.type !== 'connector') idMap[item.id] = newId('shape'); });
         const groupMap = {};
@@ -1040,17 +1419,17 @@ class CanvasApp {
                 item.id = newId('conn');
                 item.startObject = idMap[item.startObject];
                 item.endObject = idMap[item.endObject];
+                if (Array.isArray(item.waypoints)) item.waypoints = item.waypoints.map(w => ({ x: w.x + offsetX, y: w.y + offsetY }));
+                if (item.controlPoint1) item.controlPoint1 = { x: item.controlPoint1.x + offsetX, y: item.controlPoint1.y + offsetY };
+                if (item.controlPoint2) item.controlPoint2 = { x: item.controlPoint2.x + offsetX, y: item.controlPoint2.y + offsetY };
             } else {
                 item.id = idMap[item.id];
-                item.x += 20;
-                item.y += 20;
+                item.x += offsetX;
+                item.y += offsetY;
                 if (item.groupId !== null && item.groupId !== undefined) {
                     if (!(item.groupId in groupMap)) groupMap[item.groupId] = this.nextGroupId++;
                     item.groupId = groupMap[item.groupId];
                 }
-            }
-            if (item.type === 'connector' && Array.isArray(item.waypoints)) {
-                item.waypoints = item.waypoints.map(w => ({ x: w.x + 20, y: w.y + 20 }));
             }
         });
         const newObjects = deserializeObjects(data, { onWarning: w => console.warn(w) });
@@ -1064,11 +1443,33 @@ class CanvasApp {
     duplicate() {
         if (this.selectedObjects.length === 0) return;
         this.copy();
-        this.paste();
+        this.pasteAt(null);
     }
 
     selectAll() {
-        this.selectedObjects = this.objects.filter(obj => obj.type !== 'connector');
+        this.selectedObjects = this.objects.filter(obj => obj.type !== 'connector' && obj.visible !== false);
+        this.updatePropertiesPanel();
+        this.render();
+    }
+
+    /**
+     * Selects objects by id and scrolls them into view.
+     * @param {string[]} ids
+     */
+    revealObjects(ids) {
+        const objs = this.objects.filter(o => ids.includes(o.id));
+        if (!objs.length) return;
+        this.selectedObjects = objs;
+        const bounds = new Diagram({ objects: objs }).getBounds(20);
+        if (bounds) {
+            const tl = this.toScreen(bounds.x, bounds.y);
+            const br = this.toScreen(bounds.x + bounds.width, bounds.y + bounds.height);
+            const visible = tl.x >= 0 && tl.y >= 0 && br.x <= this.viewWidth && br.y <= this.viewHeight;
+            if (!visible) {
+                this.panX = this.viewWidth / 2 - (bounds.x + bounds.width / 2) * this.zoom;
+                this.panY = this.viewHeight / 2 - (bounds.y + bounds.height / 2) * this.zoom;
+            }
+        }
         this.updatePropertiesPanel();
         this.render();
     }
@@ -1079,6 +1480,7 @@ class CanvasApp {
         const groupId = this.nextGroupId++;
         shapes.forEach(shape => { shape.groupId = groupId; });
         this.saveState();
+        this.updatePropertiesPanel();
         this.render();
     }
 
@@ -1086,6 +1488,7 @@ class CanvasApp {
         if (this.selectedObjects.length === 0) return;
         this.selectedObjects.forEach(obj => { if (obj.type !== 'connector') obj.groupId = null; });
         this.saveState();
+        this.updatePropertiesPanel();
         this.render();
     }
 
@@ -1141,10 +1544,6 @@ class CanvasApp {
         this.render();
     }
 
-    /**
-     * Distributes the selected shapes with equal gaps along an axis.
-     * @param {("horizontal"|"vertical")} axis
-     */
     distribute(axis) {
         const shapes = this.selectedObjects.filter(obj => obj.type !== 'connector' && !obj.locked);
         if (shapes.length < 3) return;
@@ -1169,11 +1568,13 @@ class CanvasApp {
         if (this.objects.length === 0) return;
         this.diagram.autoLayout({ direction: 'LR' });
         this.saveState();
+        this.updatePropertiesPanel();
         this.zoomToFit();
+        showToast('Objects arranged along the signal flow', { type: 'success', timeout: 2000 });
     }
 
     setZoom(newZoom) {
-        this.zoom = Math.max(0.1, Math.min(3, newZoom));
+        this.zoom = Math.max(0.1, Math.min(4, newZoom));
         this.updateZoomLabel();
         this.render();
     }
@@ -1183,16 +1584,13 @@ class CanvasApp {
         if (el) el.textContent = Math.round(this.zoom * 100) + '%';
     }
 
-    /**
-     * Fits the whole diagram into the viewport.
-     */
     zoomToFit() {
         const bounds = this.diagram.getBounds(40);
-        if (!bounds) return;
-        const zoom = Math.max(0.1, Math.min(3, Math.min(this.canvas.width / bounds.width, this.canvas.height / bounds.height)));
+        if (!bounds || !this.viewWidth) return;
+        const zoom = Math.max(0.1, Math.min(2, Math.min(this.viewWidth / bounds.width, this.viewHeight / bounds.height)));
         this.zoom = zoom;
-        this.panX = (this.canvas.width - bounds.width * zoom) / 2 - bounds.x * zoom;
-        this.panY = (this.canvas.height - bounds.height * zoom) / 2 - bounds.y * zoom;
+        this.panX = (this.viewWidth - bounds.width * zoom) / 2 - bounds.x * zoom;
+        this.panY = (this.viewHeight - bounds.height * zoom) / 2 - bounds.y * zoom;
         this.updateZoomLabel();
         this.render();
     }
@@ -1200,14 +1598,20 @@ class CanvasApp {
     // ------------------------------------------------------------------
     // Templates, icons, images
     // ------------------------------------------------------------------
+    thumbnail(objects) {
+        const svg = diagramToSvg(objects, { padding: 16, showPorts: true, background: null });
+        return svg.replace(/<svg ([^>]*?)width="[^"]*" height="[^"]*"/, '<svg $1 preserveAspectRatio="xMidYMid meet"');
+    }
+
     showTemplates() {
         const modal = document.getElementById('templates-modal');
         const grid = document.getElementById('templates-grid');
         grid.innerHTML = '';
         Templates.getAllTemplates().forEach(template => {
-            const card = document.createElement('div');
+            const preview = template.create().objects;
+            const card = document.createElement('button');
             card.className = 'template-card';
-            card.innerHTML = `<h4>${escapeHtml(template.name)}</h4><p>Click to insert</p>`;
+            card.innerHTML = `<div class="thumb">${this.thumbnail(preview)}</div><h4>${escapeHtml(template.name)}</h4><p>${preview.filter(o => o.type !== 'connector').length} shapes · ${preview.filter(o => o.type === 'connector').length} links</p>`;
             card.addEventListener('click', () => {
                 this.insertTemplate(template);
                 modal.style.display = 'none';
@@ -1227,19 +1631,21 @@ class CanvasApp {
         this.selectedObjects = shapesToGroup;
         this.updatePropertiesPanel();
         this.saveState();
-        this.render();
+        this.zoomToFit();
     }
 
     showIcons() {
         const modal = document.getElementById('icons-modal');
         const grid = document.getElementById('icons-grid');
         grid.innerHTML = '';
-        for (const icon of Object.values(IconLibrary.getAllIcons())) {
-            const card = document.createElement('div');
+        for (const iconDef of Object.values(IconLibrary.getAllIcons())) {
+            const preview = iconDef.create(0, 0);
+            const card = document.createElement('button');
             card.className = 'icon-card';
-            card.innerHTML = `<h4>${escapeHtml(icon.name)}</h4><p>Click to add</p>`;
+            card.innerHTML = `<div class="thumb">${this.thumbnail(preview)}</div><h4>${escapeHtml(iconDef.name)}</h4><p>Click to add</p>`;
             card.addEventListener('click', () => {
-                this.insertIcon(icon, 200, 200);
+                const center = { x: (this.viewWidth / 2 - this.panX) / this.zoom, y: (this.viewHeight / 2 - this.panY) / this.zoom };
+                this.insertIcon(iconDef, Math.round(center.x / this.gridSize) * this.gridSize, Math.round(center.y / this.gridSize) * this.gridSize);
                 modal.style.display = 'none';
             });
             grid.appendChild(card);
@@ -1247,8 +1653,8 @@ class CanvasApp {
         modal.style.display = 'block';
     }
 
-    insertIcon(icon, x, y) {
-        const objects = icon.create(x, y);
+    insertIcon(iconDef, x, y) {
+        const objects = iconDef.create(x, y);
         const groupId = this.nextGroupId++;
         const shapesToGroup = objects.filter(obj => obj.type !== 'connector');
         shapesToGroup.forEach(shape => { shape.groupId = groupId; });
@@ -1268,7 +1674,8 @@ class CanvasApp {
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (event) => {
-            const img = ShapeRegistry.create('image', 100, 100, 200, 150, { imageData: event.target.result });
+            const center = { x: (this.viewWidth / 2 - this.panX) / this.zoom, y: (this.viewHeight / 2 - this.panY) / this.zoom };
+            const img = ShapeRegistry.create('image', center.x - 100, center.y - 75, 200, 150, { imageData: event.target.result });
             this.objects.push(img);
             this.selectedObjects = [img];
             this.updatePropertiesPanel();
@@ -1303,7 +1710,7 @@ class CanvasApp {
                     const id = btn.dataset.removeType;
                     const inUse = this.objects.some(o => (o.ports && o.ports[id]) || o.connectionType === id);
                     if (inUse) {
-                        this.showMessage(`Connection type "${id}" is still used by objects in this diagram`, 'error');
+                        showToast(`Connection type "${id}" is still used by objects in this diagram`, { type: 'error' });
                         return;
                     }
                     ConnectionTypeRegistry.unregister(id);
@@ -1327,7 +1734,7 @@ class CanvasApp {
         const bidiEl = document.getElementById('new-type-bidirectional');
         const id = ConnectionTypeRegistry.normalizeId(idEl ? idEl.value : '');
         if (!id) {
-            this.showMessage('Enter an id for the new connection type (e.g. hdmi)', 'error');
+            showToast('Enter an id for the new connection type (e.g. hdmi)', { type: 'error' });
             return;
         }
         ConnectionTypeRegistry.register({
@@ -1342,7 +1749,7 @@ class CanvasApp {
         this.updatePropertiesPanel();
         this.saveState();
         this.render();
-        this.showMessage(`Connection type "${id}" added`, 'info');
+        showToast(`Connection type "${id}" added`, { type: 'success', timeout: 2000 });
     }
 
     resetColors() {
@@ -1365,6 +1772,7 @@ class CanvasApp {
         this.applyPaletteToObjects();
         document.getElementById('settings-modal').style.display = 'none';
         this.saveState();
+        this.updatePropertiesPanel();
         this.render();
     }
 
@@ -1379,12 +1787,8 @@ class CanvasApp {
     }
 
     // ------------------------------------------------------------------
-    // Documents: save / load / export / live sync
+    // Documents: save / load / export / autosave / live sync
     // ------------------------------------------------------------------
-    /**
-     * Builds the JSON document for the current state.
-     * @returns {Object}
-     */
     buildDocument() {
         if (!this.diagram.metadata.created) this.diagram.metadata.created = new Date().toISOString();
         return createDocument({
@@ -1399,25 +1803,25 @@ class CanvasApp {
         });
     }
 
-    /**
-     * Replaces the current content with a document.
-     * @param {Object|string} doc
-     * @param {{resetView: boolean}} [options]
-     * @returns {string[]} Loader warnings.
-     */
     loadDocument(doc, options = {}) {
         const parsed = parseDocument(doc);
+        this.cancelInlineEdit();
         this.objects = parsed.objects;
         this.diagram.metadata = parsed.metadata;
         this.nextGroupId = this.diagram.computeNextGroupId(parsed.metadata.nextGroupId);
         this.selectedObjects = [];
+        this.hoverObject = null;
         const nameInput = document.getElementById('diagram-name');
         if (nameInput) nameInput.value = parsed.metadata.name || '';
-        if (options.resetView && typeof parsed.metadata.zoom === 'number') {
-            this.zoom = Math.max(0.1, Math.min(3, parsed.metadata.zoom));
-            this.panX = Number(parsed.metadata.panX) || 0;
-            this.panY = Number(parsed.metadata.panY) || 0;
-            this.updateZoomLabel();
+        if (options.resetView) {
+            if (typeof parsed.metadata.zoom === 'number') {
+                this.zoom = Math.max(0.1, Math.min(4, parsed.metadata.zoom));
+                this.panX = Number(parsed.metadata.panX) || 0;
+                this.panY = Number(parsed.metadata.panY) || 0;
+                this.updateZoomLabel();
+            } else {
+                this.zoomToFit();
+            }
         }
         this.updatePropertiesPanel();
         this.saveState();
@@ -1431,6 +1835,7 @@ class CanvasApp {
         const name = (this.diagram.metadata.name || '').replace(/[^\w.-]+/g, '_');
         const filename = name ? `${name}.json` : `diagram-${Date.now()}.json`;
         downloadBlob(new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' }), filename);
+        showToast(`Saved ${filename}`, { type: 'success', timeout: 2000 });
     }
 
     load() {
@@ -1444,21 +1849,26 @@ class CanvasApp {
         reader.onload = (event) => {
             try {
                 const warnings = this.loadDocument(event.target.result, { resetView: true });
-                if (warnings.length) this.showMessage(`Loaded with ${warnings.length} warning(s): ${warnings[0]}`, 'error');
-                else this.showMessage(`Loaded ${file.name}`, 'info');
+                if (warnings.length) showToast(`Loaded with ${warnings.length} warning(s): ${warnings[0]}`, { type: 'error', timeout: 6000 });
+                else showToast(`Loaded ${file.name}`, { type: 'success', timeout: 2000 });
             } catch (error) {
-                this.showMessage('Error loading file: ' + error.message, 'error');
+                showToast('Error loading file: ' + error.message, { type: 'error', timeout: 6000 });
             }
         };
         reader.readAsText(file);
         e.target.value = '';
     }
 
-    new() {
-        if (this.objects.length > 0 && !confirm('Create new diagram? Current work will be lost.')) return;
+    async new() {
+        if (this.objects.length > 0) {
+            const ok = await confirmDialog('Start a new diagram? Unsaved changes to the current one will be lost.', { title: 'New diagram', okLabel: 'Start new', danger: true });
+            if (!ok) return;
+        }
+        this.cancelInlineEdit();
         this.objects = [];
         this.diagram.metadata = {};
         this.selectedObjects = [];
+        this.hoverObject = null;
         this.history = [];
         this.historyIndex = -1;
         this.nextGroupId = 1;
@@ -1474,11 +1884,6 @@ class CanvasApp {
         return name || `diagram-${Date.now()}`;
     }
 
-    /**
-     * Renders the diagram (without grid or selection chrome) into an arbitrary context.
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {{bounds:Object, scale:number, background:string}} options
-     */
     renderScene(ctx, { bounds, scale = 1, background = '#ffffff' }) {
         ctx.save();
         if (background) {
@@ -1507,6 +1912,7 @@ class CanvasApp {
     }
 
     exportPNG() {
+        if (!this.objects.length) { showToast('Nothing to export yet', { type: 'error' }); return; }
         const bounds = this.exportBounds();
         const scale = 2;
         const tempCanvas = document.createElement('canvas');
@@ -1517,13 +1923,15 @@ class CanvasApp {
     }
 
     exportSVG() {
+        if (!this.objects.length) { showToast('Nothing to export yet', { type: 'error' }); return; }
         const svg = diagramToSvg(this.objects, { showPortLabels: this.showPortLabels });
         downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${this.exportBaseName()}.svg`);
     }
 
     exportPDF() {
+        if (!this.objects.length) { showToast('Nothing to export yet', { type: 'error' }); return; }
         if (!window.jspdf || !window.jspdf.jsPDF) {
-            this.showMessage('PDF export needs the jsPDF library (offline?). Use SVG export instead.', 'error');
+            showToast('PDF export needs the jsPDF library (offline?). Use SVG export instead.', { type: 'error' });
             return;
         }
         const { jsPDF } = window.jspdf;
@@ -1542,10 +1950,43 @@ class CanvasApp {
         pdf.save(`${this.exportBaseName()}.pdf`);
     }
 
-    async initLiveSync() {
+    autosave() {
+        if (this.liveSync) return;
         try {
-            if (!(await LiveSync.detect())) return;
+            localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ savedAt: Date.now(), document: this.buildDocument() }));
+        } catch { /* storage may be unavailable */ }
+    }
+
+    offerAutosaveRestore() {
+        let draft = null;
+        try {
+            draft = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || 'null');
+        } catch { return; }
+        if (!draft || !draft.document || !Array.isArray(draft.document.objects) || !draft.document.objects.length) return;
+        if (this.objects.length) return;
+        const when = new Date(draft.savedAt || Date.now());
+        const name = draft.document.metadata && draft.document.metadata.name ? `"${draft.document.metadata.name}"` : 'an unsaved diagram';
+        showToast(`Found ${name} from ${when.toLocaleString()} in this browser.`, {
+            timeout: 15000,
+            action: { label: 'Restore', onClick: () => {
+                try {
+                    this.loadDocument(draft.document, { resetView: true });
+                } catch (err) {
+                    showToast('Could not restore: ' + err.message, { type: 'error' });
+                }
+            } }
+        });
+    }
+
+    async initLiveSync() {
+        let available = false;
+        try {
+            available = await LiveSync.detect();
         } catch {
+            available = false;
+        }
+        if (!available) {
+            this.offerAutosaveRestore();
             return;
         }
         this.liveSync = new LiveSync({
@@ -1582,20 +2023,23 @@ class CanvasApp {
             error: `● Sync error${info.message ? ': ' + info.message : ''}`
         };
         el.textContent = labels[status] || status;
-        el.title = 'This page is served by the Morph MCP server / bridge. Changes made by the agent appear here; your edits are sent back. Click to reload.';
+        el.title = 'Served by the Morph MCP server / bridge. Agent changes appear here; your edits are sent back. Click to reload.';
     }
 
     /**
-     * Shows a transient toast.
+     * Legacy helper kept for modules that still call it.
      * @param {string} textContent
      * @param {("info"|"error")} [type='info']
      */
     showMessage(textContent, type = 'info') {
-        const el = document.createElement('div');
-        el.className = `message ${type}`;
-        el.textContent = textContent;
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 4000);
+        showToast(textContent, { type: type === 'error' ? 'error' : 'info' });
+    }
+
+    reportDanglingConnectors(obj) {
+        const dangling = this.objects.filter(c => c.type === 'connector' && (c.startObject === obj || c.endObject === obj) && c.isDangling());
+        if (dangling.length) {
+            showToast(`${dangling.length} connector(s) lost their port on this object (shown in red). Restore the port count or reconnect them.`, { type: 'error', timeout: 6000 });
+        }
     }
 
     // ------------------------------------------------------------------
@@ -1607,16 +2051,25 @@ class CanvasApp {
         if (this.history.length > this.maxHistory) this.history.shift();
         else this.historyIndex++;
         this.updateUndoRedoButtons();
+        this.updateValidationChip();
+        this.updateEmptyState();
+        if (this.selectedObjects.length === 0) this.propertiesPanel.render();
         if (this.liveSync && !this.applyingRemote) this.liveSync.push();
+        this.scheduleAutosave();
     }
 
     restoreHistory(index) {
         const selectedIds = this.selectedObjects.map(o => o.id);
+        this.cancelInlineEdit();
         this.objects = deserializeObjects(JSON.parse(JSON.stringify(this.history[index])), { onWarning: w => console.warn(w) });
         this.selectedObjects = this.objects.filter(o => selectedIds.includes(o.id));
+        this.hoverObject = null;
         this.updatePropertiesPanel();
         this.updateUndoRedoButtons();
+        this.updateValidationChip();
+        this.updateEmptyState();
         if (this.liveSync) this.liveSync.push();
+        this.scheduleAutosave();
         this.render();
     }
 
@@ -1641,315 +2094,14 @@ class CanvasApp {
         if (redoBtn) redoBtn.disabled = this.historyIndex >= this.history.length - 1;
     }
 
-    // ------------------------------------------------------------------
-    // Properties panel
-    // ------------------------------------------------------------------
     updatePropertiesPanel() {
-        const panel = document.getElementById('properties-content');
-        const header = document.getElementById('properties-header');
-        if (!panel || !header) return;
-
-        if (this.selectedObjects.length === 0) {
-            header.textContent = 'Properties';
-            panel.innerHTML = '<p class="no-selection">No object selected</p>';
-            return;
-        }
-
-        if (this.selectedObjects.length === 1) {
-            const obj = this.selectedObjects[0];
-            const typeName = obj.type === 'connector' ? 'Connector' : ShapeRegistry.displayName(obj.type);
-            header.textContent = `Properties (${typeName})`;
-            panel.innerHTML = this.getPropertiesHTML(obj);
-            this.attachPropertyListeners(obj);
-        } else {
-            header.textContent = 'Properties';
-            const ports = this.selectedObjects.filter(o => o.ports).length;
-            panel.innerHTML = `<p class="no-selection">${this.selectedObjects.length} objects selected${ports ? ` (${ports} with ports)` : ''}</p>`;
-        }
-    }
-
-    connectionTypeOptions(selected, { allowAny = true } = {}) {
-        const anyOption = allowAny ? `<option value="" ${!selected ? 'selected' : ''}>Any / untyped</option>` : '';
-        return anyOption + ConnectionTypeRegistry.list().map(t =>
-            `<option value="${escapeHtml(t.id)}" ${selected === t.id ? 'selected' : ''}>${escapeHtml(t.label)}</option>`).join('');
-    }
-
-    getPropertiesHTML(obj) {
-        let html = '';
-        const isConnector = obj.type === 'connector';
-
-        if (!isConnector) {
-            html += `
-                <div class="property-row">
-                    <div class="property-group"><label>X</label><input type="number" id="prop-x" value="${Math.round(obj.x)}"></div>
-                    <div class="property-group"><label>Y</label><input type="number" id="prop-y" value="${Math.round(obj.y)}"></div>
-                </div>`;
-            if (obj.type !== 'connector_anchor') {
-                html += `
-                <div class="property-row">
-                    <div class="property-group"><label>Width</label><input type="number" id="prop-width" value="${Math.round(obj.width)}"></div>
-                    <div class="property-group"><label>Height</label><input type="number" id="prop-height" value="${Math.round(obj.height)}"></div>
-                </div>
-                <div class="property-group">
-                    <label>Rotation</label>
-                    <input type="range" id="prop-rotation" min="0" max="${Math.PI * 2}" step="0.01" value="${obj.rotation || 0}">
-                    <span>${Math.round((obj.rotation || 0) * 180 / Math.PI)}°</span>
-                </div>`;
-            }
-        }
-
-        if (obj.type !== 'text') {
-            html += `
-                <div class="property-group">
-                    <label>${isConnector ? 'Label' : 'Label / name'}</label>
-                    <input type="text" id="prop-label" value="${escapeHtml(obj.label || '')}" placeholder="${isConnector ? 'e.g. PGM 1' : 'e.g. Media Server 1'}">
-                </div>`;
-        }
-        if (!isConnector && obj.type !== 'text' && obj.type !== 'connector_anchor') {
-            html += `
-                <div class="property-group">
-                    <label>Label position</label>
-                    <select id="prop-labelposition">
-                        ${['inside', 'bottom', 'below', 'above'].map(p => `<option value="${p}" ${obj.labelPosition === p ? 'selected' : ''}>${p}</option>`).join('')}
-                    </select>
-                </div>`;
-        }
-
-        if (obj.ports) {
-            html += `
-                <div class="property-group"><label class="section-label">Port configuration</label></div>
-                <table class="port-table">
-                    <thead><tr><th>Type</th><th>Inputs</th><th>Outputs</th><th></th></tr></thead>
-                    <tbody>`;
-            for (const type of Object.keys(obj.ports)) {
-                const config = obj.ports[type];
-                const def = ConnectionTypeRegistry.get(type);
-                html += `
-                        <tr>
-                            <td><span class="port-swatch" style="background:${escapeHtml(ConnectionTypeRegistry.colorFor(type))}"></span>${escapeHtml(def ? def.label : type)}</td>
-                            <td><input type="number" id="prop-port-${escapeHtml(type)}-input" min="0" max="256" value="${config.input || 0}"></td>
-                            <td><input type="number" id="prop-port-${escapeHtml(type)}-output" min="0" max="256" value="${config.output || 0}"></td>
-                            <td><button class="mini-btn" data-remove-port="${escapeHtml(type)}" title="Remove port type">×</button></td>
-                        </tr>`;
-            }
-            const missing = ConnectionTypeRegistry.list().filter(t => !obj.ports[t.id]);
-            html += `
-                    </tbody>
-                </table>
-                <div class="property-row port-add-row">
-                    <select id="prop-port-add-type">${missing.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.label)}</option>`).join('')}</select>
-                    <button id="prop-port-add" class="mini-btn wide" ${missing.length ? '' : 'disabled'}>+ Add port type</button>
-                </div>`;
-        }
-
-        if (obj.type === 'connector_anchor') {
-            html += `
-                <div class="property-group">
-                    <label>Connection type</label>
-                    <select id="prop-connectiontype">${this.connectionTypeOptions(obj.connectionType || '')}</select>
-                    <p class="hint">Untyped anchors accept any connection type.</p>
-                </div>`;
-        }
-
-        if (obj.type === 'text') {
-            html += `
-                <div class="property-group"><label>Text</label><textarea id="prop-text" rows="4">${escapeHtml(obj.text || '')}</textarea></div>
-                <div class="property-group"><label>Font Size</label><input type="number" id="prop-fontsize" value="${obj.fontSize}"></div>
-                <div class="property-group">
-                    <label>Font Family</label>
-                    <select id="prop-fontfamily">
-                        ${['Arial', 'Helvetica', 'Times New Roman', 'Courier New'].map(f => `<option value="${f}" ${obj.fontFamily === f ? 'selected' : ''}>${f}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="property-group">
-                    <label>Text Align</label>
-                    <div class="button-group">
-                        <button id="prop-align-left" class="${obj.textAlign === 'left' ? 'active' : ''}" title="Align Left">◀</button>
-                        <button id="prop-align-center" class="${obj.textAlign === 'center' ? 'active' : ''}" title="Align Center">▊</button>
-                        <button id="prop-align-right" class="${obj.textAlign === 'right' ? 'active' : ''}" title="Align Right">▶</button>
-                    </div>
-                </div>`;
-        }
-
-        if (obj.fill !== undefined && !isConnector) {
-            html += `
-                <div class="property-group">
-                    <label>${obj.type === 'text' ? 'Text Color' : 'Fill Color'}</label>
-                    <input type="color" id="prop-fill" value="${escapeHtml(/^#[0-9a-fA-F]{6}$/.test(obj.fill) ? obj.fill : '#3498db')}">
-                </div>`;
-        }
-
-        if (obj.stroke !== undefined && obj.stroke !== 'transparent') {
-            html += `
-                <div class="property-group">
-                    <label>Stroke Color</label>
-                    <input type="color" id="prop-stroke" value="${escapeHtml(/^#[0-9a-fA-F]{6}$/.test(obj.stroke) ? obj.stroke : '#2c3e50')}">
-                </div>
-                <div class="property-group">
-                    <label>Stroke Width</label>
-                    <input type="range" id="prop-strokewidth" min="1" max="10" value="${obj.strokeWidth || 2}">
-                    <span>${obj.strokeWidth || 2}px</span>
-                </div>`;
-        }
-
-        if (isConnector) {
-            const from = obj.startObject ? (obj.startObject.label || ShapeRegistry.displayName(obj.startObject.type)) : '?';
-            const to = obj.endObject ? (obj.endObject.label || ShapeRegistry.displayName(obj.endObject.type)) : '?';
-            html += `
-                <div class="property-group">
-                    <p class="hint">${escapeHtml(from)}.${escapeHtml(portLabel(obj.startAnchor))} → ${escapeHtml(to)}.${escapeHtml(portLabel(obj.endAnchor))}${obj.isDangling() ? '<br><b class="warn">⚠ a port no longer exists</b>' : ''}</p>
-                </div>
-                <div class="property-group">
-                    <label>Connection type</label>
-                    <select id="prop-connectiontype">${this.connectionTypeOptions(obj.connectionType || '')}</select>
-                </div>
-                <div class="property-group">
-                    <label>Path Style</label>
-                    <select id="prop-style">
-                        ${['straight', 'orthogonal', 'bezier', 'polyline'].map(s => `<option value="${s}" ${obj.style === s ? 'selected' : ''}>${s[0].toUpperCase() + s.slice(1)}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="property-group">
-                    <label>Line Style</label>
-                    <select id="prop-linestyle">
-                        ${['solid', 'dashed', 'dotted'].map(s => `<option value="${s}" ${obj.lineStyle === s ? 'selected' : ''}>${s[0].toUpperCase() + s.slice(1)}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="property-group"><label><input type="checkbox" id="prop-arrowstart" ${obj.arrowStart ? 'checked' : ''}> Arrow Start</label></div>
-                <div class="property-group"><label><input type="checkbox" id="prop-arrowend" ${obj.arrowEnd ? 'checked' : ''}> Arrow End</label></div>`;
-        }
-
-        if (!isConnector) {
-            html += `
-                <div class="property-group">
-                    <label>Notes</label>
-                    <textarea id="prop-description" rows="2" placeholder="model, IP, rack position…">${escapeHtml(obj.description || '')}</textarea>
-                </div>`;
-        }
-
-        if (obj.shadow !== undefined) {
-            html += `<div class="property-group"><label><input type="checkbox" id="prop-shadow" ${obj.shadow ? 'checked' : ''}> Shadow</label></div>`;
-        }
-        if (!isConnector) {
-            html += `<div class="property-group"><label><input type="checkbox" id="prop-locked" ${obj.locked ? 'checked' : ''}> Locked</label></div>`;
-        }
-        return html;
-    }
-
-    attachPropertyListeners(obj) {
-        const numeric = (setter) => (val) => {
-            const n = parseFloat(val);
-            if (Number.isFinite(n)) setter(n);
-        };
-        const props = {
-            'prop-x': numeric(v => { obj.x = v; }),
-            'prop-y': numeric(v => { obj.y = v; }),
-            'prop-width': numeric(v => { if (Math.abs(v) >= 1) obj.width = v; }),
-            'prop-height': numeric(v => { if (Math.abs(v) >= 1) obj.height = v; }),
-            'prop-rotation': numeric(v => { obj.rotation = v; }),
-            'prop-fill': (val) => { obj.fill = val; },
-            'prop-stroke': (val) => { obj.stroke = val; },
-            'prop-strokewidth': numeric(v => { obj.strokeWidth = v; }),
-            'prop-text': (val) => { obj.text = val; },
-            'prop-fontsize': numeric(v => { if (v > 0) obj.fontSize = v; }),
-            'prop-fontfamily': (val) => { obj.fontFamily = val; },
-            'prop-style': (val) => { obj.style = val; },
-            'prop-linestyle': (val) => { obj.lineStyle = val; },
-            'prop-arrowstart': (val) => { obj.arrowStart = val; },
-            'prop-arrowend': (val) => { obj.arrowEnd = val; },
-            'prop-shadow': (val) => { obj.shadow = val; },
-            'prop-locked': (val) => { obj.locked = val; },
-            'prop-label': (val) => { obj.label = val; },
-            'prop-labelposition': (val) => { obj.labelPosition = val; },
-            'prop-description': (val) => { obj.description = val; },
-            'prop-connectiontype': (val) => {
-                obj.connectionType = val || null;
-                if (obj.type === 'connector' && val) obj.stroke = ConnectionTypeRegistry.colorFor(val);
-            }
-        };
-
-        Object.keys(props).forEach(id => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            const isCheckbox = el.type === 'checkbox';
-            const isSelect = el.tagName === 'SELECT';
-            el.addEventListener(isCheckbox || isSelect ? 'change' : 'input', (e) => {
-                const value = isCheckbox ? e.target.checked : e.target.value;
-                props[id](value);
-                this.render();
-                if (id === 'prop-strokewidth') e.target.nextElementSibling.textContent = value + 'px';
-                else if (id === 'prop-rotation') e.target.nextElementSibling.textContent = Math.round(value * 180 / Math.PI) + '°';
-                if (isCheckbox || isSelect) this.saveState();
-            });
-            if (!isCheckbox && !isSelect) el.addEventListener('change', () => this.saveState());
-        });
-
-        [['prop-align-left', 'left'], ['prop-align-center', 'center'], ['prop-align-right', 'right']].forEach(([id, align]) => {
-            const btn = document.getElementById(id);
-            if (btn) btn.addEventListener('click', () => {
-                obj.textAlign = align;
-                this.updatePropertiesPanel();
-                this.saveState();
-                this.render();
-            });
-        });
-
-        if (obj.ports) {
-            for (const type of Object.keys(obj.ports)) {
-                for (const direction of ['input', 'output']) {
-                    const el = document.getElementById(`prop-port-${type}-${direction}`);
-                    if (!el) continue;
-                    el.addEventListener('input', (e) => {
-                        const n = parseInt(e.target.value, 10);
-                        if (!Number.isFinite(n)) return;
-                        obj.ports[type][direction] = Math.max(0, Math.min(256, n));
-                        this.render();
-                    });
-                    el.addEventListener('change', () => {
-                        this.reportDanglingConnectors(obj);
-                        this.saveState();
-                    });
-                }
-            }
-            document.querySelectorAll('[data-remove-port]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const type = btn.dataset.removePort;
-                    delete obj.ports[type];
-                    this.reportDanglingConnectors(obj);
-                    this.updatePropertiesPanel();
-                    this.saveState();
-                    this.render();
-                });
-            });
-            const addBtn = document.getElementById('prop-port-add');
-            const addSelect = document.getElementById('prop-port-add-type');
-            if (addBtn && addSelect) {
-                addBtn.addEventListener('click', () => {
-                    const type = addSelect.value;
-                    if (!type || obj.ports[type]) return;
-                    obj.ports[type] = { input: 1, output: 1 };
-                    this.updatePropertiesPanel();
-                    this.saveState();
-                    this.render();
-                });
-            }
-        }
-    }
-
-    reportDanglingConnectors(obj) {
-        const dangling = this.objects.filter(c => c.type === 'connector' && (c.startObject === obj || c.endObject === obj) && c.isDangling());
-        if (dangling.length) {
-            this.showMessage(`${dangling.length} connector(s) lost their port on this object (shown in red). Restore the port count or reconnect them.`, 'error');
-        }
+        this.propertiesPanel.render();
+        this.updateStatusSelection();
     }
 
     // ------------------------------------------------------------------
     // Rendering
     // ------------------------------------------------------------------
-    /**
-     * Set of `<objectId>|<anchorKey>` strings for every connected port.
-     * @returns {Set<string>}
-     */
     getUsedPortKeys() {
         const used = new Set();
         for (const c of this.objects) {
@@ -1963,7 +2115,8 @@ class CanvasApp {
     render() {
         if (!this.ctx || !this.canvas) return;
         const ctx = this.ctx;
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+        ctx.clearRect(0, 0, this.viewWidth, this.viewHeight);
         ctx.save();
         ctx.translate(this.panX, this.panY);
         ctx.scale(this.zoom, this.zoom);
@@ -1976,6 +2129,10 @@ class CanvasApp {
             if (obj.type === 'connector') obj.selected = this.selectedObjects.includes(obj);
             obj.draw(ctx);
             if (obj.type === 'connector' && obj.isDangling()) this.drawDanglingMarkers(obj);
+        }
+
+        if (this.hoverObject && !this.selectedObjects.includes(this.hoverObject) && !this.isDragging && !this.isDrawing) {
+            this.drawHover(this.hoverObject);
         }
 
         if (this.tempObject) {
@@ -2001,46 +2158,93 @@ class CanvasApp {
             if (obj.type !== 'connector' && obj.getBounds) this.drawSelection(obj);
         });
 
+        if (this.activeGuides.length) this.drawGuides();
+
         ctx.restore();
     }
 
     drawGrid() {
         const ctx = this.ctx;
-        ctx.strokeStyle = '#e0e0e0';
-        ctx.lineWidth = 0.5 / this.zoom;
         const left = -this.panX / this.zoom;
         const top = -this.panY / this.zoom;
-        const right = left + this.canvas.width / this.zoom;
-        const bottom = top + this.canvas.height / this.zoom;
-        const startX = Math.floor(left / this.gridSize) * this.gridSize;
-        const startY = Math.floor(top / this.gridSize) * this.gridSize;
+        const right = left + this.viewWidth / this.zoom;
+        const bottom = top + this.viewHeight / this.zoom;
+        const step = this.zoom < 0.5 ? this.gridSize * 5 : this.gridSize;
+        const startX = Math.floor(left / step) * step;
+        const startY = Math.floor(top / step) * step;
+        ctx.strokeStyle = '#e6e6e6';
+        ctx.lineWidth = 1 / this.zoom;
         ctx.beginPath();
-        for (let x = startX; x <= right; x += this.gridSize) {
+        for (let x = startX; x <= right; x += step) {
             ctx.moveTo(x, top);
             ctx.lineTo(x, bottom);
         }
-        for (let y = startY; y <= bottom; y += this.gridSize) {
+        for (let y = startY; y <= bottom; y += step) {
             ctx.moveTo(left, y);
             ctx.lineTo(right, y);
         }
         ctx.stroke();
     }
 
-    /**
-     * Draws port dots: filled when connected, hollow when free, coloured by connection type.
-     * @param {CanvasRenderingContext2D} ctx
-     * @param {Object} obj
-     * @param {Set<string>} used
-     * @param {number} scale Size multiplier (1/zoom on screen).
-     * @param {boolean} includeGeneric Also draw the untyped side anchors of basic shapes.
-     */
+    drawGuides() {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.strokeStyle = '#e91e63';
+        ctx.lineWidth = 1 / this.zoom;
+        ctx.setLineDash([6 / this.zoom, 4 / this.zoom]);
+        for (const g of this.activeGuides) {
+            ctx.beginPath();
+            if (g.axis === 'x') { ctx.moveTo(g.pos, g.from); ctx.lineTo(g.pos, g.to); }
+            else { ctx.moveTo(g.from, g.pos); ctx.lineTo(g.to, g.pos); }
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    drawHover(obj) {
+        const ctx = this.ctx;
+        ctx.save();
+        if (obj.type === 'connector') {
+            const pts = obj.getPathPoints();
+            if (pts.length > 1) {
+                ctx.strokeStyle = 'rgba(59,130,246,0.35)';
+                ctx.lineWidth = (obj.strokeWidth || 2) + 8 / this.zoom;
+                ctx.lineJoin = 'round';
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                if (obj.style === 'bezier') {
+                    const s = obj.getStartPoint();
+                    const e = obj.getEndPoint();
+                    const cp1 = obj.controlPoint1 || obj.getDefaultControlPoint1();
+                    const cp2 = obj.controlPoint2 || obj.getDefaultControlPoint2();
+                    ctx.moveTo(s.x, s.y);
+                    ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, e.x, e.y);
+                } else {
+                    ctx.moveTo(pts[0].x, pts[0].y);
+                    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+                }
+                ctx.stroke();
+            }
+        } else {
+            const corners = obj.getRotatedBounds();
+            ctx.strokeStyle = 'rgba(59,130,246,0.7)';
+            ctx.lineWidth = 1.5 / this.zoom;
+            ctx.beginPath();
+            ctx.moveTo(corners[0].x, corners[0].y);
+            for (let i = 1; i < corners.length; i++) ctx.lineTo(corners[i].x, corners[i].y);
+            ctx.closePath();
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
     drawPortDots(ctx, obj, used, scale, includeGeneric) {
         const anchors = obj.getAnchorPoints();
         for (const [key, pos] of Object.entries(anchors)) {
             if (!pos || key === 'center') continue;
             if (!pos.connectionType && !includeGeneric && obj.type !== 'connector_anchor') continue;
             if (obj.type === 'connector_anchor') continue;
-            const color = ConnectionTypeRegistry.colorFor(pos.connectionType, '#0066cc');
+            const color = ConnectionTypeRegistry.colorFor(pos.connectionType, '#3b82f6');
             const isUsed = used.has(`${obj.id}|${key}`);
             ctx.fillStyle = isUsed ? color : '#ffffff';
             ctx.strokeStyle = isUsed ? 'rgba(255,255,255,0.9)' : color;
@@ -2053,25 +2257,38 @@ class CanvasApp {
     }
 
     /**
-     * Draws port names just inside the shape edge next to each typed port.
+     * Draws port names just inside the shape edge. Sides whose ports are packed too tightly for the text
+     * are skipped (the hover tooltip still shows their names).
      * @param {CanvasRenderingContext2D} ctx
      * @param {Object} obj
-     * @param {number} scale
+     * @param {number} scale Size multiplier (1/zoom on screen).
      */
     drawPortLabels(ctx, obj, scale) {
-        const anchors = obj.getAnchorPoints();
+        const anchors = Object.entries(obj.getAnchorPoints()).filter(([, pos]) => pos && pos.connectionType && pos.normal);
+        if (!anchors.length) return;
         const fontSize = 9 * scale;
+        const minGap = fontSize + 2 * scale;
+        const bySide = {};
+        for (const entry of anchors) (bySide[entry[1].side || 'free'] ||= []).push(entry);
+        const b = obj.getBounds();
+        const maxWidth = Math.max(20, b.width / 2 - 12 * scale);
+
         ctx.save();
         ctx.font = `${fontSize}px Arial`;
         ctx.textBaseline = 'middle';
         ctx.fillStyle = contrastColor(obj.fill);
-        for (const [key, pos] of Object.entries(anchors)) {
-            if (!pos || !pos.connectionType || !pos.normal) continue;
-            const inward = { x: -pos.normal.x, y: -pos.normal.y };
-            const tx = pos.x + inward.x * 8 * scale;
-            const ty = pos.y + inward.y * 8 * scale;
-            ctx.textAlign = Math.abs(inward.x) < 0.5 ? 'center' : (inward.x > 0 ? 'left' : 'right');
-            ctx.fillText(pos.label || portLabel(key), tx, ty);
+        for (const entries of Object.values(bySide)) {
+            const coords = entries.map(([, p]) => (Math.abs(p.normal.x) >= Math.abs(p.normal.y) ? p.y : p.x)).sort((u, v) => u - v);
+            let gap = Infinity;
+            for (let i = 1; i < coords.length; i++) gap = Math.min(gap, coords[i] - coords[i - 1]);
+            if (gap < minGap) continue;
+            for (const [key, pos] of entries) {
+                const inward = { x: -pos.normal.x, y: -pos.normal.y };
+                const tx = pos.x + inward.x * 8 * scale;
+                const ty = pos.y + inward.y * 8 * scale;
+                ctx.textAlign = Math.abs(inward.x) < 0.5 ? 'center' : (inward.x > 0 ? 'left' : 'right');
+                ctx.fillText(pos.label || portLabel(key), tx, ty, maxWidth);
+            }
         }
         ctx.restore();
     }
@@ -2099,7 +2316,7 @@ class CanvasApp {
         if (!start || !end) return;
 
         ctx.save();
-        ctx.strokeStyle = this.tempObject.connectionType ? this.tempObject.stroke : '#0066cc';
+        ctx.strokeStyle = this.tempObject.connectionType ? this.tempObject.stroke : '#3b82f6';
         ctx.lineWidth = 2 / this.zoom;
         ctx.setLineDash([5 / this.zoom, 5 / this.zoom]);
         ctx.beginPath();
@@ -2111,7 +2328,7 @@ class CanvasApp {
         ctx.stroke();
         ctx.setLineDash([]);
         if (this.isDrawingPolyline) {
-            ctx.fillStyle = '#0066cc';
+            ctx.fillStyle = '#3b82f6';
             this.polylineWaypoints.forEach(wp => {
                 ctx.beginPath();
                 ctx.arc(wp.x, wp.y, 4 / this.zoom, 0, Math.PI * 2);
@@ -2123,9 +2340,9 @@ class CanvasApp {
 
     drawSelection(obj) {
         const ctx = this.ctx;
-        ctx.strokeStyle = '#0066cc';
-        ctx.lineWidth = 2 / this.zoom;
-        ctx.setLineDash([5 / this.zoom, 5 / this.zoom]);
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 1.5 / this.zoom;
+        ctx.setLineDash([5 / this.zoom, 4 / this.zoom]);
 
         if (obj.rotation) {
             const corners = obj.getRotatedBounds();
@@ -2151,8 +2368,8 @@ class CanvasApp {
         const handleSize = 8 / this.zoom;
         const handles = this.getHandlePositions(obj);
         ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#0066cc';
-        ctx.lineWidth = 2 / this.zoom;
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 1.5 / this.zoom;
         ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].forEach(handle => {
             const pos = handles[handle];
             ctx.fillRect(pos.x - handleSize / 2, pos.y - handleSize / 2, handleSize, handleSize);
@@ -2166,8 +2383,8 @@ class CanvasApp {
         const top = obj.rotatePoint(obj.x + obj.width / 2, obj.y);
         const handle = this.getRotateHandlePosition(obj);
 
-        ctx.strokeStyle = '#0066cc';
-        ctx.lineWidth = 2 / this.zoom;
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 1.5 / this.zoom;
         ctx.beginPath();
         ctx.moveTo(top.x, top.y);
         ctx.lineTo(handle.x, handle.y);
@@ -2219,14 +2436,20 @@ class CanvasApp {
         return null;
     }
 
-    findWaypointAtPoint(x, y) {
+    /**
+     * Finds a polyline waypoint under the cursor.
+     * @param {number} x
+     * @param {number} y
+     * @param {boolean} [anyConnector=false] Search all connectors instead of only the selected ones.
+     * @returns {{connector:Connector,index:number}|null}
+     */
+    findWaypointAtPoint(x, y, anyConnector = false) {
         const threshold = 8 / this.zoom;
-        for (const obj of this.selectedObjects) {
+        const pool = anyConnector ? this.objects : this.selectedObjects;
+        for (const obj of pool) {
             if (obj.type === 'connector' && obj.style === 'polyline' && obj.waypoints) {
-                for (let i = 0; i < obj.waypoints.length; i++) {
-                    const wp = obj.waypoints[i];
-                    if (Math.hypot(x - wp.x, y - wp.y) <= threshold) return { connector: obj, index: i };
-                }
+                const index = obj.findWaypointNear(x, y, threshold);
+                if (index >= 0) return { connector: obj, index };
             }
         }
         return null;
@@ -2247,10 +2470,10 @@ class CanvasApp {
 
     drawSelectionBox(box) {
         const ctx = this.ctx;
-        ctx.fillStyle = 'rgba(0, 102, 204, 0.1)';
-        ctx.strokeStyle = '#0066cc';
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.08)';
+        ctx.strokeStyle = '#3b82f6';
         ctx.lineWidth = 1 / this.zoom;
-        ctx.setLineDash([5 / this.zoom, 5 / this.zoom]);
+        ctx.setLineDash([5 / this.zoom, 4 / this.zoom]);
         ctx.fillRect(box.x, box.y, box.width, box.height);
         ctx.strokeRect(box.x, box.y, box.width, box.height);
         ctx.setLineDash([]);

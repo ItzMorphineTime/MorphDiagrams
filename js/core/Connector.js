@@ -237,6 +237,78 @@ export class Connector {
     }
 
     /**
+     * Converts the connector to an editable polyline, seeding waypoints from the current path so the
+     * shape does not visibly change (bezier curves are approximated with a few samples).
+     * @returns {boolean} True if the style was changed.
+     */
+    toPolyline() {
+        if (this.style === 'polyline') return false;
+        let inner;
+        if (this.style === 'bezier') {
+            inner = [1, 2, 3, 4, 5, 6].map(i => this.getBezierPoint(i / 7));
+        } else {
+            inner = this.getPathPoints().slice(1, -1);
+        }
+        this.waypoints = inner.map(p => ({ x: p.x, y: p.y }));
+        this.style = 'polyline';
+        return true;
+    }
+
+    /**
+     * Inserts a waypoint on the segment closest to (x, y), converting to a polyline first if needed.
+     * The point is projected onto that segment so it sits exactly on the line.
+     * @param {number} x
+     * @param {number} y
+     * @returns {number} Index of the new waypoint in `waypoints` (-1 when the path is unresolved).
+     */
+    insertWaypoint(x, y) {
+        this.toPolyline();
+        const points = this.getPathPoints();
+        if (points.length < 2) return -1;
+        let best = { index: 0, dist: Infinity, point: { x, y } };
+        for (let i = 0; i < points.length - 1; i++) {
+            const a = points[i];
+            const b = points[i + 1];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const len2 = dx * dx + dy * dy;
+            const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / len2));
+            const px = a.x + t * dx;
+            const py = a.y + t * dy;
+            const dist = Math.hypot(x - px, y - py);
+            if (dist < best.dist) best = { index: i, dist, point: { x: px, y: py } };
+        }
+        this.waypoints.splice(best.index, 0, best.point);
+        return best.index;
+    }
+
+    /**
+     * Index of the waypoint within `threshold` of (x, y), or -1.
+     * @param {number} x
+     * @param {number} y
+     * @param {number} [threshold=8]
+     * @returns {number}
+     */
+    findWaypointNear(x, y, threshold = 8) {
+        for (let i = 0; i < this.waypoints.length; i++) {
+            const w = this.waypoints[i];
+            if (Math.hypot(x - w.x, y - w.y) <= threshold) return i;
+        }
+        return -1;
+    }
+
+    /**
+     * Swaps start and end (useful when a link was drawn the wrong way round).
+     */
+    reverse() {
+        [this.startObject, this.endObject] = [this.endObject, this.startObject];
+        [this.startAnchor, this.endAnchor] = [this.endAnchor, this.startAnchor];
+        [this.arrowStart, this.arrowEnd] = [this.arrowEnd, this.arrowStart];
+        this.waypoints.reverse();
+        [this.controlPoint1, this.controlPoint2] = [this.controlPoint2, this.controlPoint1];
+    }
+
+    /**
      * Samples the bezier curve into a polyline.
      * @param {number} [samples=24]
      * @returns {Array<{x:number,y:number}>}

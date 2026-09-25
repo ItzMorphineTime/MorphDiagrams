@@ -16,15 +16,19 @@ Or open the published version at <https://itzmorphinetime.github.io/MorphDiagram
 
 ## Draw a system
 
-1. Pick a **system object** from the toolbar (Server, Network Switch, Video Matrix, LED Processor, Sync
-   Generator, or the generic **Device**) and click on the canvas to place it at its default size.
-2. In the **Properties** panel give it a label and adjust its **port configuration** (inputs on the
-   left, outputs on the right). Use *Add port type* for any registered connection type.
+1. Pick a **system object** from the palette on the left (Device, Server, Network Switch, Video Matrix,
+   LED Processor, Sync Generator) and click on the canvas to place it at its default size.
+2. Double-click it to name it. In the **Properties** panel adjust its **ports** (inputs on the left,
+   outputs on the right); *Add* offers every registered connection type.
 3. Choose the **Connector** tool (`L`), press on a port dot and release on a compatible port of another
    device. Typed ports only accept the same type, and outputs connect to inputs (network links are
-   bidirectional). Hollow dots are free ports, filled dots are already connected.
-4. Use **Auto layout** (⌗) to arrange devices along the signal flow, then **Zoom to fit** (⛶).
-5. Save as JSON, or export PNG / SVG / PDF.
+   bidirectional). Hollow dots are free ports, filled dots are already connected; hovering a port shows
+   its name and what it is connected to.
+4. Right-click a link to add waypoints, straighten it, change its path style or reverse it.
+5. With nothing selected the panel shows an overview with validation issues (click one to jump to it)
+   and **Auto layout** / **Zoom to fit** actions. Press `?` for all shortcuts.
+6. Save as JSON, or export PNG / SVG / PDF from the *Export* menu. Unsaved work is kept in the browser
+   and offered for restore on the next visit.
 
 ## Custom connection types
 

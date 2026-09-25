@@ -1,214 +1,127 @@
+/**
+ * @module ui/ContextMenu
+ * @description Right-click menu. The caller supplies the items, so the same component serves shapes,
+ * connectors, waypoints and the empty canvas.
+ *
+ * @example
+ * menu.show(e.clientX, e.clientY, [
+ *     { label: 'Copy', shortcut: 'Ctrl+C', action: () => app.copy() },
+ *     { separator: true },
+ *     { label: 'Delete', shortcut: 'Del', danger: true, action: () => app.deleteSelected() }
+ * ]);
+ */
+
+/**
+ * @typedef {Object} MenuItem
+ * @property {string} [label]
+ * @property {string} [shortcut]
+ * @property {string} [icon] Id of an SVG symbol in the page's icon sprite (without `#`).
+ * @property {function(): void} [action]
+ * @property {boolean} [disabled]
+ * @property {boolean} [danger] Render in the danger colour.
+ * @property {boolean} [checked] Render a check mark (toggle items).
+ * @property {boolean} [separator] Render a separator instead of an item.
+ */
+
 export class ContextMenu {
+    /**
+     * @param {HTMLElement} canvas Element whose native context menu is replaced.
+     */
     constructor(canvas) {
         this.canvas = canvas;
-        this.menu = null;
-        this.visible = false;
-        this.targetObject = null;
-
-        this.createMenu();
-        this.setupEventListeners();
-    }
-
-    createMenu() {
         this.menu = document.createElement('div');
         this.menu.className = 'context-menu';
         this.menu.style.display = 'none';
+        this.menu.setAttribute('role', 'menu');
         document.body.appendChild(this.menu);
+        this.visible = false;
+
+        document.addEventListener('mousedown', (e) => {
+            if (this.visible && !this.menu.contains(e.target)) this.hide();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (this.visible && e.key === 'Escape') this.hide();
+        });
+        window.addEventListener('blur', () => this.hide());
+        window.addEventListener('resize', () => this.hide());
     }
 
-    setupEventListeners() {
-        document.addEventListener('click', (e) => {
-            if (!this.menu.contains(e.target)) {
-                this.hide();
-            }
-        });
-
-        document.addEventListener('contextmenu', (e) => {
-            if (e.target !== this.canvas) {
-                this.hide();
-            }
-        });
-    }
-
-    show(x, y, object, options = {}) {
-        this.targetObject = object;
+    /**
+     * Shows the menu at a screen position.
+     * @param {number} x
+     * @param {number} y
+     * @param {MenuItem[]} items
+     */
+    show(x, y, items) {
         this.menu.innerHTML = '';
-
-        const menuItems = this.getMenuItems(object, options);
-
-        menuItems.forEach(item => {
+        let lastWasSeparator = true;
+        for (const item of items) {
             if (item.separator) {
+                if (lastWasSeparator) continue;
                 const sep = document.createElement('div');
                 sep.className = 'context-menu-separator';
                 this.menu.appendChild(sep);
-            } else {
-                const menuItem = document.createElement('div');
-                menuItem.className = 'context-menu-item';
-                if (item.disabled) {
-                    menuItem.classList.add('disabled');
-                }
-
-                menuItem.innerHTML = `
-                    ${item.icon || ''}
-                    <span>${item.label}</span>
-                    ${item.shortcut ? `<span class="shortcut">${item.shortcut}</span>` : ''}
-                `;
-
-                if (!item.disabled && item.action) {
-                    menuItem.addEventListener('click', () => {
-                        item.action(this.targetObject);
-                        this.hide();
-                    });
-                }
-
-                this.menu.appendChild(menuItem);
+                lastWasSeparator = true;
+                continue;
             }
-        });
+            lastWasSeparator = false;
+            const el = document.createElement('button');
+            el.type = 'button';
+            el.className = 'context-menu-item' + (item.disabled ? ' disabled' : '') + (item.danger ? ' danger' : '');
+            el.setAttribute('role', 'menuitem');
+            if (item.disabled) el.disabled = true;
 
-        // Position menu
-        this.menu.style.left = x + 'px';
-        this.menu.style.top = y + 'px';
+            const icon = document.createElement('span');
+            icon.className = 'context-menu-icon';
+            if (item.icon) {
+                icon.innerHTML = `<svg class="icon"><use href="#${item.icon}"></use></svg>`;
+            } else if (item.checked) {
+                icon.textContent = '✓';
+            }
+            el.appendChild(icon);
+
+            const label = document.createElement('span');
+            label.className = 'context-menu-label';
+            label.textContent = item.label;
+            el.appendChild(label);
+
+            if (item.shortcut) {
+                const sc = document.createElement('span');
+                sc.className = 'shortcut';
+                sc.textContent = item.shortcut;
+                el.appendChild(sc);
+            }
+
+            if (!item.disabled && item.action) {
+                el.addEventListener('click', () => {
+                    this.hide();
+                    item.action();
+                });
+            }
+            this.menu.appendChild(el);
+        }
+        if (this.menu.lastElementChild && this.menu.lastElementChild.classList.contains('context-menu-separator')) {
+            this.menu.lastElementChild.remove();
+        }
+
         this.menu.style.display = 'block';
-
-        // Adjust if menu goes off screen
+        this.menu.style.left = '0px';
+        this.menu.style.top = '0px';
         const rect = this.menu.getBoundingClientRect();
-        if (rect.right > window.innerWidth) {
-            this.menu.style.left = (x - rect.width) + 'px';
-        }
-        if (rect.bottom > window.innerHeight) {
-            this.menu.style.top = (y - rect.height) + 'px';
-        }
-
+        const left = Math.min(x, window.innerWidth - rect.width - 8);
+        const top = Math.min(y, window.innerHeight - rect.height - 8);
+        this.menu.style.left = Math.max(4, left) + 'px';
+        this.menu.style.top = Math.max(4, top) + 'px';
         this.visible = true;
     }
 
-    getMenuItems(object, options) {
-        const items = [];
-
-        if (object) {
-            // Object-specific menu
-            items.push({
-                label: 'Copy',
-                shortcut: 'Ctrl+C',
-                action: options.onCopy
-            });
-
-            items.push({
-                label: 'Cut',
-                shortcut: 'Ctrl+X',
-                action: options.onCut
-            });
-
-            items.push({
-                label: 'Duplicate',
-                shortcut: 'Ctrl+D',
-                action: options.onDuplicate
-            });
-
-            items.push({ separator: true });
-
-            if (object.type !== 'connector') {
-                items.push({
-                    label: 'Bring to Front',
-                    shortcut: 'Shift+]',
-                    action: options.onBringToFront
-                });
-
-                items.push({
-                    label: 'Bring Forward',
-                    shortcut: ']',
-                    action: options.onBringForward
-                });
-
-                items.push({
-                    label: 'Send Backward',
-                    shortcut: '[',
-                    action: options.onSendBackward
-                });
-
-                items.push({
-                    label: 'Send to Back',
-                    shortcut: 'Shift+[',
-                    action: options.onSendToBack
-                });
-
-                items.push({ separator: true });
-
-                items.push({
-                    label: object.locked ? 'Unlock' : 'Lock',
-                    action: options.onToggleLock
-                });
-            }
-
-            if (object.type === 'connector') {
-                items.push({
-                    label: 'Change Style',
-                    action: options.onChangeConnectorStyle
-                });
-
-                items.push({
-                    label: 'Toggle Arrows',
-                    action: options.onToggleArrows
-                });
-
-                items.push({ separator: true });
-            }
-
-            items.push({
-                label: 'Delete',
-                shortcut: 'Del',
-                action: options.onDelete
-            });
-
-        } else {
-            // Canvas menu
-            items.push({
-                label: 'Paste',
-                shortcut: 'Ctrl+V',
-                disabled: !options.hasClipboard,
-                action: options.onPaste
-            });
-
-            items.push({ separator: true });
-
-            items.push({
-                label: 'Select All',
-                shortcut: 'Ctrl+A',
-                action: options.onSelectAll
-            });
-
-            items.push({ separator: true });
-
-            items.push({
-                label: 'Add Image',
-                action: options.onAddImage
-            });
-
-            items.push({
-                label: 'Insert Icon',
-                action: options.onInsertIcon
-            });
-
-            items.push({
-                label: 'Insert Template',
-                action: options.onInsertTemplate
-            });
-        }
-
-        return items;
-    }
-
     hide() {
-        if (this.visible) {
-            this.menu.style.display = 'none';
-            this.visible = false;
-            this.targetObject = null;
-        }
+        if (!this.visible) return;
+        this.menu.style.display = 'none';
+        this.visible = false;
     }
 
     destroy() {
-        if (this.menu && this.menu.parentNode) {
-            this.menu.parentNode.removeChild(this.menu);
-        }
+        this.menu.remove();
     }
 }

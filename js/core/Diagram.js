@@ -508,20 +508,22 @@ export class Diagram {
     /**
      * Semantic validation: dangling ports, incompatible or duplicated connections, unknown types,
      * overlapping devices, unlabeled devices.
-     * @returns {{errors: string[], warnings: string[]}}
+     * @returns {{errors: string[], warnings: string[], issues: Array<{level:("error"|"warning"), message:string, objectIds:string[]}>}}
+     *   `issues` carries the ids of the objects involved so a UI can select them.
      */
     validate() {
-        const errors = [];
-        const warnings = [];
+        const issues = [];
         const name = o => (o.label ? `"${o.label}" (${o.id})` : o.id);
+        const error = (message, ...objs) => issues.push({ level: 'error', message, objectIds: objs.map(o => o.id) });
+        const warning = (message, ...objs) => issues.push({ level: 'warning', message, objectIds: objs.map(o => o.id) });
 
         for (const s of this.shapes) {
-            if (!ShapeRegistry.has(s.type)) errors.push(`${name(s)}: unknown shape type "${s.type}"`);
-            if (s.ports && ShapeRegistry.get(s.type)?.hasPorts && !s.label) warnings.push(`${name(s)}: device has no label`);
+            if (!ShapeRegistry.has(s.type)) error(`${name(s)}: unknown shape type "${s.type}"`, s);
+            if (s.ports && ShapeRegistry.get(s.type)?.hasPorts && !s.label) warning(`${name(s)}: device has no label`, s);
             if (s.ports) {
                 for (const type of Object.keys(s.ports)) {
                     if (!ConnectionTypeRegistry.has(type)) {
-                        warnings.push(`${name(s)}: port type "${type}" is not a registered connection type (define it with define_connection_type for a proper colour/label)`);
+                        warning(`${name(s)}: port type "${type}" is not a registered connection type (define it with define_connection_type for a proper colour/label)`, s);
                     }
                 }
             }
@@ -529,28 +531,28 @@ export class Diagram {
 
         const seenPairs = new Map();
         for (const c of this.connectors) {
-            if (!c.startObject || !c.endObject) { errors.push(`connector ${c.id}: missing endpoint`); continue; }
+            if (!c.startObject || !c.endObject) { error(`connector ${c.id}: missing endpoint`, c); continue; }
             const sa = c.startObject.getAnchorPoints()[c.startAnchor];
             const ea = c.endObject.getAnchorPoints()[c.endAnchor];
-            if (!sa) errors.push(`connector ${c.id}: port "${c.startAnchor}" no longer exists on ${name(c.startObject)}`);
-            if (!ea) errors.push(`connector ${c.id}: port "${c.endAnchor}" no longer exists on ${name(c.endObject)}`);
+            if (!sa) error(`connector ${c.id}: port "${c.startAnchor}" no longer exists on ${name(c.startObject)}`, c, c.startObject);
+            if (!ea) error(`connector ${c.id}: port "${c.endAnchor}" no longer exists on ${name(c.endObject)}`, c, c.endObject);
             if (sa && ea) {
                 const compat = anchorsCompatible(sa, ea);
-                if (!compat.ok) errors.push(`connector ${c.id} (${name(c.startObject)} -> ${name(c.endObject)}): ${compat.reason}`);
+                if (!compat.ok) error(`connector ${c.id} (${name(c.startObject)} -> ${name(c.endObject)}): ${compat.reason}`, c);
                 if (c.connectionType && compat.connectionType && c.connectionType !== compat.connectionType) {
-                    warnings.push(`connector ${c.id}: connectionType "${c.connectionType}" differs from its ports' type "${compat.connectionType}"`);
+                    warning(`connector ${c.id}: connectionType "${c.connectionType}" differs from its ports' type "${compat.connectionType}"`, c);
                 }
             }
             const pairKey = `${c.startObject.id}|${c.startAnchor}|${c.endObject.id}|${c.endAnchor}`;
-            if (seenPairs.has(pairKey)) warnings.push(`connector ${c.id} duplicates connector ${seenPairs.get(pairKey)}`);
-            seenPairs.set(pairKey, c.id);
+            if (seenPairs.has(pairKey)) warning(`connector ${c.id} duplicates connector ${seenPairs.get(pairKey).id}`, c, seenPairs.get(pairKey));
+            seenPairs.set(pairKey, c);
         }
 
         for (const s of this.shapes) {
             const usage = this.getPortUsage(s);
             for (const [key, list] of usage) {
                 if (parsePortKey(key) && list.length > 1) {
-                    warnings.push(`${name(s)}: port ${key} has ${list.length} connections (${list.map(c => c.id).join(', ')})`);
+                    warning(`${name(s)}: port ${key} has ${list.length} connections (${list.map(c => c.id).join(', ')})`, s, ...list);
                 }
             }
         }
@@ -561,10 +563,14 @@ export class Diagram {
                 const a = devices[i].getBounds();
                 const b = devices[j].getBounds();
                 const overlap = a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
-                if (overlap) warnings.push(`${name(devices[i])} overlaps ${name(devices[j])}`);
+                if (overlap) warning(`${name(devices[i])} overlaps ${name(devices[j])}`, devices[i], devices[j]);
             }
         }
-        return { errors, warnings };
+        return {
+            errors: issues.filter(i => i.level === 'error').map(i => i.message),
+            warnings: issues.filter(i => i.level === 'warning').map(i => i.message),
+            issues
+        };
     }
 
     /**

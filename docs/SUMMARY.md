@@ -16,6 +16,7 @@
 * [Serialization](api/core/Serialization.md)
 * [Diagram](api/core/Diagram.md)
 * [SvgExporter](api/core/SvgExporter.md)
+* [SmartGuides](api/core/SmartGuides.md)
 * [Group](api/core/Group.md)
 
 ### Shapes
@@ -42,6 +43,9 @@
 * [Templates](api/utils/Templates.md)
 * [IconLibrary](api/utils/IconLibrary.md)
 * [Color](api/utils/Color.md)
+* [Dom](api/utils/Dom.md)
 * [ContextMenu](api/ui/ContextMenu.md)
+* [PropertiesPanel](api/ui/PropertiesPanel.md)
+* [Dialogs](api/ui/Dialogs.md)
 * [LiveSync](api/ui/LiveSync.md)
 * [main](api/main.md)

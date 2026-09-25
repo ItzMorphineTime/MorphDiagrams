@@ -6,15 +6,14 @@ _Source: `js/main.js`_
 
 ## main
 Browser entry point: the `CanvasApp` editor. Handles the canvas, mouse/keyboard input,
-selection and transforms, the properties panel, templates, file operations and live sync with the
-MCP server. All diagram semantics (objects, ports, connections, validation, layout, serialisation)
-live in the headless [module:core/Diagram](module:core/Diagram) model so the editor, the MCP server and the tests
-share one implementation.
+selection and transforms, inline editing, the tool palette / status bar, templates, file operations,
+autosave and live sync with the MCP server. Diagram semantics (objects, ports, connections,
+validation, layout, serialisation) live in the headless [module:core/Diagram](module:core/Diagram) model.
 
 **See**
 
 - module:core/Diagram
-- module:core/ShapeRegistry
+- module:ui/PropertiesPanel
 
 
 * [main](#module_main)
@@ -26,30 +25,23 @@ share one implementation.
         * [.selectedObjects](#module_main..CanvasApp+selectedObjects) : <code>Array</code>
         * [.currentTool](#module_main..CanvasApp+currentTool) : <code>string</code>
         * [.clipboard](#module_main..CanvasApp+clipboard) : <code>Array</code>
+        * [.defaultConnectorStyle](#module_main..CanvasApp+defaultConnectorStyle) : <code>string</code>
         * [.showPortLabels](#module_main..CanvasApp+showPortLabels) : <code>boolean</code>
         * [.liveSync](#module_main..CanvasApp+liveSync) : <code>LiveSync</code> \| <code>null</code>
         * [.objects](#module_main..CanvasApp+objects) ⇒ <code>Array</code>
         * [.nextGroupId](#module_main..CanvasApp+nextGroupId) ⇒ <code>number</code>
         * [.getMousePos(e, [options])](#module_main..CanvasApp+getMousePos) ⇒ <code>Object</code>
+        * [.getMovingObjects()](#module_main..CanvasApp+getMovingObjects) ⇒ <code>Array</code>
         * [.applyConnectionType(conn, type)](#module_main..CanvasApp+applyConnectionType)
-        * [.findCompatibleEndAnchor(pos)](#module_main..CanvasApp+findCompatibleEndAnchor) ⇒ <code>Object</code> \| <code>null</code>
-        * [.finalizeConnector(conn)](#module_main..CanvasApp+finalizeConnector)
-        * [.handleWheel(e)](#module_main..CanvasApp+handleWheel)
-        * [.zoomAt(sx, sy, newZoom)](#module_main..CanvasApp+zoomAt)
-        * [.findNearestAnchor(x, y, [threshold], [requiredConnectionType], [requiredPortType])](#module_main..CanvasApp+findNearestAnchor) ⇒ <code>Object</code> \| <code>null</code>
-        * [.copy()](#module_main..CanvasApp+copy)
-        * [.paste()](#module_main..CanvasApp+paste)
-        * [.distribute(axis)](#module_main..CanvasApp+distribute)
-        * [.zoomToFit()](#module_main..CanvasApp+zoomToFit)
-        * [.buildDocument()](#module_main..CanvasApp+buildDocument) ⇒ <code>Object</code>
-        * [.loadDocument(doc, [options])](#module_main..CanvasApp+loadDocument) ⇒ <code>Array.&lt;string&gt;</code>
-        * [.renderScene(ctx, options)](#module_main..CanvasApp+renderScene)
+        * [.updateHover(pos)](#module_main..CanvasApp+updateHover)
+        * [.selectInBox(box, [intersect])](#module_main..CanvasApp+selectInBox)
+        * [.buildContextMenu(obj, pos, waypointHit)](#module_main..CanvasApp+buildContextMenu) ⇒ <code>Array</code>
+        * [.pasteAt(at)](#module_main..CanvasApp+pasteAt)
+        * [.revealObjects(ids)](#module_main..CanvasApp+revealObjects)
         * [.showMessage(textContent, [type])](#module_main..CanvasApp+showMessage)
-        * [.getUsedPortKeys()](#module_main..CanvasApp+getUsedPortKeys) ⇒ <code>Set.&lt;string&gt;</code>
-        * [.drawPortDots(ctx, obj, used, scale, includeGeneric)](#module_main..CanvasApp+drawPortDots)
         * [.drawPortLabels(ctx, obj, scale)](#module_main..CanvasApp+drawPortLabels)
+        * [.findWaypointAtPoint(x, y, [anyConnector])](#module_main..CanvasApp+findWaypointAtPoint) ⇒ <code>Object</code> \| <code>null</code>
     * [~OBJECT_COLOR_KEYS](#module_main..OBJECT_COLOR_KEYS)
-    * [~escapeHtml(value)](#module_main..escapeHtml) ⇒ <code>string</code>
 
 <a name="module_main..CanvasApp"></a>
 
@@ -64,28 +56,22 @@ share one implementation.
     * [.selectedObjects](#module_main..CanvasApp+selectedObjects) : <code>Array</code>
     * [.currentTool](#module_main..CanvasApp+currentTool) : <code>string</code>
     * [.clipboard](#module_main..CanvasApp+clipboard) : <code>Array</code>
+    * [.defaultConnectorStyle](#module_main..CanvasApp+defaultConnectorStyle) : <code>string</code>
     * [.showPortLabels](#module_main..CanvasApp+showPortLabels) : <code>boolean</code>
     * [.liveSync](#module_main..CanvasApp+liveSync) : <code>LiveSync</code> \| <code>null</code>
     * [.objects](#module_main..CanvasApp+objects) ⇒ <code>Array</code>
     * [.nextGroupId](#module_main..CanvasApp+nextGroupId) ⇒ <code>number</code>
     * [.getMousePos(e, [options])](#module_main..CanvasApp+getMousePos) ⇒ <code>Object</code>
+    * [.getMovingObjects()](#module_main..CanvasApp+getMovingObjects) ⇒ <code>Array</code>
     * [.applyConnectionType(conn, type)](#module_main..CanvasApp+applyConnectionType)
-    * [.findCompatibleEndAnchor(pos)](#module_main..CanvasApp+findCompatibleEndAnchor) ⇒ <code>Object</code> \| <code>null</code>
-    * [.finalizeConnector(conn)](#module_main..CanvasApp+finalizeConnector)
-    * [.handleWheel(e)](#module_main..CanvasApp+handleWheel)
-    * [.zoomAt(sx, sy, newZoom)](#module_main..CanvasApp+zoomAt)
-    * [.findNearestAnchor(x, y, [threshold], [requiredConnectionType], [requiredPortType])](#module_main..CanvasApp+findNearestAnchor) ⇒ <code>Object</code> \| <code>null</code>
-    * [.copy()](#module_main..CanvasApp+copy)
-    * [.paste()](#module_main..CanvasApp+paste)
-    * [.distribute(axis)](#module_main..CanvasApp+distribute)
-    * [.zoomToFit()](#module_main..CanvasApp+zoomToFit)
-    * [.buildDocument()](#module_main..CanvasApp+buildDocument) ⇒ <code>Object</code>
-    * [.loadDocument(doc, [options])](#module_main..CanvasApp+loadDocument) ⇒ <code>Array.&lt;string&gt;</code>
-    * [.renderScene(ctx, options)](#module_main..CanvasApp+renderScene)
+    * [.updateHover(pos)](#module_main..CanvasApp+updateHover)
+    * [.selectInBox(box, [intersect])](#module_main..CanvasApp+selectInBox)
+    * [.buildContextMenu(obj, pos, waypointHit)](#module_main..CanvasApp+buildContextMenu) ⇒ <code>Array</code>
+    * [.pasteAt(at)](#module_main..CanvasApp+pasteAt)
+    * [.revealObjects(ids)](#module_main..CanvasApp+revealObjects)
     * [.showMessage(textContent, [type])](#module_main..CanvasApp+showMessage)
-    * [.getUsedPortKeys()](#module_main..CanvasApp+getUsedPortKeys) ⇒ <code>Set.&lt;string&gt;</code>
-    * [.drawPortDots(ctx, obj, used, scale, includeGeneric)](#module_main..CanvasApp+drawPortDots)
     * [.drawPortLabels(ctx, obj, scale)](#module_main..CanvasApp+drawPortLabels)
+    * [.findWaypointAtPoint(x, y, [anyConnector])](#module_main..CanvasApp+findWaypointAtPoint) ⇒ <code>Object</code> \| <code>null</code>
 
 <a name="new_module_main..CanvasApp_new"></a>
 
@@ -124,6 +110,12 @@ Current tool
 Serialised objects for paste operations
 
 **Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+<a name="module_main..CanvasApp+defaultConnectorStyle"></a>
+
+#### canvasApp.defaultConnectorStyle : <code>string</code>
+Path style for new connectors
+
+**Kind**: instance property of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 <a name="module_main..CanvasApp+showPortLabels"></a>
 
 #### canvasApp.showPortLabels : <code>boolean</code>
@@ -158,6 +150,12 @@ connector tools need the exact position so that closely spaced ports can be pick
 | e | <code>MouseEvent</code> | 
 | [options] | <code>Object</code> | 
 
+<a name="module_main..CanvasApp+getMovingObjects"></a>
+
+#### canvasApp.getMovingObjects() ⇒ <code>Array</code>
+Objects that move with the current selection (selected shapes plus their group members).
+
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 <a name="module_main..CanvasApp+applyConnectionType"></a>
 
 #### canvasApp.applyConnectionType(conn, type)
@@ -170,10 +168,10 @@ Applies the colour/width convention for a typed connection.
 | conn | <code>Connector</code> | 
 | type | <code>string</code> \| <code>null</code> | 
 
-<a name="module_main..CanvasApp+findCompatibleEndAnchor"></a>
+<a name="module_main..CanvasApp+updateHover"></a>
 
-#### canvasApp.findCompatibleEndAnchor(pos) ⇒ <code>Object</code> \| <code>null</code>
-Finds the anchor under the cursor that may complete the connector being drawn.
+#### canvasApp.updateHover(pos)
+Hover feedback in select mode: cursor, hovered object outline and port tooltips.
 
 **Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
@@ -181,120 +179,57 @@ Finds the anchor under the cursor that may complete the connector being drawn.
 | --- | --- |
 | pos | <code>Object</code> | 
 
-<a name="module_main..CanvasApp+finalizeConnector"></a>
+<a name="module_main..CanvasApp+selectInBox"></a>
 
-#### canvasApp.finalizeConnector(conn)
-Finalises a connector: adopts the typed end's connection type when the start was untyped.
+#### canvasApp.selectInBox(box, [intersect])
+Selects shapes inside (or, with `intersect`, touching) a marquee box.
+
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+
+| Param | Type | Default |
+| --- | --- | --- |
+| box | <code>Object</code> |  | 
+| [intersect] | <code>boolean</code> | <code>false</code> | 
+
+<a name="module_main..CanvasApp+buildContextMenu"></a>
+
+#### canvasApp.buildContextMenu(obj, pos, waypointHit) ⇒ <code>Array</code>
+Builds the context menu for a target.
+
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| obj | <code>Object</code> \| <code>null</code> |  |
+| pos | <code>Object</code> | World position of the click. |
+| waypointHit | <code>Object</code> \| <code>null</code> |  |
+
+<a name="module_main..CanvasApp+pasteAt"></a>
+
+#### canvasApp.pasteAt(at)
+Pastes the clipboard with fresh ids and group ids.
+
+**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| at | <code>Object</code> \| <code>null</code> | World position for the top-left of the pasted content (null = offset by 20px). |
+
+<a name="module_main..CanvasApp+revealObjects"></a>
+
+#### canvasApp.revealObjects(ids)
+Selects objects by id and scrolls them into view.
 
 **Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
 | Param | Type |
 | --- | --- |
-| conn | <code>Connector</code> | 
-
-<a name="module_main..CanvasApp+handleWheel"></a>
-
-#### canvasApp.handleWheel(e)
-Zooms around the cursor so the point under the mouse stays put.
-
-**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
-
-| Param | Type |
-| --- | --- |
-| e | <code>WheelEvent</code> | 
-
-<a name="module_main..CanvasApp+zoomAt"></a>
-
-#### canvasApp.zoomAt(sx, sy, newZoom)
-Sets the zoom keeping the screen point (sx, sy) fixed.
-
-**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
-
-| Param | Type |
-| --- | --- |
-| sx | <code>number</code> | 
-| sy | <code>number</code> | 
-| newZoom | <code>number</code> | 
-
-<a name="module_main..CanvasApp+findNearestAnchor"></a>
-
-#### canvasApp.findNearestAnchor(x, y, [threshold], [requiredConnectionType], [requiredPortType]) ⇒ <code>Object</code> \| <code>null</code>
-Finds the closest anchor to a world point within a screen-space threshold.
-
-**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| x | <code>number</code> |  |  |
-| y | <code>number</code> |  |  |
-| [threshold] | <code>number</code> | <code>15</code> | Threshold in screen pixels. |
-| [requiredConnectionType] | <code>string</code> \| <code>null</code> | <code>null</code> |  |
-| [requiredPortType] | <code>string</code> \| <code>null</code> | <code>null</code> |  |
-
-<a name="module_main..CanvasApp+copy"></a>
-
-#### canvasApp.copy()
-Copies the selection plus every connector whose both ends are selected.
-
-**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
-<a name="module_main..CanvasApp+paste"></a>
-
-#### canvasApp.paste()
-Pastes the clipboard with fresh ids and fresh group ids, offset by 20px.
-
-**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
-<a name="module_main..CanvasApp+distribute"></a>
-
-#### canvasApp.distribute(axis)
-Distributes the selected shapes with equal gaps along an axis.
-
-**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
-
-| Param | Type |
-| --- | --- |
-| axis | <code>&quot;horizontal&quot;</code> \| <code>&quot;vertical&quot;</code> | 
-
-<a name="module_main..CanvasApp+zoomToFit"></a>
-
-#### canvasApp.zoomToFit()
-Fits the whole diagram into the viewport.
-
-**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
-<a name="module_main..CanvasApp+buildDocument"></a>
-
-#### canvasApp.buildDocument() ⇒ <code>Object</code>
-Builds the JSON document for the current state.
-
-**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
-<a name="module_main..CanvasApp+loadDocument"></a>
-
-#### canvasApp.loadDocument(doc, [options]) ⇒ <code>Array.&lt;string&gt;</code>
-Replaces the current content with a document.
-
-**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
-**Returns**: <code>Array.&lt;string&gt;</code> - Loader warnings.  
-
-| Param | Type |
-| --- | --- |
-| doc | <code>Object</code> \| <code>string</code> | 
-| [options] | <code>Object</code> | 
-
-<a name="module_main..CanvasApp+renderScene"></a>
-
-#### canvasApp.renderScene(ctx, options)
-Renders the diagram (without grid or selection chrome) into an arbitrary context.
-
-**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
-
-| Param | Type |
-| --- | --- |
-| ctx | <code>CanvasRenderingContext2D</code> | 
-| options | <code>Object</code> | 
+| ids | <code>Array.&lt;string&gt;</code> | 
 
 <a name="module_main..CanvasApp+showMessage"></a>
 
 #### canvasApp.showMessage(textContent, [type])
-Shows a transient toast.
+Legacy helper kept for modules that still call it.
 
 **Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
@@ -303,16 +238,11 @@ Shows a transient toast.
 | textContent | <code>string</code> |  | 
 | [type] | <code>&quot;info&quot;</code> \| <code>&quot;error&quot;</code> | <code>&#x27;info&#x27;</code> | 
 
-<a name="module_main..CanvasApp+getUsedPortKeys"></a>
+<a name="module_main..CanvasApp+drawPortLabels"></a>
 
-#### canvasApp.getUsedPortKeys() ⇒ <code>Set.&lt;string&gt;</code>
-Set of `<objectId>|<anchorKey>` strings for every connected port.
-
-**Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
-<a name="module_main..CanvasApp+drawPortDots"></a>
-
-#### canvasApp.drawPortDots(ctx, obj, used, scale, includeGeneric)
-Draws port dots: filled when connected, hollow when free, coloured by connection type.
+#### canvasApp.drawPortLabels(ctx, obj, scale)
+Draws port names just inside the shape edge. Sides whose ports are packed too tightly for the text
+are skipped (the hover tooltip still shows their names).
 
 **Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
@@ -320,22 +250,20 @@ Draws port dots: filled when connected, hollow when free, coloured by connection
 | --- | --- | --- |
 | ctx | <code>CanvasRenderingContext2D</code> |  |
 | obj | <code>Object</code> |  |
-| used | <code>Set.&lt;string&gt;</code> |  |
 | scale | <code>number</code> | Size multiplier (1/zoom on screen). |
-| includeGeneric | <code>boolean</code> | Also draw the untyped side anchors of basic shapes. |
 
-<a name="module_main..CanvasApp+drawPortLabels"></a>
+<a name="module_main..CanvasApp+findWaypointAtPoint"></a>
 
-#### canvasApp.drawPortLabels(ctx, obj, scale)
-Draws port names just inside the shape edge next to each typed port.
+#### canvasApp.findWaypointAtPoint(x, y, [anyConnector]) ⇒ <code>Object</code> \| <code>null</code>
+Finds a polyline waypoint under the cursor.
 
 **Kind**: instance method of [<code>CanvasApp</code>](#module_main..CanvasApp)  
 
-| Param | Type |
-| --- | --- |
-| ctx | <code>CanvasRenderingContext2D</code> | 
-| obj | <code>Object</code> | 
-| scale | <code>number</code> | 
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| x | <code>number</code> |  |  |
+| y | <code>number</code> |  |  |
+| [anyConnector] | <code>boolean</code> | <code>false</code> | Search all connectors instead of only the selected ones. |
 
 <a name="module_main..OBJECT_COLOR_KEYS"></a>
 
@@ -343,15 +271,4 @@ Draws port names just inside the shape edge next to each typed port.
 Maps system object types to their key in [ObjectColors](ObjectColors).
 
 **Kind**: inner constant of [<code>main</code>](#module_main)  
-<a name="module_main..escapeHtml"></a>
-
-### main~escapeHtml(value) ⇒ <code>string</code>
-Escapes text for safe interpolation into innerHTML.
-
-**Kind**: inner method of [<code>main</code>](#module_main)  
-
-| Param | Type |
-| --- | --- |
-| value | <code>\*</code> | 
-
 

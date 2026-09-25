@@ -19,6 +19,7 @@ This section is generated from JSDoc comments in `/js`.
 - [Ports](core/Ports.md)
 - [Serialization](core/Serialization.md)
 - [ShapeRegistry](core/ShapeRegistry.md)
+- [SmartGuides](core/SmartGuides.md)
 - [SvgExporter](core/SvgExporter.md)
 - [SystemObject](core/SystemObject.md)
 
@@ -43,11 +44,14 @@ This section is generated from JSDoc comments in `/js`.
 ## ui
 
 - [ContextMenu](ui/ContextMenu.md)
+- [Dialogs](ui/Dialogs.md)
 - [LiveSync](ui/LiveSync.md)
+- [PropertiesPanel](ui/PropertiesPanel.md)
 
 ## utils
 
 - [Color](utils/Color.md)
+- [Dom](utils/Dom.md)
 - [IconLibrary](utils/IconLibrary.md)
 - [Templates](utils/Templates.md)
 

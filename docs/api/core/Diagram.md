@@ -369,6 +369,7 @@ Semantic validation: dangling ports, incompatible or duplicated connections, unk
 overlapping devices, unlabeled devices.
 
 **Kind**: instance method of [<code>Diagram</code>](#module_core/Diagram.Diagram)  
+**Returns**: <code>Object</code> - `issues` carries the ids of the objects involved so a UI can select them.  
 <a name="module_core/Diagram.Diagram+getBounds"></a>
 
 #### diagram.getBounds([padding]) ⇒ <code>Object</code> \| <code>null</code>

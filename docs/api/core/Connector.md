@@ -59,6 +59,10 @@ link.label = 'Program A';
             * [.getEndPoint()](#module_core/Connector.Connector+getEndPoint) ⇒ <code>Object</code> \| <code>null</code>
             * [.isDangling()](#module_core/Connector.Connector+isDangling) ⇒ <code>boolean</code>
             * [.getPathPoints()](#module_core/Connector.Connector+getPathPoints) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
+            * [.toPolyline()](#module_core/Connector.Connector+toPolyline) ⇒ <code>boolean</code>
+            * [.insertWaypoint(x, y)](#module_core/Connector.Connector+insertWaypoint) ⇒ <code>number</code>
+            * [.findWaypointNear(x, y, [threshold])](#module_core/Connector.Connector+findWaypointNear) ⇒ <code>number</code>
+            * [.reverse()](#module_core/Connector.Connector+reverse)
             * [.getBezierSamples([samples])](#module_core/Connector.Connector+getBezierSamples) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
             * [.containsPoint(x, y, [threshold])](#module_core/Connector.Connector+containsPoint) ⇒ <code>boolean</code>
             * ~~[.isNearLine()](#module_core/Connector.Connector+isNearLine)~~
@@ -116,6 +120,10 @@ link.label = 'Program A';
         * [.getEndPoint()](#module_core/Connector.Connector+getEndPoint) ⇒ <code>Object</code> \| <code>null</code>
         * [.isDangling()](#module_core/Connector.Connector+isDangling) ⇒ <code>boolean</code>
         * [.getPathPoints()](#module_core/Connector.Connector+getPathPoints) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
+        * [.toPolyline()](#module_core/Connector.Connector+toPolyline) ⇒ <code>boolean</code>
+        * [.insertWaypoint(x, y)](#module_core/Connector.Connector+insertWaypoint) ⇒ <code>number</code>
+        * [.findWaypointNear(x, y, [threshold])](#module_core/Connector.Connector+findWaypointNear) ⇒ <code>number</code>
+        * [.reverse()](#module_core/Connector.Connector+reverse)
         * [.getBezierSamples([samples])](#module_core/Connector.Connector+getBezierSamples) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>
         * [.containsPoint(x, y, [threshold])](#module_core/Connector.Connector+containsPoint) ⇒ <code>boolean</code>
         * ~~[.isNearLine()](#module_core/Connector.Connector+isNearLine)~~
@@ -278,6 +286,47 @@ Bezier connectors return the sampled curve (see [Connector#getBezierSamples](Con
 
 **Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
 **Returns**: <code>Array.&lt;{x:number, y:number}&gt;</code> - Empty when an endpoint is unresolved.  
+<a name="module_core/Connector.Connector+toPolyline"></a>
+
+#### connector.toPolyline() ⇒ <code>boolean</code>
+Converts the connector to an editable polyline, seeding waypoints from the current path so the
+shape does not visibly change (bezier curves are approximated with a few samples).
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+**Returns**: <code>boolean</code> - True if the style was changed.  
+<a name="module_core/Connector.Connector+insertWaypoint"></a>
+
+#### connector.insertWaypoint(x, y) ⇒ <code>number</code>
+Inserts a waypoint on the segment closest to (x, y), converting to a polyline first if needed.
+The point is projected onto that segment so it sits exactly on the line.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+**Returns**: <code>number</code> - Index of the new waypoint in `waypoints` (-1 when the path is unresolved).  
+
+| Param | Type |
+| --- | --- |
+| x | <code>number</code> | 
+| y | <code>number</code> | 
+
+<a name="module_core/Connector.Connector+findWaypointNear"></a>
+
+#### connector.findWaypointNear(x, y, [threshold]) ⇒ <code>number</code>
+Index of the waypoint within `threshold` of (x, y), or -1.
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
+
+| Param | Type | Default |
+| --- | --- | --- |
+| x | <code>number</code> |  | 
+| y | <code>number</code> |  | 
+| [threshold] | <code>number</code> | <code>8</code> | 
+
+<a name="module_core/Connector.Connector+reverse"></a>
+
+#### connector.reverse()
+Swaps start and end (useful when a link was drawn the wrong way round).
+
+**Kind**: instance method of [<code>Connector</code>](#module_core/Connector.Connector)  
 <a name="module_core/Connector.Connector+getBezierSamples"></a>
 
 #### connector.getBezierSamples([samples]) ⇒ <code>Array.&lt;{x:number, y:number}&gt;</code>

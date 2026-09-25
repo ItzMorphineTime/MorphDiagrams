@@ -199,6 +199,8 @@ Right-click for quick actions:
 | `Ctrl+S` | Save |
 | `Ctrl+O` | Open |
 | `Delete` / `Backspace` | Delete |
+| `F2` / `Enter` / double-click | Rename / edit text in place |
+| `?` | Shortcut help |
 | `Escape` | Cancel/Deselect |
 
 ### Grouping
@@ -250,6 +252,11 @@ Right-click for quick actions:
 3. **Click intermediate points** to add waypoints
 4. **Double-click** end anchor to finish
 
+#### Editing an existing connector
+1. **Right-click** the link → **Add waypoint here** (straight/orthogonal/bezier links become editable polylines without changing shape)
+2. Drag waypoints (they snap to the grid); **Alt+click** a waypoint or use *Remove waypoint* to delete it
+3. *Straighten*, switch the path style, *Reverse direction* or edit the label from the same menu
+
 #### Bezier Curves
 1. Create any connector
 2. Change style to **Bezier** in Properties Panel
@@ -263,8 +270,8 @@ Right-click for quick actions:
 
 ### Editing Objects
 
-1. **Select** with Select tool (V)
-2. **Modify in Properties Panel:**
+1. **Select** with Select tool (V) — double-click to rename in place, drag with smart alignment guides
+2. **Modify in Properties Panel** (multi-selection edits shared properties):
    - Position and dimensions
    - Colors and styling
    - Text content

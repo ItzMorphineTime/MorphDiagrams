@@ -126,6 +126,33 @@ Effort: **S** (< 1 day), **M** (1–3 days), **L** (more than 3 days).
 - API docs regenerated for the new modules; `docs/getting-started.md` and `docs/mcp.md` added;
   README corrected/extended.
 
+### Editor UX / UI pass (second iteration)
+
+- **New layout**: app bar (file actions, export menu, undo/redo, settings, help, panel toggle), a vertical
+  **tool palette** with consistent SVG icons and tooltips, a docked **properties panel** and a **status bar**
+  (contextual hint for the current tool, cursor position, selection count, validation chip, default link
+  style, grid/snap/shadow/port-label toggles). Floating zoom controls live on the canvas.
+- **Properties panel** (`js/ui/PropertiesPanel.js`): sectioned layout (object, position, ports, text,
+  appearance, connector), **multi-select editing** of shared properties, an **Arrange** section (layers,
+  group, align, distribute, duplicate, delete) and a **diagram overview** when nothing is selected with
+  stats and **clickable validation issues** that select/reveal the objects involved.
+- **Connector path editing**: right-click a link → *Add waypoint here* (any style is converted to an
+  editable polyline without changing its shape, and the point is projected onto the line), *Remove
+  waypoint*, *Straighten*, switch path style, *Reverse direction*, arrows, label. `Alt`+click removes a
+  waypoint; waypoints snap to the grid while dragging. Same actions in the panel.
+- **Direct manipulation**: double-click / `F2` **inline renaming** of devices, text blocks and connector
+  labels; hover outline for the object under the cursor; **port tooltips** (name + what it is connected to);
+  **smart alignment guides** while dragging (edges and centres of other shapes) with grid snapping of the
+  dragged shape; `Alt`+marquee selects intersecting shapes; grouped shapes are selected together by marquee.
+- **Canvas**: HiDPI rendering (`devicePixelRatio`), grid that coarsens when zoomed out, empty-state card
+  with quick actions, toast notifications and a proper confirm dialog instead of `alert`/`confirm`.
+- **Autosave** to `localStorage` (debounced) with a *Restore* offer on the next visit (disabled in live mode).
+- **Tooltips** (`js/ui/Tooltip.js`): a floating tooltip layer (never clipped by the scrolling palette) with
+  a title, shortcut chip and a one-line description for every tool button, plus keyboard-focus support.
+- **Shortcut help** (`?` / Help button), template and icon **thumbnails** rendered with the SVG exporter,
+  context menu with icons, "Add device here" / "Add text here" on the canvas menu, `Shift+1` zoom to fit.
+- `Diagram.validate()` now also returns structured `issues` with the ids of the objects involved.
+
 ### Behaviour changes to be aware of
 
 - Orthogonal connectors now leave ports with a straight 20 px stub, so existing files render slightly
@@ -154,14 +181,14 @@ Effort: **S** (< 1 day), **M** (1–3 days), **L** (more than 3 days).
 
 | # | Priority | Effort | Suggestion |
 |---|---|---|---|
-| 3.8 | P1 | S | **HiDPI canvas** (scale by `devicePixelRatio`) – rendering is blurry on 4K/retina screens. |
-| 3.9 | P1 | M | **Multi-select property editing** (fill, stroke, ports, labels applied to all selected). |
-| 3.10 | P1 | S | **Autosave to `localStorage`** with "restore last session" – the README advertises auto-save. |
-| 3.11 | P2 | M | **Smart alignment guides** while dragging (README promises them) and an "intersect" selection mode. |
-| 3.12 | P2 | S | **Inline label editing** by double-click (device and connector labels). |
+| 3.8 | ✅ done | S | **HiDPI canvas** (scale by `devicePixelRatio`) – rendering is blurry on 4K/retina screens. |
+| 3.9 | ✅ done | M | **Multi-select property editing** (fill, stroke, labels position, lock, connector styles applied to all selected). Batch port editing is still open. |
+| 3.10 | ✅ done | S | **Autosave to `localStorage`** with "restore last session". |
+| 3.11 | ✅ done | M | **Smart alignment guides** while dragging and an "intersect" selection mode (`Alt`+marquee). |
+| 3.12 | ✅ done | S | **Inline label editing** by double-click / `F2` (devices, text and connector labels). |
 | 3.13 | P2 | M | **Object list / layers panel** (search by label, lock/hide toggles – "show/hide" is promised but not exposed). |
 | 3.14 | P2 | S | Resize handles on **rotated** shapes apply deltas in world space; convert to local space. |
-| 3.15 | P2 | S | Template and icon modals could show **thumbnails** rendered with `SvgExporter`. |
+| 3.15 | ✅ done | S | Template and icon modals show **thumbnails** rendered with `SvgExporter`. |
 | 3.16 | P3 | L | **Touch/pen input**, keyboard accessibility for the canvas (focusable, ARIA), minimap and rulers. |
 | 3.17 | P3 | M | **Command-pattern undo** (diffs instead of full JSON snapshots) to reduce memory with large image data. |
 
@@ -216,7 +243,7 @@ Effort: **S** (< 1 day), **M** (1–3 days), **L** (more than 3 days).
 
 ## 4. Suggested order of work
 
-1. CI + HiDPI + vector PDF + autosave (3.32, 3.8, 3.21, 3.10) – small, high-visibility wins.
+1. CI + vector PDF (3.32, 3.21) – small, high-visibility wins.
 2. Per-port metadata and cable schedule (3.1, 3.2) – rounds out the hardware-diagram use case.
 3. Agent image preview and better layout (3.25, 3.26) – makes fully autonomous diagram generation reliable.
 4. Routing quality (3.3) and multi-select editing (3.9).
